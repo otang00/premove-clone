@@ -1,0 +1,55 @@
+export const company = {
+  name: '빵빵카(주)',
+  phone: '02-592-0079',
+  address: '서울 서초구 신반포로23길 78-9 (수푸레하우스) 1층 빵빵카(주)',
+}
+
+export const searchState = {
+  pickupOption: 'pickup',
+  deliveryDateTime: '2026-04-02 10:00',
+  returnDateTime: '2026-04-03 10:00',
+  driverAge: '26',
+  order: 'lower',
+}
+
+export const cars = [
+  {
+    id: '22015',
+    name: '아반떼 (CN7)',
+    yearLabel: '21~23년식',
+    ageLabel: '만26세',
+    fuelType: 'LPG',
+    seats: '5인승',
+    dayPrice: '56,000원',
+    totalPrice: '160,000원',
+    image: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?auto=format&fit=crop&w=1200&q=80',
+    features: ['네비게이션', '블루투스', '후방센서', '후방카메라', '블랙박스', '금연 차량'],
+    insurance: { type: '일반 자차', price: '0원', coverage: '700만원', deductible: '50만원' },
+  },
+  {
+    id: '22016',
+    name: '더 뉴 셀토스',
+    yearLabel: '25년식',
+    ageLabel: '만26세',
+    fuelType: '가솔린',
+    seats: '5인승',
+    dayPrice: '72,000원',
+    totalPrice: '180,000원',
+    image: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1200&q=80',
+    features: ['네비게이션', '블루투스', '핸들열선', '후방카메라', '스마트키', '금연 차량'],
+    insurance: { type: '일반 자차', price: '0원', coverage: '700만원', deductible: '50만원' },
+  },
+  {
+    id: '22017',
+    name: '카니발 4세대',
+    yearLabel: '23년식',
+    ageLabel: '만26세',
+    fuelType: '디젤',
+    seats: '9인승',
+    dayPrice: '104,000원',
+    totalPrice: '260,000원',
+    image: 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?auto=format&fit=crop&w=1200&q=80',
+    features: ['네비게이션', '블루투스', '후방카메라', '열선시트', '블랙박스', '금연 차량'],
+    insurance: { type: '일반 자차', price: '0원', coverage: '700만원', deductible: '50만원' },
+  },
+]
