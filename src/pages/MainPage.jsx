@@ -1,10 +1,10 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import SearchBox from '../components/SearchBox'
 import CarCard from '../components/CarCard'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
-import { getMockCars } from '../services/cars'
+import { fetchSearchCars } from '../services/cars'
 import { getMockCompany } from '../services/company'
 
 function EmptyState() {
@@ -25,14 +25,65 @@ function ErrorState({ message }) {
   )
 }
 
+function LoadingState() {
+  return (
+    <div className="detail-card compact-card">
+      <h2>차량 조회 중</h2>
+      <p className="muted small-note">partner 데이터를 불러오는 중입니다.</p>
+    </div>
+  )
+}
+
 export default function MainPage() {
   const location = useLocation()
   const searchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const validation = useMemo(() => validateSearchState(searchState), [searchState])
-  const company = useMemo(() => getMockCompany(), [])
-  const { cars, totalCount } = useMemo(() => getMockCars(searchState), [searchState])
+  const [company, setCompany] = useState(() => getMockCompany())
+  const [cars, setCars] = useState([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(false)
+  const [fetchError, setFetchError] = useState('')
 
-  const errorMessage = validation.isValid
+  useEffect(() => {
+    let isCancelled = false
+
+    if (!validation.isValid) {
+      setCars([])
+      setTotalCount(0)
+      setFetchError('')
+      setIsLoading(false)
+      return () => {
+        isCancelled = true
+      }
+    }
+
+    setIsLoading(true)
+    setFetchError('')
+
+    fetchSearchCars(searchState)
+      .then((payload) => {
+        if (isCancelled) return
+        setCompany((current) => ({ ...current, ...payload.company, name: payload.company.companyName || current.name }))
+        setCars(payload.cars)
+        setTotalCount(payload.totalCount)
+      })
+      .catch((error) => {
+        if (isCancelled) return
+        setCars([])
+        setTotalCount(0)
+        setFetchError(error.message || '차량 조회에 실패했습니다.')
+      })
+      .finally(() => {
+        if (isCancelled) return
+        setIsLoading(false)
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [searchState, validation])
+
+  const validationErrorMessage = validation.isValid
     ? ''
     : Object.values(validation.errors)[0] || '잘못된 검색 조건입니다.'
 
@@ -57,9 +108,11 @@ export default function MainPage() {
             </div>
           </div>
 
-          {!validation.isValid && <ErrorState message={errorMessage} />}
-          {validation.isValid && totalCount === 0 && <EmptyState />}
-          {validation.isValid && totalCount > 0 && (
+          {!validation.isValid && <ErrorState message={validationErrorMessage} />}
+          {validation.isValid && isLoading && <LoadingState />}
+          {validation.isValid && !isLoading && fetchError && <ErrorState message={fetchError} />}
+          {validation.isValid && !isLoading && !fetchError && totalCount === 0 && <EmptyState />}
+          {validation.isValid && !isLoading && !fetchError && totalCount > 0 && (
             <div className="car-list clean refined-list">
               {cars.map((car) => <CarCard key={car.id} car={car} />)}
             </div>

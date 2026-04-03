@@ -25,13 +25,41 @@ function ContextErrorState({ title, message }) {
   )
 }
 
+function createFallbackCar(summaryCar) {
+  if (!summaryCar) return null
+
+  return {
+    id: summaryCar.id,
+    name: summaryCar.name,
+    image: summaryCar.image,
+    yearLabel: summaryCar.yearLabel,
+    fuelType: summaryCar.fuelType,
+    seats: summaryCar.seats,
+    features: summaryCar.features || [],
+    dayPrice: summaryCar.dayPrice,
+    insurance: {
+      type: '일반 자차',
+      price: '0원',
+      coverage: '확인 필요',
+      deductible: '확인 필요',
+    },
+  }
+}
+
 export default function CarDetailPage() {
   const { carId } = useParams()
   const location = useLocation()
   const company = useMemo(() => getMockCompany(), [])
   const searchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const validation = useMemo(() => validateSearchState(searchState), [searchState])
-  const car = useMemo(() => getMockCarById(carId), [carId])
+  const mockCar = useMemo(() => getMockCarById(carId), [carId])
+  const fallbackCar = useMemo(() => {
+    const stateCar = location.state?.carSummary
+    return stateCar && String(stateCar.id) === String(carId)
+      ? createFallbackCar(stateCar)
+      : null
+  }, [location.state, carId])
+  const car = mockCar || fallbackCar
   const hasSearchContext = useMemo(() => {
     const params = new URLSearchParams(location.search)
     return params.has('deliveryDateTime') && params.has('returnDateTime')

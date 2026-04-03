@@ -2,8 +2,13 @@ import { Link, useLocation } from 'react-router-dom'
 
 export default function CarCard({ car }) {
   const location = useLocation()
+
   return (
-    <Link className="car-card clean refined-card" to={`/cars/${car.id}${location.search}`}>
+    <Link
+      className="car-card clean refined-card"
+      to={`/cars/${car.id}${location.search}`}
+      state={{ carSummary: car }}
+    >
       <div className="car-thumb-wrap refined-thumb">
         <img src={car.image} alt={car.name} />
       </div>

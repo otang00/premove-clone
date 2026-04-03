@@ -1,3 +1,4 @@
+import { buildSearchQuery } from '../utils/searchQuery'
 import { cars as mockCars } from '../data/mock'
 
 function sortCars(cars, order) {
@@ -32,6 +33,40 @@ function applyAgeFilter(cars, driverAge) {
   return cars
 }
 
+function formatMoney(value) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
+
+function formatYearLabel(minModelYear, maxModelYear) {
+  const min = Number(minModelYear)
+  const max = Number(maxModelYear)
+
+  if (!min && !max) return '-'
+  if (min && max && min !== max) return `${String(min).slice(-2)}~${String(max).slice(-2)}년식`
+  return `${String(max || min).slice(-2)}년식`
+}
+
+function toCardModel(car, searchState) {
+  const deliveryPrice = Number(car.deliveryPrice || 0)
+  const isDelivery = searchState.pickupOption === 'delivery'
+  const finalDiscountPrice = Number(car.discountPrice || 0) + (isDelivery ? deliveryPrice : 0)
+  const finalOriginPrice = Number(car.price || 0) + (isDelivery ? deliveryPrice : 0)
+
+  return {
+    id: String(car.carId),
+    name: car.name,
+    image: car.imageUrl,
+    yearLabel: formatYearLabel(car.minModelYear, car.maxModelYear),
+    ageLabel: `만${car.insuranceAge}세`,
+    fuelType: car.oilType,
+    seats: `${car.capacity}인승`,
+    dayPrice: formatMoney(finalDiscountPrice),
+    totalPrice: formatMoney(finalOriginPrice),
+    features: Array.isArray(car.options) ? car.options : [],
+    raw: car,
+  }
+}
+
 export function getMockCars(searchState) {
   const filteredCars = applyAgeFilter(mockCars, searchState.driverAge)
   const sortedCars = sortCars(filteredCars, searchState.order)
@@ -39,6 +74,24 @@ export function getMockCars(searchState) {
   return {
     cars: sortedCars,
     totalCount: sortedCars.length,
+  }
+}
+
+export async function fetchSearchCars(searchState) {
+  const query = buildSearchQuery(searchState)
+  const response = await fetch(`/api/search-cars?${query}`)
+  const payload = await response.json()
+
+  if (!response.ok) {
+    throw new Error(payload.message || payload.error || '차량 조회에 실패했습니다.')
+  }
+
+  return {
+    search: payload.search,
+    company: payload.company,
+    totalCount: payload.totalCount,
+    cars: Array.isArray(payload.cars) ? payload.cars.map((car) => toCardModel(car, searchState)) : [],
+    meta: payload.meta,
   }
 }
 
