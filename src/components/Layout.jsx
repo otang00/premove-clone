@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom'
-import { company } from '../data/mock'
+import { getMockCompany } from '../services/company'
 
 export function Header() {
+  const company = getMockCompany()
+
   return (
     <header className="header">
       <div className="container header-inner slim header-three-col">
@@ -19,6 +21,8 @@ export function Header() {
 }
 
 export function Footer() {
+  const company = getMockCompany()
+
   return (
     <footer className="footer minimal-footer">
       <div className="container footer-inner centered-footer">

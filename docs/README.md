@@ -11,6 +11,7 @@
 
 ## 단계별 상세 설계
 - `phase-specs/PHASE_01_FOUNDATION.md`
+- `phase-specs/PHASE_01_EXECUTION.md`
 - `phase-specs/PHASE_02_PARTNER_PROXY.md`
 - `phase-specs/PHASE_03_DETAIL_AND_RESERVATION.md`
 - `phase-specs/PHASE_04_BOOKING_AND_PAYMENT_PREP.md`

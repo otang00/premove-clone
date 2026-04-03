@@ -4,14 +4,6 @@ export const company = {
   address: '서울 서초구 신반포로23길 78-9 (수푸레하우스) 1층 빵빵카(주)',
 }
 
-export const searchState = {
-  pickupOption: 'pickup',
-  deliveryDateTime: '2026-04-02 10:00',
-  returnDateTime: '2026-04-03 10:00',
-  driverAge: '26',
-  order: 'lower',
-}
-
 export const cars = [
   {
     id: '22015',
