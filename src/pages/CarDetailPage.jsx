@@ -1,10 +1,28 @@
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import SearchBox from '../components/SearchBox'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
-import { getMockCarById } from '../services/cars'
+import { fetchCarDetail } from '../services/carDetail'
 import { getMockCompany } from '../services/company'
+import {
+  DEFAULT_RESERVATION_FORM,
+  normalizeBirth,
+  normalizePhone,
+  validateReservationForm,
+} from '../services/reservationForm'
+import {
+  DEFAULT_TERMS_STATE,
+  PAYMENT_METHODS,
+  toggleAllTerms,
+  toggleSingleTerm,
+  validateReservationSubmission,
+  validateTermsState,
+} from '../services/reservationUiState'
+import {
+  DEFAULT_DELIVERY_FORM,
+  validateDeliveryForm,
+} from '../services/deliveryForm'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
@@ -25,45 +43,137 @@ function ContextErrorState({ title, message }) {
   )
 }
 
-function createFallbackCar(summaryCar) {
-  if (!summaryCar) return null
-
-  return {
-    id: summaryCar.id,
-    name: summaryCar.name,
-    image: summaryCar.image,
-    yearLabel: summaryCar.yearLabel,
-    fuelType: summaryCar.fuelType,
-    seats: summaryCar.seats,
-    features: summaryCar.features || [],
-    dayPrice: summaryCar.dayPrice,
-    insurance: {
-      type: '일반 자차',
-      price: '0원',
-      coverage: '확인 필요',
-      deductible: '확인 필요',
-    },
-  }
+function LoadingState() {
+  return (
+    <article className="detail-card compact-card">
+      <h2>상세 정보 불러오는 중</h2>
+      <p className="muted small-note">partner 상세 데이터를 불러오는 중입니다.</p>
+    </article>
+  )
 }
 
 export default function CarDetailPage() {
   const { carId } = useParams()
   const location = useLocation()
-  const company = useMemo(() => getMockCompany(), [])
   const searchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const validation = useMemo(() => validateSearchState(searchState), [searchState])
-  const mockCar = useMemo(() => getMockCarById(carId), [carId])
-  const fallbackCar = useMemo(() => {
-    const stateCar = location.state?.carSummary
-    return stateCar && String(stateCar.id) === String(carId)
-      ? createFallbackCar(stateCar)
-      : null
-  }, [location.state, carId])
-  const car = mockCar || fallbackCar
   const hasSearchContext = useMemo(() => {
     const params = new URLSearchParams(location.search)
     return params.has('deliveryDateTime') && params.has('returnDateTime')
   }, [location.search])
+
+  const [company, setCompany] = useState(() => getMockCompany())
+  const [car, setCar] = useState(null)
+  const [pricing, setPricing] = useState(null)
+  const [insurance, setInsurance] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [fetchError, setFetchError] = useState('')
+  const [reservationForm, setReservationForm] = useState(DEFAULT_RESERVATION_FORM)
+  const [termsState, setTermsState] = useState(DEFAULT_TERMS_STATE)
+  const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CARD)
+  const [deliveryForm, setDeliveryForm] = useState(() => ({
+    ...DEFAULT_DELIVERY_FORM,
+    selectedDongId: searchState.dongId || null,
+    selectedDongLabel: searchState.deliveryAddress || '',
+  }))
+
+  const reservationValidation = useMemo(
+    () => validateReservationForm(reservationForm),
+    [reservationForm],
+  )
+  const termsValidation = useMemo(() => validateTermsState(termsState), [termsState])
+  const deliveryValidation = useMemo(
+    () => validateDeliveryForm(deliveryForm, searchState.pickupOption),
+    [deliveryForm, searchState.pickupOption],
+  )
+  const submitValidation = useMemo(
+    () => {
+      const base = validateReservationSubmission({ reservationValidation, termsValidation, paymentMethod })
+      if (searchState.pickupOption !== 'delivery') return base
+      if (deliveryValidation.isValid) return base
+      return {
+        errors: {
+          ...base.errors,
+          delivery: Object.values(deliveryValidation.errors)[0] || '딜리버리 정보를 확인해 주세요.',
+        },
+        isValid: false,
+      }
+    },
+    [reservationValidation, termsValidation, paymentMethod, searchState.pickupOption, deliveryValidation],
+  )
+
+  useEffect(() => {
+    let isCancelled = false
+
+    if (!carId || !hasSearchContext || !validation.isValid) {
+      setCar(null)
+      setPricing(null)
+      setInsurance(null)
+      setFetchError('')
+      setIsLoading(false)
+      return () => {
+        isCancelled = true
+      }
+    }
+
+    setIsLoading(true)
+    setFetchError('')
+
+    fetchCarDetail(carId, searchState)
+      .then((payload) => {
+        if (isCancelled) return
+        setCompany((current) => ({
+          ...current,
+          name: payload.company.companyName || current.name,
+          address: payload.company.fullGarageAddress || current.address,
+          phone: payload.company.companyTel || current.phone,
+        }))
+        setCar(payload.car)
+        setPricing(payload.pricing)
+        setInsurance(payload.insurance)
+      })
+      .catch((error) => {
+        if (isCancelled) return
+        setCar(null)
+        setPricing(null)
+        setInsurance(null)
+        setFetchError(error.message || '상세 조회에 실패했습니다.')
+      })
+      .finally(() => {
+        if (isCancelled) return
+        setIsLoading(false)
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [carId, hasSearchContext, searchState, validation])
+
+  const updateReservationForm = (field, value) => {
+    setReservationForm((current) => {
+      if (field === 'customerPhone') {
+        return { ...current, customerPhone: normalizePhone(value) }
+      }
+
+      if (field === 'customerBirth') {
+        return { ...current, customerBirth: normalizeBirth(value) }
+      }
+
+      return { ...current, [field]: value }
+    })
+  }
+
+  const handleToggleAllTerms = (checked) => {
+    setTermsState(toggleAllTerms(checked))
+  }
+
+  const handleToggleSingleTerm = (field, checked) => {
+    setTermsState((current) => toggleSingleTerm(current, field, checked))
+  }
+
+  const updateDeliveryForm = (field, value) => {
+    setDeliveryForm((current) => ({ ...current, [field]: value }))
+  }
 
   return (
     <PageShell>
@@ -85,14 +195,16 @@ export default function CarDetailPage() {
             />
           )}
 
-          {hasSearchContext && validation.isValid && !car && (
+          {hasSearchContext && validation.isValid && isLoading && <LoadingState />}
+
+          {hasSearchContext && validation.isValid && !isLoading && fetchError && (
             <ContextErrorState
-              title="차량을 찾을 수 없습니다"
-              message="잘못된 차량 경로이거나 더 이상 표시할 수 없는 차량입니다."
+              title="상세 조회 실패"
+              message={fetchError}
             />
           )}
 
-          {hasSearchContext && validation.isValid && car && (
+          {hasSearchContext && validation.isValid && !isLoading && !fetchError && car && pricing && insurance && (
             <div className="detail-columns compact-detail">
               <section className="detail-main">
                 <article className="detail-card summary-card compact-summary">
@@ -120,21 +232,50 @@ export default function CarDetailPage() {
                 <article className="detail-card compact-card">
                   <h2>보험 정보</h2>
                   <div className="info-grid three compact-info-grid info-stat-grid">
-                    <div><span>보험 안내</span><strong>{car.insurance.type}</strong><small>+ {car.insurance.price}</small></div>
-                    <div><span>보상한도</span><strong>{car.insurance.coverage}</strong><small>대인/대물 기준</small></div>
-                    <div><span>자차 면책금</span><strong>{car.insurance.deductible}</strong><small>사고 시 고객 부담금</small></div>
+                    <div><span>보험 안내</span><strong>일반 자차</strong><small>+ {pricing.insurancePrice}</small></div>
+                    <div><span>보상한도</span><strong>{insurance.general?.coverage ? `${insurance.general.coverage}만원` : '확인 필요'}</strong><small>대인/대물 기준</small></div>
+                    <div><span>자차 면책금</span><strong>{insurance.general?.indemnificationFee ? `${insurance.general.indemnificationFee}만원` : '확인 필요'}</strong><small>사고 시 고객 부담금</small></div>
                   </div>
                 </article>
 
                 <article className="detail-card compact-card">
                   <h2>운전자 정보</h2>
                   <div className="form-grid compact-form-grid">
-                    <input placeholder="이름" />
-                    <input placeholder="생년월일" />
-                    <input placeholder="휴대폰번호" />
+                    <div>
+                      <input
+                        placeholder="이름"
+                        value={reservationForm.customerName}
+                        onChange={(e) => updateReservationForm('customerName', e.target.value)}
+                      />
+                      {reservationForm.customerName && reservationValidation.errors.customerName && (
+                        <p className="muted small-note">{reservationValidation.errors.customerName}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        placeholder="생년월일 8자리"
+                        inputMode="numeric"
+                        value={reservationForm.customerBirth}
+                        onChange={(e) => updateReservationForm('customerBirth', e.target.value)}
+                      />
+                      {reservationForm.customerBirth && reservationValidation.errors.customerBirth && (
+                        <p className="muted small-note">{reservationValidation.errors.customerBirth}</p>
+                      )}
+                    </div>
+                    <div>
+                      <input
+                        placeholder="휴대폰번호"
+                        inputMode="tel"
+                        value={reservationForm.customerPhone}
+                        onChange={(e) => updateReservationForm('customerPhone', e.target.value)}
+                      />
+                      {reservationForm.customerPhone && reservationValidation.errors.customerPhone && (
+                        <p className="muted small-note">{reservationValidation.errors.customerPhone}</p>
+                      )}
+                    </div>
                     <button className="outline block">인증번호</button>
                   </div>
-                  <p className="muted small-note">만 {searchState.driverAge}세 이상 / 면허 취득 1년 경과. 현장에서 면허 진위를 확인합니다.</p>
+                  <p className="muted small-note">만 {car.rentAge}세 이상 / 면허 취득 {car.drivingYears}년 경과. 현장에서 면허 진위를 확인합니다.</p>
                 </article>
 
                 <article className="detail-card compact-card">
@@ -151,6 +292,40 @@ export default function CarDetailPage() {
                   </div>
                 </article>
 
+                {searchState.pickupOption === 'delivery' && (
+                  <article className="detail-card compact-card">
+                    <h2>딜리버리 신청</h2>
+                    <div className="form-grid compact-form-grid">
+                      <div>
+                        <button className="outline block" type="button">위치 선택</button>
+                        <p className="muted small-note">
+                          {deliveryForm.selectedDongLabel || '차량 대여/반납 위치를 선택해 주세요.'}
+                        </p>
+                        {!deliveryValidation.isValid && deliveryValidation.errors.selectedDongId && (
+                          <p className="muted small-note">{deliveryValidation.errors.selectedDongId}</p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          placeholder="상세 주소를 입력해 주세요."
+                          value={deliveryForm.deliveryAddressDetail}
+                          onChange={(e) => updateDeliveryForm('deliveryAddressDetail', e.target.value)}
+                        />
+                        {!deliveryValidation.isValid && deliveryValidation.errors.deliveryAddressDetail && (
+                          <p className="muted small-note">{deliveryValidation.errors.deliveryAddressDetail}</p>
+                        )}
+                      </div>
+                      <div>
+                        <input
+                          placeholder="업체에 전달할 내용을 적어주세요."
+                          value={deliveryForm.deliveryMemo}
+                          onChange={(e) => updateDeliveryForm('deliveryMemo', e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </article>
+                )}
+
                 <article className="detail-card compact-card">
                   <h2>업체 정보</h2>
                   <div className="store-box">
@@ -164,35 +339,43 @@ export default function CarDetailPage() {
                 <article className="detail-card compact-card">
                   <h2>결제 수단</h2>
                   <div className="info-grid three selectable compact-info-grid">
-                    <button className="select-card active"><strong>신용/체크카드</strong></button>
-                    <button className="select-card"><strong>카카오페이</strong></button>
-                    <button className="select-card"><strong>일반결제</strong></button>
+                    <button className={`select-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>신용/체크카드</strong></button>
+                    <button className={`select-card ${paymentMethod === PAYMENT_METHODS.KAKAO_PAY ? 'active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.KAKAO_PAY)}><strong>카카오페이</strong></button>
+                    <button className={`select-card ${paymentMethod === PAYMENT_METHODS.GENERAL ? 'active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.GENERAL)}><strong>일반결제</strong></button>
                   </div>
                 </article>
 
                 <article className="detail-card compact-card">
                   <h2>이용 약관 동의</h2>
                   <div className="terms-list compact-terms">
-                    <div><span>서비스 이용약관</span><button className="outline">보기</button></div>
-                    <div><span>렌터카 이용 특약사항</span><button className="outline">보기</button></div>
-                    <div><span>개인정보 수집 및 이용 동의</span><button className="outline">보기</button></div>
-                    <div><span>개인정보 제3자 제공 동의</span><button className="outline">보기</button></div>
+                    <label><input type="checkbox" checked={termsState.allAgreed} onChange={(e) => handleToggleAllTerms(e.target.checked)} /> 전체 동의</label>
+                    <label><input type="checkbox" checked={termsState.serviceAgreed} onChange={(e) => handleToggleSingleTerm('serviceAgreed', e.target.checked)} /> 서비스 이용약관</label>
+                    <label><input type="checkbox" checked={termsState.rentalPolicyAgreed} onChange={(e) => handleToggleSingleTerm('rentalPolicyAgreed', e.target.checked)} /> 렌터카 이용 특약사항</label>
+                    <label><input type="checkbox" checked={termsState.privacyAgreed} onChange={(e) => handleToggleSingleTerm('privacyAgreed', e.target.checked)} /> 개인정보 수집 및 이용 동의</label>
                   </div>
+                  {!termsValidation.isValid && (
+                    <p className="muted small-note">{Object.values(termsValidation.errors)[0]}</p>
+                  )}
                   <div className="legal-note">
                     아이엠에스모빌리티 주식회사는 통신판매중개자로서 거래 당사자가 아니며, 상품/거래조건 관련 책임은 각 판매자에게 있습니다.
                   </div>
-                  <label className="agree-row"><input type="checkbox" defaultChecked /> 위 내용을 모두 확인하였으며, 결제에 동의합니다.</label>
                 </article>
               </section>
 
               <aside className="detail-side detail-card sticky-side compact-side">
                 <h2>결제 정보</h2>
                 <div className="price-lines compact-price-lines">
-                  <div><span>대여료</span><strong>{car.dayPrice}</strong></div>
-                  <div><span>보험 (일반자차 포함)</span><strong>{car.insurance.price}</strong></div>
-                  <div className="total"><span>총 결제 금액</span><strong>{car.dayPrice}</strong></div>
+                  <div><span>기본 대여료</span><strong>{pricing.rentalCost}</strong></div>
+                  <div><span>보험</span><strong>{pricing.insurancePrice}</strong></div>
+                  {searchState.pickupOption === 'delivery' && (
+                    <div><span>딜리버리 왕복비</span><strong>{pricing.deliveryRoundTrip}</strong></div>
+                  )}
+                  <div className="total"><span>총 결제 금액</span><strong>{pricing.finalPrice}</strong></div>
                 </div>
-                <button className="pay-button">{car.dayPrice} 바로 결제하기</button>
+                {!submitValidation.isValid && (
+                  <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
+                )}
+                <button className="pay-button" disabled={!submitValidation.isValid}>{pricing.finalPrice} 바로 결제하기</button>
               </aside>
             </div>
           )}
