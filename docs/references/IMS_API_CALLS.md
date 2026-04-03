@@ -3,7 +3,9 @@
 ## 목적
 프리무브 클론에서 IMS 연동 시 현재 확인된 인증 방식, API 엔드포인트, 호출 흐름을 정리한다.
 
-이 문서는 `projects/telegram-parser-bot` 와 `tools/playwright/scripts` 에 있는 실제 동작 코드를 기준으로 작성했다.
+이 문서는 **현재 workspace 안의 별도 실험/운영 코드**를 기준으로 작성한 참고 문서다.
+즉, 이 파일에 적힌 외부 참조는 `premove-clone` repo 내부 문서가 아니라,
+**workspace의 다른 프로젝트/스크립트**를 가리키는 메모 성격이다.
 
 ---
 
@@ -21,17 +23,17 @@ IMS는 현재 확인 기준으로 **직접 로그인 API를 먼저 때리는 구
 
 ---
 
-## 확인된 소스 위치
+## 확인된 외부 참고 소스 (workspace 기준)
 
 ### 기준 문서
-- `projects/telegram-parser-bot/docs/telegram-parser-bot-current-state.md`
-- `projects/telegram-parser-bot/README.md`
+- workspace의 `telegram-parser-bot` current-state 문서
+- workspace의 `telegram-parser-bot` README
 
 ### 실제 동작 코드
-- `projects/telegram-parser-bot/src/index.js`
-- `tools/playwright/scripts/ims-reservations-export.js`
-- `tools/playwright/scripts/ims-reservation-cancel.js`
-- `tools/playwright/scripts/ims-reservation-draft.js`
+- workspace의 `telegram-parser-bot/src/index.js`
+- workspace의 `tools/playwright/scripts/ims-reservations-export.js`
+- workspace의 `tools/playwright/scripts/ims-reservation-cancel.js`
+- workspace의 `tools/playwright/scripts/ims-reservation-draft.js`
 
 ---
 
@@ -88,7 +90,7 @@ Accept: application/json, text/plain, */*
 ```
 
 ### 현재 확인된 쿼리 파라미터
-`tools/playwright/scripts/ims-reservations-export.js` 기준
+workspace의 `ims-reservations-export.js` 기준
 
 - `page`
 - `base_date`
@@ -116,7 +118,7 @@ const res = await fetch(url, {
 ```
 
 ### 응답에서 실제 사용 중인 주요 필드
-`ims-reservations-export.js` 의 `flattenSchedule()` 기준
+workspace의 `flattenSchedule()` 기준
 
 상위 스케줄 필드
 - `id`
@@ -207,7 +209,6 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 **직접 API 엔드포인트는 아직 못 찾았다.**
 
 지금 파서봇은 예약 생성을 아래 방식으로 처리한다.
-- `ims-reservation-draft.js`
 - Playwright로 로그인
 - 차량 검색 화면 이동
 - 날짜/시간/차량번호 입력
@@ -218,7 +219,7 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 즉, 현재 검증된 예약 생성은 **UI 자동화 방식**이다.
 
 ### 현재 입력 필드
-`ims-reservation-draft.js` 기준
+workspace의 예약 draft 스크립트 기준
 
 필수
 - `rentalAt`
@@ -244,9 +245,7 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 - 메모: `[data-input="booking_memo"]`
 - 저장 버튼: `button.Register_submit__wJTwr`
 
-### 현재 파서봇에서 IMS 입력 매핑
-`projects/telegram-parser-bot/docs/telegram-parser-bot-current-state.md` 기준
-
+### 현재 매핑 요약
 - 대여일 → `rentalAt`
 - 반납일 → `returnAt`
 - 차량번호 → `carNumber`
@@ -264,12 +263,6 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 
 ## 4) 프리무브 메인 목록 구현에 대한 해석
 
-사장님 요구사항은 다음이다.
-- 메인 페이지에서 대여/반납 일정 입력
-- 그 기준으로 **비어있는 차량 리스트** 조회
-- 차량 클릭 시 예약 페이지 진입
-- 결제 후 IMS 예약 반영
-
 현재 확보된 사실은 이렇다.
 
 ### 이미 확인된 것
@@ -286,12 +279,6 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 - 결제 후 IMS 등록 순서에서 사용할 최종 엔드포인트
 
 즉, **메인 차량 목록을 API로 붙이려면 추가 API 캡처가 필요**하다.
-
-가장 유력한 다음 단계는:
-1. Playwright로 `partner.premove.co.kr/35457` 또는 IMS 차량 검색 화면 진입
-2. 검색 버튼 클릭 시 발생하는 네트워크 요청 캡처
-3. 차량 목록 API URL / method / payload / response 구조 문서화
-4. 그 API를 프리무브 클론 서버 쪽에서 프록시 호출
 
 ---
 
@@ -318,24 +305,7 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 
 ---
 
-## 6) 바로 재사용 가능한 코드 포인트
-
-### Authorization 캡처 방식
-- 참고: `tools/playwright/scripts/ims-reservations-export.js`
-- 참고: `tools/playwright/scripts/ims-reservation-cancel.js`
-
-### 예약 생성 UI 자동화
-- 참고: `tools/playwright/scripts/ims-reservation-draft.js`
-
-### 예약 취소 API 호출
-- 참고: `tools/playwright/scripts/ims-reservation-cancel.js`
-
-### 파서봇에서 IMS 후속 처리 연결
-- 참고: `projects/telegram-parser-bot/src/index.js`
-
----
-
-## 7) 현재 판단
+## 6) 현재 판단
 
 ### 확정
 - IMS는 브라우저 로그인 기반 인증을 사용 중이다.
@@ -350,18 +320,12 @@ const res = await fetch(`${apiBaseUrl}/v2/company-car-schedules/delete`, {
 
 ---
 
-## 8) 다음 액션 추천
+## 7) 다음 액션 추천
 
 1. **차량 가용 목록 API 캡처 문서 추가 작성**
-   - 메인 검색 기준 실제 호출 API 찾기
 2. **IMS 세션/Authorization 재사용 전략 설계**
-   - 요청마다 로그인할지
-   - 세션 캐시를 둘지
 3. **프리무브 클론 API 스펙 초안 작성**
-   - 프론트가 쓰는 내부 API 우선 정의
 4. **결제 이후 예약 생성 순서 확정**
-   - 결제 성공 후 IMS 생성
-   - IMS 생성 실패 시 보상 처리
 
 ---
 

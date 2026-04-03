@@ -1,26 +1,27 @@
 # premove-clone
 
-목표: partner.premove.co.kr/35457 메인 예약 페이지를 시작점으로, 1단계 외형 구축(더미데이터 기반)만 완성하기 위한 내부 프로젝트 문서 패키지.
+`premove-clone`은 partner.premove.co.kr 기반 차량 조회 결과를
+우리 서버가 파싱/가공하고,
+그 결과를 메인 → 목록 → 차량 예약 페이지 흐름으로 재구성하는 예약 서비스 프로젝트다.
 
-범위:
-- 메인 예약 페이지 외형
-- 차량 목록 페이지 외형
-- 차량 상세/예약 페이지 외형
-- 예약정보 입력/결제 직전 화면 외형
-- 공통 헤더/푸터/필터/카드/폼/결제박스 외형
+## 현재 기준 문서
+문서는 아래 순서로 본다.
 
-제외:
-- 실시간 재고 계산
-- 실제 예약 생성
-- 결제 연동
-- 관리자 대시보드 기능
+1. `docs/00_FINAL_GOAL.md`
+2. `docs/01_MAIN_PROMPT.md`
+3. `docs/02_BUILD_FLOW.md`
+4. `docs/03_CONVENTIONS.md`
+5. `docs/04_PARTNER_SITE_REFERENCE.md`
+6. `docs/phase-specs/*`
+7. `docs/references/*`
 
-문서 순서:
-1. docs/01_scope.md
-2. docs/02_information_architecture.md
-3. docs/03_design_system.md
-4. docs/04_pages.md
-5. docs/05_components.md
-6. docs/06_dummy_data.md
-7. docs/07_build_order.md
-8. docs/08_done_criteria.md
+## 문서 정책
+- 현재 살아있는 기준 문서는 `docs/` 루트와 `docs/phase-specs/` 아래 문서다.
+- 과거 외형 프로토타입 문서는 `docs/archive/legacy-ui-prototype/` 로 이동했다.
+- IMS 관련 참고 자료는 `docs/references/IMS_API_CALLS.md` 에 둔다.
+
+## 현재 구현 전략
+- 프론트는 외부 partner/IMS를 직접 호출하지 않는다.
+- 우리 서버가 partner 검색 결과를 받아 파싱한다.
+- 프론트는 내부 API만 호출한다.
+- 향후 결제/IMS 예약 생성 단계로 확장 가능하게 설계한다.
