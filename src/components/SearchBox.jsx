@@ -72,7 +72,7 @@ function DeliveryLocationModal({ open, selectedDongId, onClose, onSelect }) {
             <strong>딜리버리 위치 선택</strong>
             <p>지역을 선택하면 검색창 주소가 자동으로 채워집니다.</p>
           </div>
-          <button className="ghost delivery-modal-close" onClick={onClose}>닫기</button>
+          <button className="btn btn-outline btn-md delivery-modal-close" onClick={onClose}>닫기</button>
         </div>
 
         <div className="delivery-fee-list simple-delivery-list">
@@ -189,7 +189,7 @@ export default function SearchBox({ compact = false }) {
               />
             </div>
             <div className="search-panel-footer">
-              <button className="outline block location-select-button" onClick={() => setIsLocationModalOpen(true)}>
+              <button className="btn btn-outline btn-md btn-block location-select-button" onClick={() => setIsLocationModalOpen(true)}>
                 위치 선택
               </button>
             </div>
@@ -256,13 +256,13 @@ export default function SearchBox({ compact = false }) {
               <div className="action-panel">
                 <div className="age-buttons action-age-buttons">
                   <button
-                    className={searchState.driverAge === 21 ? 'primary' : 'ghost'}
+                    className={`btn btn-tab btn-md ${searchState.driverAge === 21 ? 'is-active' : ''}`}
                     onClick={() => updateSearchState({ driverAge: 21 })}
                   >
                     만 21세~25세
                   </button>
                   <button
-                    className={searchState.driverAge === 26 ? 'primary' : 'ghost'}
+                    className={`btn btn-tab btn-md ${searchState.driverAge === 26 ? 'is-active' : ''}`}
                     onClick={() => updateSearchState({ driverAge: 26 })}
                   >
                     만 26세 이상
@@ -271,7 +271,7 @@ export default function SearchBox({ compact = false }) {
               </div>
             </div>
             <div className="search-panel-footer">
-              <button className="search-submit action-submit" onClick={goSearch}>검색</button>
+              <button className="btn btn-dark btn-lg btn-block action-submit" onClick={goSearch}>검색</button>
             </div>
           </article>
         </div>

@@ -47,7 +47,7 @@ function DeliveryLocationModal({ open, company, selectedDongId, onClose, onSelec
             <strong>딜리버리 지역 선택</strong>
             <p>{company?.fullGarageAddress || '업체 주소 확인 필요'}</p>
           </div>
-          <button className="ghost delivery-modal-close" onClick={onClose}>닫기</button>
+          <button className="btn btn-outline btn-md delivery-modal-close" onClick={onClose}>닫기</button>
         </div>
 
         <div className="delivery-modal-hours">
@@ -174,13 +174,13 @@ export default function DetailSearchBox({
             <span className="field-label">수령 방식</span>
             <div className="detail-toggle-row">
               <button
-                className={adjustState.pickupOption === 'pickup' ? 'primary' : 'ghost'}
+                className={`btn btn-tab btn-md ${adjustState.pickupOption === 'pickup' ? 'is-active' : ''}`}
                 onClick={() => onPickupOptionChange('pickup')}
               >
                 직접수령
               </button>
               <button
-                className={adjustState.pickupOption === 'delivery' ? 'primary' : 'ghost'}
+                className={`btn btn-tab btn-md ${adjustState.pickupOption === 'delivery' ? 'is-active' : ''}`}
                 onClick={() => onPickupOptionChange('delivery')}
               >
                 왕복 딜리버리
@@ -203,7 +203,7 @@ export default function DetailSearchBox({
               </div>
             ) : (
               <div className="detail-delivery-panel">
-                <button className="outline block" onClick={() => setIsDeliveryModalOpen(true)}>
+                <button className="btn btn-outline btn-md btn-block" onClick={() => setIsDeliveryModalOpen(true)}>
                   딜리버리 지역 선택
                 </button>
                 <div className="detail-location-summary selected-delivery-summary">
@@ -218,6 +218,7 @@ export default function DetailSearchBox({
                   <p className="muted small-note">{deliveryValidation.errors.selectedDongId}</p>
                 )}
                 <input
+                  className="field-input"
                   placeholder="상세 주소를 입력해 주세요."
                   value={deliveryForm.deliveryAddressDetail}
                   onChange={(e) => onDeliveryFieldChange('deliveryAddressDetail', e.target.value)}
@@ -226,6 +227,7 @@ export default function DetailSearchBox({
                   <p className="muted small-note">{deliveryValidation.errors.deliveryAddressDetail}</p>
                 )}
                 <input
+                  className="field-input"
                   placeholder="업체에 전달할 내용을 적어주세요."
                   value={deliveryForm.deliveryMemo}
                   onChange={(e) => onDeliveryFieldChange('deliveryMemo', e.target.value)}

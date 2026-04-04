@@ -5,7 +5,7 @@ export default function CarCard({ car }) {
 
   return (
     <Link
-      className="car-card clean refined-card"
+      className="car-card panel clean refined-card"
       to={`/cars/${car.id}${location.search}`}
       state={{ carSummary: car }}
     >

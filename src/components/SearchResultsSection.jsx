@@ -97,9 +97,9 @@ export default function SearchResultsSection() {
         <div className="list-head-row refined-head-row">
           <strong>총 {totalCount}대</strong>
           <div className="sort-buttons simple refined-sort">
-            <button className={searchState.order === 'lower' ? 'active' : ''}>낮은 가격순</button>
-            <button className={searchState.order === 'higher' ? 'active' : ''}>높은 가격순</button>
-            <button className={searchState.order === 'newer' ? 'active' : ''}>신차순</button>
+            <button className={`btn btn-tab btn-md ${searchState.order === 'lower' ? 'is-active' : ''}`}>낮은 가격순</button>
+            <button className={`btn btn-tab btn-md ${searchState.order === 'higher' ? 'is-active' : ''}`}>높은 가격순</button>
+            <button className={`btn btn-tab btn-md ${searchState.order === 'newer' ? 'is-active' : ''}`}>신차순</button>
           </div>
         </div>
 

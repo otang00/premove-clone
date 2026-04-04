@@ -34,17 +34,17 @@ function formatDisplay(dateText) {
 
 function ContextErrorState({ title, message }) {
   return (
-    <article className="detail-card compact-card">
+    <article className="detail-card panel compact-card">
       <h2>{title}</h2>
       <p className="muted small-note">{message}</p>
-      <Link to="/" className="outline" style={{ display: 'inline-block', marginTop: 12 }}>메인으로 돌아가기</Link>
+      <Link to="/" className="btn btn-outline btn-md" style={{ display: 'inline-flex', marginTop: 12 }}>메인으로 돌아가기</Link>
     </article>
   )
 }
 
 function LoadingState() {
   return (
-    <article className="detail-card compact-card">
+    <article className="detail-card panel compact-card">
       <h2>상세 정보 불러오는 중</h2>
       <p className="muted small-note">partner 상세 데이터를 불러오는 중입니다.</p>
     </article>
@@ -286,7 +286,7 @@ export default function CarDetailSection() {
         {hasSearchContext && validation.isValid && !isLoading && !fetchError && car && pricing && insurance && (
           <div className="detail-columns compact-detail">
             <section className="detail-main">
-              <article className="detail-card summary-card compact-summary">
+              <article className="detail-card panel summary-card compact-summary">
                 <div className="summary-image-wrap">
                   <img src={car.image} alt={car.name} />
                 </div>
@@ -302,13 +302,13 @@ export default function CarDetailSection() {
                 </div>
               </article>
 
-              <div className="tab-row slim-tab-row">
-                <button className="active">예약 정보</button>
-                <button>보험/유의사항</button>
-                <button>업체 정보</button>
+              <div className="tab-row slim-tab-row detail-tab-row">
+                <button className="btn btn-tab btn-md is-active">예약 정보</button>
+                <button className="btn btn-tab btn-md">보험/유의사항</button>
+                <button className="btn btn-tab btn-md">업체 정보</button>
               </div>
 
-              <article className="detail-card compact-card">
+              <article className="detail-card panel compact-card">
                 <h2>보험 정보</h2>
                 <div className="info-grid three compact-info-grid info-stat-grid">
                   <div><span>보험 안내</span><strong>일반 자차</strong><small>+ {pricing.insurancePrice}</small></div>
@@ -317,11 +317,12 @@ export default function CarDetailSection() {
                 </div>
               </article>
 
-              <article className="detail-card compact-card">
+              <article className="detail-card panel compact-card">
                 <h2>운전자 정보</h2>
                 <div className="form-grid compact-form-grid">
                   <div>
                     <input
+                      className="field-input"
                       placeholder="이름"
                       value={reservationForm.customerName}
                       onChange={(e) => updateReservationForm('customerName', e.target.value)}
@@ -332,6 +333,7 @@ export default function CarDetailSection() {
                   </div>
                   <div>
                     <input
+                      className="field-input"
                       placeholder="생년월일 8자리"
                       inputMode="numeric"
                       value={reservationForm.customerBirth}
@@ -343,6 +345,7 @@ export default function CarDetailSection() {
                   </div>
                   <div>
                     <input
+                      className="field-input"
                       placeholder="휴대폰번호"
                       inputMode="tel"
                       value={reservationForm.customerPhone}
@@ -352,21 +355,21 @@ export default function CarDetailSection() {
                       <p className="muted small-note">{reservationValidation.errors.customerPhone}</p>
                     )}
                   </div>
-                  <button className="outline block">인증번호</button>
+                  <button className="btn btn-outline btn-lg btn-block">인증번호</button>
                 </div>
                 <p className="muted small-note">만 {car.rentAge}세 이상 / 면허 취득 {car.drivingYears}년 경과. 현장에서 면허 진위를 확인합니다.</p>
               </article>
 
-              <article className="detail-card compact-card">
+              <article className="detail-card panel compact-card">
                 <h2>결제 수단</h2>
-                <div className="info-grid three selectable compact-info-grid">
-                  <button className={`select-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>신용/체크카드</strong></button>
-                  <button className={`select-card ${paymentMethod === PAYMENT_METHODS.KAKAO_PAY ? 'active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.KAKAO_PAY)}><strong>카카오페이</strong></button>
-                  <button className={`select-card ${paymentMethod === PAYMENT_METHODS.GENERAL ? 'active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.GENERAL)}><strong>일반결제</strong></button>
+                <div className="info-grid three selectable compact-info-grid payment-method-grid">
+                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>신용/체크카드</strong><span>국내 주요 카드 결제</span></button>
+                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.KAKAO_PAY ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.KAKAO_PAY)}><strong>카카오페이</strong><span>간편결제</span></button>
+                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.GENERAL ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.GENERAL)}><strong>일반결제</strong><span>기본 결제창 이동</span></button>
                 </div>
               </article>
 
-              <article className="detail-card compact-card">
+              <article className="detail-card panel compact-card">
                 <h2>이용 약관 동의</h2>
                 <div className="terms-list compact-terms">
                   <label><input type="checkbox" checked={termsState.allAgreed} onChange={(e) => handleToggleAllTerms(e.target.checked)} /> 전체 동의</label>
@@ -383,7 +386,7 @@ export default function CarDetailSection() {
               </article>
             </section>
 
-            <aside className="detail-side detail-card sticky-side compact-side">
+            <aside className="detail-side detail-card panel-sticky sticky-side compact-side">
               <h2>결제 정보</h2>
               <div className="price-lines compact-price-lines">
                 <div><span>기본 대여료</span><strong>{pricing.rentalCost}</strong></div>
@@ -396,7 +399,7 @@ export default function CarDetailSection() {
               {!submitValidation.isValid && (
                 <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
               )}
-              <button className="pay-button" disabled={!submitValidation.isValid}>예약 요청하기</button>
+              <button className="btn btn-dark btn-lg btn-block" disabled={!submitValidation.isValid}>예약 요청하기</button>
             </aside>
           </div>
         )}
