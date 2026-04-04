@@ -282,12 +282,12 @@ export default function CarDetailPage() {
                   <h2>차량 대여 방법</h2>
                   <div className="info-grid two selectable compact-info-grid">
                     <button className={`select-card ${searchState.pickupOption === 'pickup' ? 'active' : ''}`}>
-                      <strong>업체 직접 방문 (무료)</strong>
-                      <span>업체로 방문하여 차량을 대여/반납할 수 있어요.</span>
+                      <strong>직접수령</strong>
+                      <span>업체로 방문해 차량을 수령하고 반납합니다.</span>
                     </button>
                     <button className={`select-card ${searchState.pickupOption === 'delivery' ? 'active' : ''}`}>
-                      <strong>딜리버리 (유료)</strong>
-                      <span>원하는 위치에서 차량을 대여/반납할 수 있어요.</span>
+                      <strong>왕복 딜리버리</strong>
+                      <span>원하는 위치에서 차량을 받고 같은 방식으로 반납합니다.</span>
                     </button>
                   </div>
                 </article>
@@ -331,7 +331,7 @@ export default function CarDetailPage() {
                   <div className="store-box">
                     <strong>{company.name}</strong>
                     <p>{company.address}</p>
-                    <p className="muted small-note">업체 직접 방문 또는 딜리버리 방식으로 차량을 인수/반납할 수 있습니다.</p>
+                    <p className="muted small-note">직접수령 또는 왕복 딜리버리 방식으로 차량을 인수하고 반납할 수 있습니다.</p>
                     <div className="map-box">지도 영역 Placeholder</div>
                   </div>
                 </article>
@@ -368,14 +368,14 @@ export default function CarDetailPage() {
                   <div><span>기본 대여료</span><strong>{pricing.rentalCost}</strong></div>
                   <div><span>보험</span><strong>{pricing.insurancePrice}</strong></div>
                   {searchState.pickupOption === 'delivery' && (
-                    <div><span>딜리버리 왕복비</span><strong>{pricing.deliveryRoundTrip}</strong></div>
+                    <div><span>왕복 딜리버리 비용</span><strong>{pricing.deliveryRoundTrip}</strong></div>
                   )}
-                  <div className="total"><span>총 결제 금액</span><strong>{pricing.finalPrice}</strong></div>
+                  <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
                 </div>
                 {!submitValidation.isValid && (
                   <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
                 )}
-                <button className="pay-button" disabled={!submitValidation.isValid}>{pricing.finalPrice} 바로 결제하기</button>
+                <button className="pay-button" disabled={!submitValidation.isValid}>예약 요청하기</button>
               </aside>
             </div>
           )}

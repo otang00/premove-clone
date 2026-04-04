@@ -1,9 +1,13 @@
 import {
-  DEFAULT_SEARCH_STATE,
   DRIVER_AGE_OPTIONS,
   ORDER_OPTIONS,
   PICKUP_OPTIONS,
+  getDefaultSearchState,
 } from '../constants/search'
+import {
+  parseDateTimeString,
+  sanitizeSearchDateTimes,
+} from './reservationSchedule'
 
 function toSearchParams(searchStringOrParams) {
   if (searchStringOrParams instanceof URLSearchParams) {
@@ -26,17 +30,17 @@ function normalizeDateTime(value, fallback) {
   return /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(nextValue) ? nextValue : fallback
 }
 
-function normalizePickupOption(value) {
-  return PICKUP_OPTIONS.includes(value) ? value : DEFAULT_SEARCH_STATE.pickupOption
+function normalizePickupOption(value, fallbackState) {
+  return PICKUP_OPTIONS.includes(value) ? value : fallbackState.pickupOption
 }
 
-function normalizeDriverAge(value) {
+function normalizeDriverAge(value, fallbackState) {
   const nextValue = Number(value)
-  return DRIVER_AGE_OPTIONS.includes(nextValue) ? nextValue : DEFAULT_SEARCH_STATE.driverAge
+  return DRIVER_AGE_OPTIONS.includes(nextValue) ? nextValue : fallbackState.driverAge
 }
 
-function normalizeOrder(value) {
-  return ORDER_OPTIONS.includes(value) ? value : DEFAULT_SEARCH_STATE.order
+function normalizeOrder(value, fallbackState) {
+  return ORDER_OPTIONS.includes(value) ? value : fallbackState.order
 }
 
 function normalizeDongId(value) {
@@ -51,23 +55,20 @@ function normalizeDeliveryAddress(value) {
 }
 
 export function normalizeSearchState(rawState = {}) {
-  const pickupOption = normalizePickupOption(rawState.pickupOption)
-  const deliveryDateTime = normalizeDateTime(
-    rawState.deliveryDateTime,
-    DEFAULT_SEARCH_STATE.deliveryDateTime,
-  )
-  const returnDateTime = normalizeDateTime(
-    rawState.returnDateTime,
-    DEFAULT_SEARCH_STATE.returnDateTime,
-  )
-  const driverAge = normalizeDriverAge(rawState.driverAge)
-  const order = normalizeOrder(rawState.order)
+  const fallbackState = getDefaultSearchState()
+  const pickupOption = normalizePickupOption(rawState.pickupOption, fallbackState)
+  const driverAge = normalizeDriverAge(rawState.driverAge, fallbackState)
+  const order = normalizeOrder(rawState.order, fallbackState)
   const dongId = normalizeDongId(rawState.dongId)
   const deliveryAddress = normalizeDeliveryAddress(rawState.deliveryAddress)
+  const sanitizedDateTimes = sanitizeSearchDateTimes({
+    deliveryDateTime: normalizeDateTime(rawState.deliveryDateTime, fallbackState.deliveryDateTime),
+    returnDateTime: normalizeDateTime(rawState.returnDateTime, fallbackState.returnDateTime),
+  })
 
   return {
-    deliveryDateTime,
-    returnDateTime,
+    deliveryDateTime: sanitizedDateTimes.deliveryDateTime,
+    returnDateTime: sanitizedDateTimes.returnDateTime,
     pickupOption,
     driverAge,
     order,
@@ -100,10 +101,18 @@ export function validateSearchState(searchState) {
     errors.driverAge = 'driverAge is invalid'
   }
 
-  const pickupAt = new Date(normalized.deliveryDateTime.replace(' ', 'T'))
-  const returnAt = new Date(normalized.returnDateTime.replace(' ', 'T'))
+  const pickupAt = parseDateTimeString(normalized.deliveryDateTime)
+  const returnAt = parseDateTimeString(normalized.returnDateTime)
 
-  if (!Number.isNaN(pickupAt.getTime()) && !Number.isNaN(returnAt.getTime()) && returnAt <= pickupAt) {
+  if (!pickupAt) {
+    errors.deliveryDateTime = 'deliveryDateTime is invalid'
+  }
+
+  if (!returnAt) {
+    errors.returnDateTime = 'returnDateTime is invalid'
+  }
+
+  if (pickupAt && returnAt && returnAt <= pickupAt) {
     errors.returnDateTime = 'returnDateTime must be after deliveryDateTime'
   }
 
