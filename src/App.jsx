@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import MainPage from './pages/MainPage'
+import LandingPage from './pages/LandingPage'
 import CarsPage from './pages/CarsPage'
 import CarDetailPage from './pages/CarDetailPage'
 import PlaceholderPage from './pages/PlaceholderPage'
@@ -9,6 +10,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/" element={<MainPage />} />
+      <Route path="/landing" element={<LandingPage />} />
       <Route path="/cars" element={<CarsPage />} />
       <Route path="/cars/:carId" element={<CarDetailPage />} />
       <Route path="/reservations" element={<PlaceholderPage title="예약내역" />} />
