@@ -7,7 +7,7 @@ import { getMockCompany } from '../services/company'
 
 function EmptyState() {
   return (
-    <div className="detail-card compact-card">
+    <div className="detail-card panel">
       <h2>차량이 없습니다</h2>
       <p className="muted small-note">현재 조건에 맞는 차량이 없습니다. 검색 조건을 다시 확인해 주세요.</p>
     </div>
@@ -16,7 +16,7 @@ function EmptyState() {
 
 function ErrorState({ message }) {
   return (
-    <div className="detail-card compact-card">
+    <div className="detail-card panel">
       <h2>검색 상태 확인 필요</h2>
       <p className="muted small-note">{message}</p>
     </div>
@@ -25,7 +25,7 @@ function ErrorState({ message }) {
 
 function LoadingState() {
   return (
-    <div className="detail-card compact-card">
+    <div className="detail-card panel">
       <h2>차량 조회 중</h2>
       <p className="muted small-note">partner 데이터를 불러오는 중입니다.</p>
     </div>
@@ -93,10 +93,10 @@ export default function SearchResultsSection() {
         </div>
       </div>
 
-      <div className="container main-stack refined-stack">
-        <div className="list-head-row refined-head-row">
+      <div className="container main-stack">
+        <div className="list-head-row">
           <strong>총 {totalCount}대</strong>
-          <div className="sort-buttons simple refined-sort">
+          <div className="sort-buttons simple">
             <button className={`btn btn-tab btn-md ${searchState.order === 'lower' ? 'is-active' : ''}`}>낮은 가격순</button>
             <button className={`btn btn-tab btn-md ${searchState.order === 'higher' ? 'is-active' : ''}`}>높은 가격순</button>
             <button className={`btn btn-tab btn-md ${searchState.order === 'newer' ? 'is-active' : ''}`}>신차순</button>
@@ -108,7 +108,7 @@ export default function SearchResultsSection() {
         {validation.isValid && !isLoading && fetchError && <ErrorState message={fetchError} />}
         {validation.isValid && !isLoading && !fetchError && totalCount === 0 && <EmptyState />}
         {validation.isValid && !isLoading && !fetchError && totalCount > 0 && (
-          <div className="car-list clean refined-list">
+          <div className="car-list">
             {cars.map((car) => <CarCard key={car.id} car={car} />)}
           </div>
         )}

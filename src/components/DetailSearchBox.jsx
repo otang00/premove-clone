@@ -153,24 +153,24 @@ export default function DetailSearchBox({
 
   return (
     <>
-      <section className="detail-card compact-card detail-search-box">
-        <div className="info-grid three compact-info-grid detail-fixed-grid">
-          <div className="detail-info-cell">
+      <section className="detail-card panel detail-search-box">
+        <div className="info-grid three detail-fixed-grid">
+          <div className="detail-info-cell panel-info">
             <span className="field-label">대여 일시</span>
             <strong>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</strong>
           </div>
-          <div className="detail-info-cell">
+          <div className="detail-info-cell panel-info">
             <span className="field-label">반납 일시</span>
             <strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong>
           </div>
-          <div className="detail-info-cell">
+          <div className="detail-info-cell panel-info">
             <span className="field-label">운전자 연령</span>
             <strong>{formatDriverAge(fixedSearchInfo.driverAge)}</strong>
           </div>
         </div>
 
         <div className="detail-search-grid detail-adjust-grid">
-          <div className="detail-search-section">
+          <div className="detail-search-section panel-form">
             <span className="field-label">수령 방식</span>
             <div className="detail-toggle-row">
               <button
@@ -193,7 +193,7 @@ export default function DetailSearchBox({
             </p>
           </div>
 
-          <div className="detail-search-section detail-location-field">
+          <div className="detail-search-section panel-form detail-location-field">
             <span className="field-label">위치</span>
 
             {adjustState.pickupOption === 'pickup' ? (
@@ -206,7 +206,7 @@ export default function DetailSearchBox({
                 <button className="btn btn-outline btn-md btn-block" onClick={() => setIsDeliveryModalOpen(true)}>
                   딜리버리 지역 선택
                 </button>
-                <div className="detail-location-summary selected-delivery-summary">
+                <div className="detail-location-summary selected-delivery-summary panel-info">
                   <strong>{selectedLocation}</strong>
                   {selectedDongSummary && (
                     <p className="schedule-note detail-note">

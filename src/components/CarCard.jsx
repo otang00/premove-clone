@@ -5,15 +5,15 @@ export default function CarCard({ car }) {
 
   return (
     <Link
-      className="car-card panel clean refined-card"
+      className="car-card panel"
       to={`/cars/${car.id}${location.search}`}
       state={{ carSummary: car }}
     >
-      <div className="car-thumb-wrap refined-thumb">
+      <div className="car-thumb-wrap">
         <img src={car.image} alt={car.name} />
       </div>
-      <div className="car-body refined-body">
-        <div className="car-head refined-card-head">
+      <div className="car-body">
+        <div className="car-head">
           <div>
             <h3>{car.name}</h3>
             <div className="inline-meta">{car.yearLabel}</div>
@@ -23,12 +23,12 @@ export default function CarCard({ car }) {
               <span>{car.seats}</span>
             </div>
           </div>
-          <div className="prices compact refined-price">
+          <div className="prices refined-price">
             <strong>{car.dayPrice}</strong>
             <span>{car.totalPrice}</span>
           </div>
         </div>
-        <p className="feature-line refined-feature">{car.features.join(', ')}</p>
+        <p className="feature-line">{car.features.join(', ')}</p>
       </div>
     </Link>
   )
