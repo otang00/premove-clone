@@ -9,6 +9,8 @@ import {
   buildDateTimeValue,
   formatDateKey,
   getEarliestPickupDateTime,
+  getEarliestReturnDateTime,
+  getLatestReturnDateTime,
   getPickupTimeOptions,
   getReturnTimeOptions,
   parseDateTimeString,
@@ -38,6 +40,16 @@ export default function SearchBox({ compact = false }) {
 
   const earliestPickupDate = useMemo(() => getEarliestPickupDateTime(), [])
   const earliestPickupDateKey = useMemo(() => formatDateKey(earliestPickupDate), [earliestPickupDate])
+  const returnMinDateKey = useMemo(() => {
+    const pickupAt = parseDateTimeString(searchState.deliveryDateTime)
+    if (!pickupAt) return ''
+    return formatDateKey(getEarliestReturnDateTime(pickupAt))
+  }, [searchState.deliveryDateTime])
+  const returnMaxDateKey = useMemo(() => {
+    const pickupAt = parseDateTimeString(searchState.deliveryDateTime)
+    if (!pickupAt) return ''
+    return formatDateKey(getLatestReturnDateTime(pickupAt))
+  }, [searchState.deliveryDateTime])
 
   const deliverySchedule = useMemo(
     () => splitDateTimeString(searchState.deliveryDateTime),
@@ -147,7 +159,8 @@ export default function SearchBox({ compact = false }) {
               <input
                 type="date"
                 value={returnSchedule.date}
-                min={deliverySchedule.date || earliestPickupDateKey}
+                min={returnMinDateKey || deliverySchedule.date || earliestPickupDateKey}
+                max={returnMaxDateKey}
                 onChange={(e) => updateReturnSchedule({ date: e.target.value })}
               />
               <select
@@ -160,7 +173,7 @@ export default function SearchBox({ compact = false }) {
               </select>
             </div>
           </div>
-          <p className="schedule-note">오늘 예약은 현재 시각 기준 3시간 후부터, 운영 시간은 09:00~21:00입니다.</p>
+          <p className="schedule-note">예약은 현재 시각 기준 3시간 후부터 가능하며, 반납은 최소 1일 이상 / 운영 시간은 09:00~21:00 / 대여 기간은 최대 30일입니다.</p>
         </div>
         <div className="divider" />
         <div className="field schedule-field action-field">

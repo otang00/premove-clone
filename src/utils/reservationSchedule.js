@@ -1,6 +1,8 @@
 export const OPERATING_START_HOUR = 9
 export const OPERATING_END_HOUR = 21
 export const RESERVATION_LEAD_HOURS = 3
+export const MIN_RENTAL_DAYS = 1
+export const MAX_RENTAL_DAYS = 30
 
 function pad(value) {
   return String(value).padStart(2, '0')
@@ -113,15 +115,25 @@ export function getReturnTimeOptions(returnDateValue, pickupDateTimeValue) {
   const pickupAt = parseDateTimeString(pickupDateTimeValue)
   if (!pickupAt) return []
 
-  const pickupDateKey = formatDateKey(pickupAt)
+  const earliestReturnAt = getEarliestReturnDateTime(pickupAt)
+  const earliestReturnDateKey = formatDateKey(earliestReturnAt)
+  const latestReturnAt = getLatestReturnDateTime(pickupAt)
+  const latestReturnDateKey = formatDateKey(latestReturnAt)
 
-  if (returnDateValue < pickupDateKey) return []
+  if (returnDateValue < earliestReturnDateKey || returnDateValue > latestReturnDateKey) return []
 
-  if (returnDateValue === pickupDateKey) {
-    return getHourlyOptions(pickupAt.getHours() + 1, OPERATING_END_HOUR)
+  let minHour = OPERATING_START_HOUR
+  let maxHour = OPERATING_END_HOUR
+
+  if (returnDateValue === earliestReturnDateKey) {
+    minHour = Math.max(minHour, earliestReturnAt.getHours())
   }
 
-  return getHourlyOptions()
+  if (returnDateValue === latestReturnDateKey) {
+    maxHour = Math.min(maxHour, latestReturnAt.getHours())
+  }
+
+  return getHourlyOptions(minHour, maxHour)
 }
 
 export function buildDateTimeValue(dateValue, timeValue) {
@@ -129,11 +141,22 @@ export function buildDateTimeValue(dateValue, timeValue) {
   return `${dateValue} ${timeValue}`
 }
 
-export function getDefaultReturnDateTime(pickupAt) {
+export function getEarliestReturnDateTime(pickupAt) {
   const next = new Date(pickupAt)
-  next.setDate(next.getDate() + 1)
+  next.setDate(next.getDate() + MIN_RENTAL_DAYS)
   next.setHours(pickupAt.getHours(), 0, 0, 0)
   return next
+}
+
+export function getLatestReturnDateTime(pickupAt) {
+  const next = new Date(pickupAt)
+  next.setDate(next.getDate() + MAX_RENTAL_DAYS)
+  next.setHours(pickupAt.getHours(), 0, 0, 0)
+  return next
+}
+
+export function getDefaultReturnDateTime(pickupAt) {
+  return getEarliestReturnDateTime(pickupAt)
 }
 
 export function getDefaultSearchDateTimes(now = new Date()) {
@@ -168,6 +191,17 @@ export function sanitizeSearchDateTimes({ deliveryDateTime, returnDateTime }, no
   } else {
     returnAt = new Date(returnAt)
     returnAt.setMinutes(0, 0, 0)
+  }
+
+  const earliestReturnAt = getEarliestReturnDateTime(pickupAt)
+  const latestReturnAt = getLatestReturnDateTime(pickupAt)
+
+  if (returnAt < earliestReturnAt) {
+    returnAt = earliestReturnAt
+  }
+
+  if (returnAt > latestReturnAt) {
+    returnAt = latestReturnAt
   }
 
   const returnDateKey = formatDateKey(returnAt)

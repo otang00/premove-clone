@@ -7,17 +7,17 @@
 ## 현재 기준 문서
 문서는 아래 순서로 본다.
 
-1. `docs/00_FINAL_GOAL.md`
-2. `docs/01_MAIN_PROMPT.md`
-3. `docs/02_BUILD_FLOW.md`
-4. `docs/03_CONVENTIONS.md`
-5. `docs/04_PARTNER_SITE_REFERENCE.md`
-6. `docs/phase-specs/*`
-7. `docs/references/*`
+1. `docs/CURRENT_STATE.md`
+2. `docs/00_FINAL_GOAL.md`
+3. `docs/04_PARTNER_SITE_REFERENCE.md`
+4. `docs/99_DECISIONS.md`
+5. `docs/references/IMS_API_CALLS.md`
 
 ## 문서 정책
-- 현재 살아있는 기준 문서는 `docs/` 루트와 `docs/phase-specs/` 아래 문서다.
-- 과거 외형 프로토타입 문서는 `docs/archive/legacy-ui-prototype/` 로 이동했다.
+- 현재 살아있는 기준 문서는 `docs/CURRENT_STATE.md` 와 `docs/` 루트의 핵심 문서다.
+- 단계별 설계/실행 문서는 `docs/archive/spec-history/` 로 이동했다.
+- 과거 작업 지시/빌드 규칙 문서는 `docs/archive/working-notes/` 로 이동했다.
+- 더 오래된 외형 프로토타입 문서는 `docs/archive/legacy-ui-prototype/` 로 유지한다.
 - IMS 관련 참고 자료는 `docs/references/IMS_API_CALLS.md` 에 둔다.
 
 ## 현재 구현 전략
