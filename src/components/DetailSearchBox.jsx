@@ -63,7 +63,7 @@ function DeliveryLocationModal({ open, company, selectedDongId, onClose, onSelec
               {provinces.map((province) => (
                 <button
                   key={province.id}
-                  className={`delivery-option-button ${selectedProvince?.id === province.id ? 'active' : ''}`}
+                  className={`delivery-option-button ${selectedProvince?.id === province.id ? 'is-active' : ''}`}
                   onClick={() => {
                     setSelectedProvinceId(province.id)
                     setSelectedCityId(province.cities?.[0]?.id || null)
@@ -81,7 +81,7 @@ function DeliveryLocationModal({ open, company, selectedDongId, onClose, onSelec
               {cities.map((city) => (
                 <button
                   key={city.id}
-                  className={`delivery-option-button ${selectedCity?.id === city.id ? 'active' : ''}`}
+                  className={`delivery-option-button ${selectedCity?.id === city.id ? 'is-active' : ''}`}
                   onClick={() => setSelectedCityId(city.id)}
                 >
                   {city.name}
@@ -96,7 +96,7 @@ function DeliveryLocationModal({ open, company, selectedDongId, onClose, onSelec
               {dongs.map((dong) => (
                 <button
                   key={dong.id}
-                  className={`delivery-fee-card ${selectedDongId === dong.id ? 'active' : ''}`}
+                  className={`delivery-fee-card ${selectedDongId === dong.id ? 'is-active' : ''}`}
                   onClick={() => {
                     onSelect({ dongId: dong.id, deliveryAddress: dong.fullLabel })
                     onClose()

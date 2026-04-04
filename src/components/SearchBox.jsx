@@ -79,7 +79,7 @@ function DeliveryLocationModal({ open, selectedDongId, onClose, onSelect }) {
           {DELIVERY_LOCATION_OPTIONS.map((option) => (
             <button
               key={option.id}
-              className={`delivery-fee-card ${selectedDongId === option.id ? 'active' : ''}`}
+              className={`delivery-fee-card ${selectedDongId === option.id ? 'is-active' : ''}`}
               onClick={() => {
                 onSelect({ dongId: option.id, deliveryAddress: option.label })
                 onClose()
