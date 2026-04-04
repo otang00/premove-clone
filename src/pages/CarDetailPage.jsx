@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import { PageShell } from '../components/Layout'
+import { Footer } from '../components/Layout'
+import BrandHeader from '../components/BrandHeader'
 import DetailSearchBox from '../components/DetailSearchBox'
+import TopNoticeBar from '../components/TopNoticeBar'
+import { landingNotice } from '../data/landing'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchCarDetail } from '../services/carDetail'
 import { getMockCompany } from '../services/company'
@@ -247,7 +250,10 @@ export default function CarDetailPage() {
   }
 
   return (
-    <PageShell>
+    <div className="page-shell landing-shell">
+      <TopNoticeBar {...landingNotice} />
+      <BrandHeader brandName="빵빵카(주)" />
+
       <main className="section-bg detail-page tighter-page">
         <div className="container detail-layout">
           <DetailSearchBox
@@ -412,6 +418,8 @@ export default function CarDetailPage() {
           )}
         </div>
       </main>
-    </PageShell>
+
+      <Footer />
+    </div>
   )
 }
