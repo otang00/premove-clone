@@ -189,7 +189,7 @@ export default function SearchBox({ compact = false }) {
               />
             </div>
             <div className="search-panel-footer">
-              <button className="btn btn-dark btn-lg btn-block location-select-button" onClick={() => setIsLocationModalOpen(true)}>
+              <button className="btn btn-dark btn-lg btn-block" onClick={() => setIsLocationModalOpen(true)}>
                 위치 선택
               </button>
             </div>
@@ -271,7 +271,7 @@ export default function SearchBox({ compact = false }) {
               </div>
             </div>
             <div className="search-panel-footer">
-              <button className="btn btn-dark btn-lg btn-block action-submit" onClick={goSearch}>검색</button>
+              <button className="btn btn-dark btn-lg btn-block" onClick={goSearch}>검색</button>
             </div>
           </article>
         </div>
