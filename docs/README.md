@@ -10,6 +10,8 @@
 5. `04_PARTNER_SITE_REFERENCE.md`
 
 ## 단계별 상세 설계
+- `phase-specs/PHASE_00RENTCAR_LANDING_REFRAME.md`
+- `phase-specs/PHASE_00RENTCAR_LANDING_IMPLEMENTATION_V2.md`
 - `phase-specs/PHASE_01_FOUNDATION.md`
 - `phase-specs/PHASE_01_EXECUTION.md`
 - `phase-specs/PHASE_02_PARTNER_PROXY.md`

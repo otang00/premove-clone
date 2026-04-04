@@ -43,3 +43,13 @@
 - 허용: `pickupOption`, `dongId`, `deliveryAddress`, `deliveryAddressDetail`, `deliveryMemo`
 - 비허용: `deliveryDateTime`, `returnDateTime`, `driverAge`
 - 이유: 차량 가용성에 영향을 주는 조건과 예약 운영 조건을 분리해야 흐름이 안정적이다.
+
+### 9. 00rentcar 리프레임은 새 랜딩 페이지를 먼저 만든다
+- 기존 `/` 메인을 바로 교체하지 않는다.
+- 먼저 `/landing` 을 만들고 브랜딩 셸 + 예약 진입 구조를 검증한다.
+- 이유: 기존 예약 흐름을 보호하고 비교 가능한 상태에서 판단하기 위해.
+
+### 10. 00rentcar.com에서는 셸만 차용하고 쇼핑몰 구조는 배제한다
+- 차용: top notice bar, 브랜드 헤더 톤, hero/차량 비주얼, 연락/운영 정보 블록.
+- 배제: 회원/주문/게시판/카테고리/상품 진열/장바구니 계열.
+- 이유: 목표는 쇼핑몰 복제가 아니라 브랜드 랜딩 + 예약 시스템 결합이기 때문.
