@@ -267,6 +267,69 @@ img { display: block; }
 .action-submit {
   width: 100%;
 }
+.detail-search-box {
+  display: grid;
+  gap: 14px;
+}
+.detail-search-grid {
+  display: grid;
+  gap: 10px;
+}
+.detail-fixed-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.detail-adjust-grid {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+.detail-info-cell,
+.detail-search-section {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.detail-info-cell {
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 14px;
+  background: #fafcfe;
+}
+.detail-info-cell strong,
+.detail-location-summary strong {
+  font-size: var(--fs-m);
+  color: var(--text);
+}
+.detail-search-section {
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  padding: 14px;
+  background: #fafcfe;
+}
+.detail-toggle-row {
+  display: flex;
+  gap: 8px;
+}
+.detail-toggle-row button {
+  flex: 1;
+}
+.detail-location-field select,
+.detail-location-field input {
+  width: 100%;
+  min-height: 42px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0 12px;
+  background: #fff;
+  color: var(--text);
+}
+.detail-location-summary,
+.detail-delivery-panel {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+.detail-note {
+  margin: 0;
+}
 .ghost,
 .primary {
   min-height: var(--btn-h-sm);
@@ -450,6 +513,8 @@ img { display: block; }
   .summary-card,
   .car-card,
   .search-grid,
+  .detail-fixed-grid,
+  .detail-adjust-grid,
   .info-grid.two,
   .info-grid.three,
   .form-grid,

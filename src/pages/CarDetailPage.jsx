@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
-import SearchBox from '../components/SearchBox'
+import DetailSearchBox from '../components/DetailSearchBox'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchCarDetail } from '../services/carDetail'
 import { getMockCompany } from '../services/company'
@@ -55,12 +55,20 @@ function LoadingState() {
 export default function CarDetailPage() {
   const { carId } = useParams()
   const location = useLocation()
-  const searchState = useMemo(() => parseSearchQuery(location.search), [location.search])
-  const validation = useMemo(() => validateSearchState(searchState), [searchState])
+  const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
+  const validation = useMemo(() => validateSearchState(parsedSearchState), [parsedSearchState])
   const hasSearchContext = useMemo(() => {
     const params = new URLSearchParams(location.search)
     return params.has('deliveryDateTime') && params.has('returnDateTime')
   }, [location.search])
+  const fixedSearchInfo = useMemo(
+    () => ({
+      deliveryDateTime: parsedSearchState.deliveryDateTime,
+      returnDateTime: parsedSearchState.returnDateTime,
+      driverAge: parsedSearchState.driverAge,
+    }),
+    [parsedSearchState.deliveryDateTime, parsedSearchState.returnDateTime, parsedSearchState.driverAge],
+  )
 
   const [company, setCompany] = useState(() => getMockCompany())
   const [car, setCar] = useState(null)
@@ -71,11 +79,44 @@ export default function CarDetailPage() {
   const [reservationForm, setReservationForm] = useState(DEFAULT_RESERVATION_FORM)
   const [termsState, setTermsState] = useState(DEFAULT_TERMS_STATE)
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CARD)
+  const [detailAdjustState, setDetailAdjustState] = useState(() => ({
+    pickupOption: parsedSearchState.pickupOption,
+    dongId: parsedSearchState.dongId || null,
+    deliveryAddress: parsedSearchState.deliveryAddress || '',
+  }))
   const [deliveryForm, setDeliveryForm] = useState(() => ({
     ...DEFAULT_DELIVERY_FORM,
-    selectedDongId: searchState.dongId || null,
-    selectedDongLabel: searchState.deliveryAddress || '',
+    deliveryAddressDetail: '',
+    deliveryMemo: '',
   }))
+
+  useEffect(() => {
+    setDetailAdjustState({
+      pickupOption: parsedSearchState.pickupOption,
+      dongId: parsedSearchState.dongId || null,
+      deliveryAddress: parsedSearchState.deliveryAddress || '',
+    })
+    setDeliveryForm((current) => ({
+      ...current,
+      deliveryAddressDetail: '',
+      deliveryMemo: '',
+    }))
+  }, [parsedSearchState.pickupOption, parsedSearchState.dongId, parsedSearchState.deliveryAddress])
+
+  const detailSearchState = useMemo(
+    () => ({
+      ...parsedSearchState,
+      pickupOption: detailAdjustState.pickupOption,
+      dongId: detailAdjustState.pickupOption === 'delivery' ? detailAdjustState.dongId : null,
+      deliveryAddress: detailAdjustState.pickupOption === 'delivery' ? detailAdjustState.deliveryAddress : '',
+    }),
+    [parsedSearchState, detailAdjustState],
+  )
+
+  const isDetailSearchFetchable = useMemo(
+    () => detailSearchState.pickupOption !== 'delivery' || detailSearchState.dongId != null,
+    [detailSearchState],
+  )
 
   const reservationValidation = useMemo(
     () => validateReservationForm(reservationForm),
@@ -83,13 +124,18 @@ export default function CarDetailPage() {
   )
   const termsValidation = useMemo(() => validateTermsState(termsState), [termsState])
   const deliveryValidation = useMemo(
-    () => validateDeliveryForm(deliveryForm, searchState.pickupOption),
-    [deliveryForm, searchState.pickupOption],
+    () => validateDeliveryForm({
+      selectedDongId: detailAdjustState.dongId,
+      selectedDongLabel: detailAdjustState.deliveryAddress,
+      deliveryAddressDetail: deliveryForm.deliveryAddressDetail,
+      deliveryMemo: deliveryForm.deliveryMemo,
+    }, detailAdjustState.pickupOption),
+    [detailAdjustState, deliveryForm],
   )
   const submitValidation = useMemo(
     () => {
       const base = validateReservationSubmission({ reservationValidation, termsValidation, paymentMethod })
-      if (searchState.pickupOption !== 'delivery') return base
+      if (detailAdjustState.pickupOption !== 'delivery') return base
       if (deliveryValidation.isValid) return base
       return {
         errors: {
@@ -99,7 +145,7 @@ export default function CarDetailPage() {
         isValid: false,
       }
     },
-    [reservationValidation, termsValidation, paymentMethod, searchState.pickupOption, deliveryValidation],
+    [reservationValidation, termsValidation, paymentMethod, detailAdjustState.pickupOption, deliveryValidation],
   )
 
   useEffect(() => {
@@ -116,10 +162,18 @@ export default function CarDetailPage() {
       }
     }
 
+    if (!isDetailSearchFetchable) {
+      setFetchError('')
+      setIsLoading(false)
+      return () => {
+        isCancelled = true
+      }
+    }
+
     setIsLoading(true)
     setFetchError('')
 
-    fetchCarDetail(carId, searchState)
+    fetchCarDetail(carId, detailSearchState)
       .then((payload) => {
         if (isCancelled) return
         setCompany((current) => ({
@@ -147,7 +201,7 @@ export default function CarDetailPage() {
     return () => {
       isCancelled = true
     }
-  }, [carId, hasSearchContext, searchState, validation])
+  }, [carId, hasSearchContext, validation, isDetailSearchFetchable, detailSearchState])
 
   const updateReservationForm = (field, value) => {
     setReservationForm((current) => {
@@ -171,6 +225,23 @@ export default function CarDetailPage() {
     setTermsState((current) => toggleSingleTerm(current, field, checked))
   }
 
+  const handlePickupOptionChange = (pickupOption) => {
+    setDetailAdjustState((current) => ({
+      ...current,
+      pickupOption,
+      dongId: pickupOption === 'delivery' ? current.dongId : current.dongId,
+      deliveryAddress: pickupOption === 'delivery' ? current.deliveryAddress : current.deliveryAddress,
+    }))
+  }
+
+  const handleLocationChange = ({ dongId, deliveryAddress }) => {
+    setDetailAdjustState((current) => ({
+      ...current,
+      dongId,
+      deliveryAddress,
+    }))
+  }
+
   const updateDeliveryForm = (field, value) => {
     setDeliveryForm((current) => ({ ...current, [field]: value }))
   }
@@ -179,7 +250,15 @@ export default function CarDetailPage() {
     <PageShell>
       <main className="section-bg detail-page tighter-page">
         <div className="container detail-layout">
-          <SearchBox compact />
+          <DetailSearchBox
+            fixedSearchInfo={fixedSearchInfo}
+            adjustState={detailAdjustState}
+            deliveryForm={deliveryForm}
+            deliveryValidation={deliveryValidation}
+            onPickupOptionChange={handlePickupOptionChange}
+            onLocationChange={handleLocationChange}
+            onDeliveryFieldChange={updateDeliveryForm}
+          />
 
           {!hasSearchContext && (
             <ContextErrorState
@@ -215,9 +294,9 @@ export default function CarDetailPage() {
                     <h1>{car.name}</h1>
                     <div className="meta-row"><span>{car.yearLabel}</span><span>{car.fuelType}</span><span>{car.seats}</span></div>
                     <div className="date-strip">
-                      <span>{formatDisplay(searchState.deliveryDateTime)}</span>
+                      <span>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</span>
                       <strong>1일</strong>
-                      <span>{formatDisplay(searchState.returnDateTime)}</span>
+                      <span>{formatDisplay(fixedSearchInfo.returnDateTime)}</span>
                     </div>
                     <p className="feature-line">{car.features.join(', ')}</p>
                   </div>
@@ -279,54 +358,6 @@ export default function CarDetailPage() {
                 </article>
 
                 <article className="detail-card compact-card">
-                  <h2>차량 대여 방법</h2>
-                  <div className="info-grid two selectable compact-info-grid">
-                    <button className={`select-card ${searchState.pickupOption === 'pickup' ? 'active' : ''}`}>
-                      <strong>직접수령</strong>
-                      <span>업체로 방문해 차량을 수령하고 반납합니다.</span>
-                    </button>
-                    <button className={`select-card ${searchState.pickupOption === 'delivery' ? 'active' : ''}`}>
-                      <strong>왕복 딜리버리</strong>
-                      <span>원하는 위치에서 차량을 받고 같은 방식으로 반납합니다.</span>
-                    </button>
-                  </div>
-                </article>
-
-                {searchState.pickupOption === 'delivery' && (
-                  <article className="detail-card compact-card">
-                    <h2>딜리버리 신청</h2>
-                    <div className="form-grid compact-form-grid">
-                      <div>
-                        <button className="outline block" type="button">위치 선택</button>
-                        <p className="muted small-note">
-                          {deliveryForm.selectedDongLabel || '차량 대여/반납 위치를 선택해 주세요.'}
-                        </p>
-                        {!deliveryValidation.isValid && deliveryValidation.errors.selectedDongId && (
-                          <p className="muted small-note">{deliveryValidation.errors.selectedDongId}</p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          placeholder="상세 주소를 입력해 주세요."
-                          value={deliveryForm.deliveryAddressDetail}
-                          onChange={(e) => updateDeliveryForm('deliveryAddressDetail', e.target.value)}
-                        />
-                        {!deliveryValidation.isValid && deliveryValidation.errors.deliveryAddressDetail && (
-                          <p className="muted small-note">{deliveryValidation.errors.deliveryAddressDetail}</p>
-                        )}
-                      </div>
-                      <div>
-                        <input
-                          placeholder="업체에 전달할 내용을 적어주세요."
-                          value={deliveryForm.deliveryMemo}
-                          onChange={(e) => updateDeliveryForm('deliveryMemo', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </article>
-                )}
-
-                <article className="detail-card compact-card">
                   <h2>업체 정보</h2>
                   <div className="store-box">
                     <strong>{company.name}</strong>
@@ -367,7 +398,7 @@ export default function CarDetailPage() {
                 <div className="price-lines compact-price-lines">
                   <div><span>기본 대여료</span><strong>{pricing.rentalCost}</strong></div>
                   <div><span>보험</span><strong>{pricing.insurancePrice}</strong></div>
-                  {searchState.pickupOption === 'delivery' && (
+                  {detailAdjustState.pickupOption === 'delivery' && detailAdjustState.dongId && (
                     <div><span>왕복 딜리버리 비용</span><strong>{pricing.deliveryRoundTrip}</strong></div>
                   )}
                   <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
