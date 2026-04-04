@@ -184,35 +184,101 @@ img { display: block; max-width: 100%; }
 }
 .radio.active { color: var(--primary-strong); }
 
-.search-grid {
+.search-panel-grid {
   display: grid;
-  grid-template-columns: 1.35fr 1px 1fr 1px 0.9fr 100px;
-  gap: 10px;
-  align-items: center;
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.55fr) minmax(0, 0.8fr);
+  gap: 14px;
   padding: 14px var(--card-padding);
-}
-.schedule-search-grid {
-  grid-template-columns: 1.05fr 1px 1.75fr 1px 0.95fr;
   align-items: stretch;
 }
-.field {
-  position: relative;
+.search-panel-card {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  min-height: 60px;
-  justify-content: center;
-  padding-left: 20px;
-}
-.schedule-field {
+  gap: 14px;
   min-height: 100%;
-  justify-content: flex-start;
-  padding-top: 4px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  background: #fff;
 }
-.wide-field { gap: 10px; }
-.field-icon { position: absolute; left: 0; top: 6px; font-size: var(--fs-s); opacity: 0.85; }
-.field-label { color: var(--muted); font-size: var(--fs-s); }
-.field strong { font-size: var(--fs-l); line-height: 1.4; font-weight: 700; }
+.search-panel-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  line-height: 1.2;
+}
+.search-panel-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.22em;
+  height: 1.22em;
+  color: #111827;
+  flex: 0 0 auto;
+  transform: translateY(0.01em);
+}
+.search-panel-icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.search-panel-title {
+  color: #17212b;
+  font-size: var(--fs-l);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+.search-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  flex: 1;
+}
+.search-panel-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: auto;
+}
+.search-panel-summary {
+  font-size: var(--fs-l);
+  line-height: 1.45;
+  font-weight: 700;
+  color: var(--text);
+}
+.location-panel-card,
+.age-panel-card {
+  justify-content: space-between;
+}
+.schedule-panel-body {
+  gap: 12px;
+}
+.search-location-input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0 14px;
+  background: #fff;
+  color: var(--text);
+  font-size: var(--fs-m);
+}
+.location-select-button {
+  min-height: var(--btn-h-md);
+}
+.simple-delivery-modal {
+  width: min(560px, 100%);
+  max-height: min(80vh, 720px);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+.simple-delivery-list {
+  padding: 18px 22px 22px;
+  margin-top: 0;
+}
+.simple-delivery-head {
+  align-items: flex-start;
+}
 .schedule-form-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -246,18 +312,14 @@ img { display: block; max-width: 100%; }
   margin: 0;
   font-size: var(--fs-s);
   color: var(--muted);
+  line-height: 1.6;
 }
-.tiny-button { position: static; transform: none; width: fit-content; }
-.divider { width: 1px; background: var(--border); height: 44px; }
-.schedule-search-grid .divider { align-self: stretch; height: auto; }
 .age-buttons { display: flex; gap: 6px; }
-.action-field {
-  justify-content: flex-start;
-}
 .action-panel {
   display: flex;
   flex-direction: column;
   gap: 12px;
+  flex: 1;
 }
 .action-age-buttons {
   flex-direction: column;
@@ -331,6 +393,142 @@ img { display: block; max-width: 100%; }
 }
 .detail-note {
   margin: 0;
+}
+.selected-delivery-summary {
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+.delivery-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(9, 16, 24, 0.58);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 50;
+}
+.delivery-modal {
+  width: min(1120px, 100%);
+  max-height: min(86vh, 860px);
+  background: #fff;
+  border-radius: 20px;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  box-shadow: 0 24px 80px rgba(13, 23, 34, 0.26);
+}
+.delivery-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 22px 14px;
+  border-bottom: 1px solid var(--border);
+}
+.delivery-modal-header strong {
+  display: block;
+  font-size: var(--fs-xl);
+}
+.delivery-modal-header p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-s);
+}
+.delivery-modal-close {
+  min-width: 72px;
+}
+.delivery-modal-hours {
+  padding: 12px 22px;
+  background: #f4f8fb;
+  color: #53687b;
+  font-size: var(--fs-s);
+  border-bottom: 1px solid var(--border);
+}
+.delivery-modal-body {
+  display: grid;
+  grid-template-columns: 180px 220px minmax(0, 1fr);
+  min-height: 0;
+}
+.delivery-column {
+  padding: 18px;
+  min-height: 0;
+}
+.province-column,
+.city-column {
+  border-right: 1px solid var(--border);
+}
+.delivery-option-list,
+.delivery-fee-list {
+  margin-top: 10px;
+  display: grid;
+  gap: 8px;
+  max-height: 100%;
+  overflow: auto;
+}
+.delivery-option-button {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  text-align: left;
+  background: #fff;
+}
+.delivery-option-button.active,
+.delivery-fee-card.active {
+  border-color: var(--primary);
+  background: #eef7ff;
+}
+.delivery-fee-card {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fff;
+  text-align: left;
+  display: grid;
+  gap: 12px;
+}
+.delivery-fee-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  align-items: center;
+}
+.delivery-fee-head strong {
+  font-size: var(--fs-l);
+}
+.delivery-fee-head span {
+  color: var(--muted);
+  font-size: var(--fs-s);
+}
+.delivery-fee-prices {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.delivery-fee-prices > div {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fafcfe;
+  padding: 12px;
+}
+.delivery-fee-prices span {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-xs);
+}
+.delivery-fee-prices strong {
+  display: block;
+  margin-top: 6px;
+  font-size: var(--fs-m);
+}
+.delivery-empty {
+  border: 1px dashed var(--border);
+  border-radius: 12px;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
 }
 .ghost,
 .primary {
@@ -713,7 +911,7 @@ img { display: block; max-width: 100%; }
   .detail-columns,
   .summary-card,
   .car-card,
-  .search-grid,
+  .search-panel-grid,
   .detail-fixed-grid,
   .detail-adjust-grid,
   .info-grid.two,

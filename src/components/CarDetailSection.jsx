@@ -177,6 +177,7 @@ export default function CarDetailSection() {
         if (isCancelled) return
         setCompany((current) => ({
           ...current,
+          ...payload.company,
           name: payload.company.companyName || current.name,
           address: payload.company.fullGarageAddress || current.address,
           phone: payload.company.companyTel || current.phone,
@@ -253,6 +254,7 @@ export default function CarDetailSection() {
           adjustState={detailAdjustState}
           deliveryForm={deliveryForm}
           deliveryValidation={deliveryValidation}
+          company={company}
           onPickupOptionChange={handlePickupOptionChange}
           onLocationChange={handleLocationChange}
           onDeliveryFieldChange={updateDeliveryForm}

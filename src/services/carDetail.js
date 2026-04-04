@@ -26,7 +26,11 @@ function formatFuelType(value) {
 function toDetailViewModel(payload) {
   return {
     search: payload.search,
-    company: payload.company,
+    company: {
+      ...payload.company,
+      deliveryTimes: Array.isArray(payload.company?.deliveryTimes) ? payload.company.deliveryTimes : [],
+      deliveryCostList: Array.isArray(payload.company?.deliveryCostList) ? payload.company.deliveryCostList : [],
+    },
     car: {
       id: String(payload.car.carId),
       name: payload.car.name,

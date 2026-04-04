@@ -16,12 +16,53 @@ function normalizeOptionLabel(option) {
   return optionMap[option] || option
 }
 
+function mapDeliveryTimes(companyInfo) {
+  if (!Array.isArray(companyInfo.deliveryTimes)) return []
+
+  return companyInfo.deliveryTimes.map((item) => ({
+    dayOfWeek: item.dayOfWeek || '',
+    startAt: item.startAt || '',
+    endAt: item.endAt || '',
+    holiday: Boolean(item.holiday),
+  }))
+}
+
+function mapDeliveryCostList(companyInfo) {
+  if (!Array.isArray(companyInfo.deliveryCostList)) return []
+
+  return companyInfo.deliveryCostList.map((province) => ({
+    id: province.id,
+    name: province.name || '',
+    isAll: Boolean(province.isAll),
+    cities: Array.isArray(province.cities)
+      ? province.cities.map((city) => ({
+          id: city.id,
+          name: city.name || '',
+          isAll: Boolean(city.isAll),
+          dongs: Array.isArray(city.dongs)
+            ? city.dongs.map((dong) => ({
+                id: dong.id,
+                name: dong.name || '',
+                oneWay: Number(dong.oneWay || 0),
+                roundTrip: Number(dong.roundTrip || 0),
+                fullLabel: [province.name, city.name, dong.name].filter(Boolean).join(' '),
+              }))
+            : [],
+        }))
+      : [],
+  }))
+}
+
 function mapCompany(companyInfo) {
   return {
     companyId: companyInfo.companyId,
     companyName: String(companyInfo.companyName || '').trim(),
     companyTel: companyInfo.companyTel || '',
     fullGarageAddress: companyInfo.fullGarageAddress || '',
+    garageLat: Number(companyInfo.garageLat || 0),
+    garageLng: Number(companyInfo.garageLng || 0),
+    deliveryTimes: mapDeliveryTimes(companyInfo),
+    deliveryCostList: mapDeliveryCostList(companyInfo),
   }
 }
 

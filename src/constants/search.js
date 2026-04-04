@@ -20,7 +20,7 @@ export function getDefaultSearchState() {
   return {
     deliveryDateTime: dateTimes.deliveryDateTime,
     returnDateTime: dateTimes.returnDateTime,
-    pickupOption: 'pickup',
+    pickupOption: 'delivery',
     driverAge: 26,
     order: 'lower',
     dongId: null,

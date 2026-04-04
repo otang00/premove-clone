@@ -17,7 +17,41 @@ import {
   splitDateTimeString,
   toDateTimeString,
 } from '../utils/reservationSchedule'
-import { getMockCompany } from '../services/company'
+
+const DELIVERY_LOCATION_OPTIONS = [
+  { id: 425, label: '서울특별시 서초구 반포동' },
+  { id: 424, label: '서울특별시 서초구 잠원동' },
+  { id: 423, label: '서울특별시 서초구 방배동' },
+  { id: 422, label: '서울특별시 서초구 서초동' },
+]
+
+function LocationIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10Z" />
+      <circle cx="12" cy="11" r="2.2" />
+    </svg>
+  )
+}
+
+function CalendarIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3.5" y="5" width="17" height="15" rx="3" />
+      <path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17" />
+    </svg>
+  )
+}
+
+function UserBadgeIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="8" r="3.2" />
+      <path d="M6 19a6 6 0 0 1 12 0" />
+      <path d="M18.5 6.5h2M19.5 5.5v2" />
+    </svg>
+  )
+}
 
 function formatDisplay(dateText) {
   const parsed = parseDateTimeString(dateText)
@@ -27,12 +61,47 @@ function formatDisplay(dateText) {
   return `${String(parsed.getMonth() + 1).padStart(2, '0')}.${String(parsed.getDate()).padStart(2, '0')}(${week}) ${String(parsed.getHours()).padStart(2, '0')}:00`
 }
 
+function DeliveryLocationModal({ open, selectedDongId, onClose, onSelect }) {
+  if (!open) return null
+
+  return (
+    <div className="delivery-modal-backdrop" onClick={onClose}>
+      <div className="delivery-modal simple-delivery-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 위치 선택">
+        <div className="delivery-modal-header">
+          <div>
+            <strong>딜리버리 위치 선택</strong>
+            <p>지역을 선택하면 검색창 주소가 자동으로 채워집니다.</p>
+          </div>
+          <button className="ghost delivery-modal-close" onClick={onClose}>닫기</button>
+        </div>
+
+        <div className="delivery-fee-list simple-delivery-list">
+          {DELIVERY_LOCATION_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              className={`delivery-fee-card ${selectedDongId === option.id ? 'active' : ''}`}
+              onClick={() => {
+                onSelect({ dongId: option.id, deliveryAddress: option.label })
+                onClose()
+              }}
+            >
+              <div className="delivery-fee-head simple-delivery-head">
+                <strong>{option.label}</strong>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function SearchBox({ compact = false }) {
   const navigate = useNavigate()
   const location = useLocation()
-  const company = useMemo(() => getMockCompany(), [])
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const [searchState, setSearchState] = useState(parsedSearchState)
+  const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
 
   useEffect(() => {
     setSearchState(parsedSearchState)
@@ -89,115 +158,131 @@ export default function SearchBox({ compact = false }) {
     updateSearchState({ returnDateTime: nextDateTime || searchState.returnDateTime })
   }
 
-  const handlePickupOptionChange = (pickupOption) => {
-    updateSearchState(
-      pickupOption === 'pickup'
-        ? { pickupOption, dongId: null, deliveryAddress: '' }
-        : { pickupOption },
-    )
+  const handleLocationSelect = ({ dongId, deliveryAddress }) => {
+    updateSearchState({
+      pickupOption: 'delivery',
+      dongId,
+      deliveryAddress,
+    })
   }
 
   const goSearch = () => {
-    const nextQuery = buildSearchQuery(searchState)
+    const nextQuery = buildSearchQuery({ ...searchState, pickupOption: 'delivery' })
     navigate(`/?${nextQuery}`)
   }
 
-  const displayAddress = searchState.pickupOption === 'delivery' && searchState.deliveryAddress
-    ? searchState.deliveryAddress
-    : company.address
-
   return (
-    <section className={`search-box ${compact ? 'compact' : ''}`}>
-      <div className="search-top slim-tabs">
-        <button
-          className={`radio ${searchState.pickupOption === 'pickup' ? 'active' : ''}`}
-          onClick={() => handlePickupOptionChange('pickup')}
-        >
-          직접수령
-        </button>
-        <button
-          className={`radio ${searchState.pickupOption === 'delivery' ? 'active' : ''}`}
-          onClick={() => handlePickupOptionChange('delivery')}
-        >
-          왕복 딜리버리
-        </button>
-      </div>
-      <div className="search-grid schedule-search-grid dense">
-        <div className="field schedule-field">
-          <span className="field-icon">📍</span>
-          <span className="field-label">수령 / 반납 위치</span>
-          <strong>{displayAddress}</strong>
-          <button className="tiny-button">위치보기</button>
-        </div>
-        <div className="divider" />
-        <div className="field schedule-field wide-field">
-          <span className="field-icon">📅</span>
-          <span className="field-label">예약 일정</span>
-          <strong>
-            {formatDisplay(searchState.deliveryDateTime)} ~ {formatDisplay(searchState.returnDateTime)}
-          </strong>
-          <div className="schedule-form-grid">
-            <div className="schedule-card">
-              <span className="schedule-card-label">대여 일시</span>
-              <input
-                type="date"
-                value={deliverySchedule.date}
-                min={earliestPickupDateKey}
-                onChange={(e) => updateDeliverySchedule({ date: e.target.value })}
-              />
-              <select
-                value={deliverySchedule.time}
-                onChange={(e) => updateDeliverySchedule({ time: e.target.value })}
-              >
-                {pickupTimeOptions.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
+    <>
+      <section className={`search-box ${compact ? 'compact' : ''}`}>
+        <div className="search-panel-grid">
+          <article className="search-panel-card location-panel-card">
+            <div className="search-panel-header">
+              <span className="search-panel-icon"><LocationIcon /></span>
+              <span className="search-panel-title">딜리버리 위치</span>
             </div>
-            <div className="schedule-card">
-              <span className="schedule-card-label">반납 일시</span>
+            <div className="search-panel-body">
               <input
-                type="date"
-                value={returnSchedule.date}
-                min={returnMinDateKey || deliverySchedule.date || earliestPickupDateKey}
-                max={returnMaxDateKey}
-                onChange={(e) => updateReturnSchedule({ date: e.target.value })}
+                className="search-location-input"
+                value={searchState.deliveryAddress || ''}
+                placeholder=""
+                readOnly
               />
-              <select
-                value={returnSchedule.time}
-                onChange={(e) => updateReturnSchedule({ time: e.target.value })}
-              >
-                {returnTimeOptions.map((option) => (
-                  <option key={option} value={option}>{option}</option>
-                ))}
-              </select>
             </div>
-          </div>
-          <p className="schedule-note">예약은 현재 시각 기준 3시간 후부터 가능하며, 반납은 최소 1일 이상 / 운영 시간은 09:00~21:00 / 대여 기간은 최대 30일입니다.</p>
-        </div>
-        <div className="divider" />
-        <div className="field schedule-field action-field">
-          <span className="field-icon">🎂</span>
-          <span className="field-label">운전자 연령</span>
-          <div className="action-panel">
-            <div className="age-buttons action-age-buttons">
-              <button
-                className={searchState.driverAge === 21 ? 'primary' : 'ghost'}
-                onClick={() => updateSearchState({ driverAge: 21 })}
-              >
-                만 21세~25세
-              </button>
-              <button
-                className={searchState.driverAge === 26 ? 'primary' : 'ghost'}
-                onClick={() => updateSearchState({ driverAge: 26 })}
-              >
-                만 26세 이상
+            <div className="search-panel-footer">
+              <button className="outline block location-select-button" onClick={() => setIsLocationModalOpen(true)}>
+                위치 선택
               </button>
             </div>
-            <button className="search-submit action-submit" onClick={goSearch}>검색</button>
-          </div>
+          </article>
+
+          <article className="search-panel-card schedule-panel-card">
+            <div className="search-panel-header">
+              <span className="search-panel-icon"><CalendarIcon /></span>
+              <span className="search-panel-title">예약 일정</span>
+            </div>
+            <div className="search-panel-body schedule-panel-body">
+              <strong className="search-panel-summary">
+                {formatDisplay(searchState.deliveryDateTime)} ~ {formatDisplay(searchState.returnDateTime)}
+              </strong>
+              <div className="schedule-form-grid">
+                <div className="schedule-card">
+                  <span className="schedule-card-label">대여 일시</span>
+                  <input
+                    type="date"
+                    value={deliverySchedule.date}
+                    min={earliestPickupDateKey}
+                    onChange={(e) => updateDeliverySchedule({ date: e.target.value })}
+                  />
+                  <select
+                    value={deliverySchedule.time}
+                    onChange={(e) => updateDeliverySchedule({ time: e.target.value })}
+                  >
+                    {pickupTimeOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="schedule-card">
+                  <span className="schedule-card-label">반납 일시</span>
+                  <input
+                    type="date"
+                    value={returnSchedule.date}
+                    min={returnMinDateKey || deliverySchedule.date || earliestPickupDateKey}
+                    max={returnMaxDateKey}
+                    onChange={(e) => updateReturnSchedule({ date: e.target.value })}
+                  />
+                  <select
+                    value={returnSchedule.time}
+                    onChange={(e) => updateReturnSchedule({ time: e.target.value })}
+                  >
+                    {returnTimeOptions.map((option) => (
+                      <option key={option} value={option}>{option}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+            <div className="search-panel-footer">
+              <p className="schedule-note">예약은 현재 시각 기준 3시간 후부터 가능 / 운영 시간은 09:00~21:00 / 대여 기간은 최대 30일입니다.</p>
+            </div>
+          </article>
+
+          <article className="search-panel-card age-panel-card">
+            <div className="search-panel-header">
+              <span className="search-panel-icon"><UserBadgeIcon /></span>
+              <span className="search-panel-title">운전자 연령</span>
+            </div>
+            <div className="search-panel-body">
+              <div className="action-panel">
+                <div className="age-buttons action-age-buttons">
+                  <button
+                    className={searchState.driverAge === 21 ? 'primary' : 'ghost'}
+                    onClick={() => updateSearchState({ driverAge: 21 })}
+                  >
+                    만 21세~25세
+                  </button>
+                  <button
+                    className={searchState.driverAge === 26 ? 'primary' : 'ghost'}
+                    onClick={() => updateSearchState({ driverAge: 26 })}
+                  >
+                    만 26세 이상
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div className="search-panel-footer">
+              <button className="search-submit action-submit" onClick={goSearch}>검색</button>
+            </div>
+          </article>
         </div>
-      </div>
-    </section>
+      </section>
+
+      <DeliveryLocationModal
+        open={isLocationModalOpen}
+        selectedDongId={searchState.dongId}
+        onClose={() => setIsLocationModalOpen(false)}
+        onSelect={handleLocationSelect}
+      />
+    </>
   )
 }
