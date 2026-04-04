@@ -182,7 +182,7 @@ export default function SearchBox({ compact = false }) {
             </div>
             <div className="search-panel-body">
               <input
-                className="search-location-input"
+                className="field-input"
                 value={searchState.deliveryAddress || ''}
                 placeholder=""
                 readOnly
@@ -208,12 +208,14 @@ export default function SearchBox({ compact = false }) {
                 <div className="schedule-card">
                   <span className="schedule-card-label">대여 일시</span>
                   <input
+                    className="field-input"
                     type="date"
                     value={deliverySchedule.date}
                     min={earliestPickupDateKey}
                     onChange={(e) => updateDeliverySchedule({ date: e.target.value })}
                   />
                   <select
+                    className="field-select"
                     value={deliverySchedule.time}
                     onChange={(e) => updateDeliverySchedule({ time: e.target.value })}
                   >
@@ -225,6 +227,7 @@ export default function SearchBox({ compact = false }) {
                 <div className="schedule-card">
                   <span className="schedule-card-label">반납 일시</span>
                   <input
+                    className="field-input"
                     type="date"
                     value={returnSchedule.date}
                     min={returnMinDateKey || deliverySchedule.date || earliestPickupDateKey}
@@ -232,6 +235,7 @@ export default function SearchBox({ compact = false }) {
                     onChange={(e) => updateReturnSchedule({ date: e.target.value })}
                   />
                   <select
+                    className="field-select"
                     value={returnSchedule.time}
                     onChange={(e) => updateReturnSchedule({ time: e.target.value })}
                   >
