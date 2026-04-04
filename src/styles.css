@@ -190,7 +190,7 @@ img { display: block; }
   padding: 14px var(--card-padding);
 }
 .schedule-search-grid {
-  grid-template-columns: 1.1fr 1px 1.65fr 1px 0.9fr 100px;
+  grid-template-columns: 1.05fr 1px 1.75fr 1px 0.95fr;
   align-items: stretch;
 }
 .field {
@@ -249,6 +249,24 @@ img { display: block; }
 .divider { width: 1px; background: var(--border); height: 44px; }
 .schedule-search-grid .divider { align-self: stretch; height: auto; }
 .age-buttons { display: flex; gap: 6px; }
+.action-field {
+  justify-content: flex-start;
+}
+.action-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.action-age-buttons {
+  flex-direction: column;
+}
+.action-age-buttons button {
+  width: 100%;
+  justify-content: center;
+}
+.action-submit {
+  width: 100%;
+}
 .ghost,
 .primary {
   min-height: var(--btn-h-sm);

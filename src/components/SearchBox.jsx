@@ -163,25 +163,27 @@ export default function SearchBox({ compact = false }) {
           <p className="schedule-note">오늘 예약은 현재 시각 기준 3시간 후부터, 운영 시간은 09:00~21:00입니다.</p>
         </div>
         <div className="divider" />
-        <div className="field age-field">
+        <div className="field schedule-field action-field">
           <span className="field-icon">🎂</span>
           <span className="field-label">운전자 연령</span>
-          <div className="age-buttons">
-            <button
-              className={searchState.driverAge === 21 ? 'primary' : 'ghost'}
-              onClick={() => updateSearchState({ driverAge: 21 })}
-            >
-              만 21세~25세
-            </button>
-            <button
-              className={searchState.driverAge === 26 ? 'primary' : 'ghost'}
-              onClick={() => updateSearchState({ driverAge: 26 })}
-            >
-              만 26세 이상
-            </button>
+          <div className="action-panel">
+            <div className="age-buttons action-age-buttons">
+              <button
+                className={searchState.driverAge === 21 ? 'primary' : 'ghost'}
+                onClick={() => updateSearchState({ driverAge: 21 })}
+              >
+                만 21세~25세
+              </button>
+              <button
+                className={searchState.driverAge === 26 ? 'primary' : 'ghost'}
+                onClick={() => updateSearchState({ driverAge: 26 })}
+              >
+                만 26세 이상
+              </button>
+            </div>
+            <button className="search-submit action-submit" onClick={goSearch}>검색</button>
           </div>
         </div>
-        <button className="search-submit square" onClick={goSearch}>검색</button>
       </div>
     </section>
   )
