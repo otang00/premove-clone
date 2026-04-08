@@ -26,8 +26,8 @@ export function getDefaultSearchState() {
     order: 'lower',
     dongId: null,
     deliveryAddress: '',
+    deliveryAddressDetail: '',
   }
 }
 
 export const DEFAULT_SEARCH_STATE = getDefaultSearchState()
-e()

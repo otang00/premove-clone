@@ -54,6 +54,10 @@ function normalizeDeliveryAddress(value) {
   return typeof value === 'string' ? value.trim() : ''
 }
 
+function normalizeDeliveryAddressDetail(value) {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
 export function normalizeSearchState(rawState = {}) {
   const fallbackState = getDefaultSearchState()
   const pickupOption = normalizePickupOption(rawState.pickupOption, fallbackState)
@@ -75,6 +79,7 @@ export function normalizeSearchState(rawState = {}) {
     order,
     dongId: pickupOption === 'delivery' ? dongId : null,
     deliveryAddress: pickupOption === 'delivery' ? deliveryAddress : '',
+    deliveryAddressDetail: pickupOption === 'delivery' ? deliveryAddressDetail : '',
   }
 }
 
@@ -104,6 +109,10 @@ export function validateSearchState(searchState) {
 
   if (normalized.pickupOption === 'delivery' && normalized.dongId == null) {
     errors.dongId = '딜리버리 위치를 선택해 주세요.'
+  }
+
+  if (normalized.pickupOption === 'delivery' && !normalized.deliveryAddressDetail) {
+    errors.deliveryAddressDetail = '상세주소를 입력해 주세요.'
   }
 
   const pickupAt = parseDateTimeString(normalized.deliveryDateTime)
@@ -139,6 +148,7 @@ export function parseSearchQuery(searchStringOrParams) {
     order: params.get('order'),
     dongId: params.get('dongId'),
     deliveryAddress: params.get('deliveryAddress'),
+    deliveryAddressDetail: params.get('deliveryAddressDetail'),
   })
 }
 
