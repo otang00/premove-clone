@@ -20,10 +20,6 @@ import {
 } from '../utils/reservationSchedule'
 import { fetchSearchCompany, getMockCompany } from '../services/company'
 
-function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString('ko-KR')}원`
-}
-
 function LocationIcon() {
   return (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -67,7 +63,7 @@ function SearchGuardModal({ open, onClose, onOpenLocation }) {
     <div className="delivery-modal-backdrop" onClick={onClose}>
       <div className="search-guard-modal panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 위치 선택 안내">
         <strong>딜리버리 위치 선택</strong>
-        <p className="field-note">검색 전에 딜리버리 지역을 먼저 선택해 주세요.</p>
+        <p className="field-note">검색 전에 딜리버리 지역과 상세주소를 먼저 입력해 주세요.</p>
         <div className="search-guard-actions">
           <button className="btn btn-outline btn-md" onClick={onClose}>닫기</button>
           <button className="btn btn-dark btn-md" onClick={onOpenLocation}>위치 선택</button>
@@ -86,9 +82,11 @@ export default function SearchBox({ compact = false }) {
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
   const [isGuardModalOpen, setIsGuardModalOpen] = useState(false)
   const [companyFetchError, setCompanyFetchError] = useState('')
+  const [deliveryErrors, setDeliveryErrors] = useState({})
 
   useEffect(() => {
     setSearchState(parsedSearchState)
+    setDeliveryErrors({})
   }, [parsedSearchState])
 
   useEffect(() => {
@@ -147,22 +145,6 @@ export default function SearchBox({ compact = false }) {
     [returnSchedule.date, searchState.deliveryDateTime],
   )
 
-  const selectedDongSummary = useMemo(() => {
-    const provinces = Array.isArray(company?.deliveryCostList) ? company.deliveryCostList : []
-
-    for (const province of provinces) {
-      for (const city of province.cities || []) {
-        for (const dong of city.dongs || []) {
-          if (dong.id === searchState.dongId) {
-            return dong
-          }
-        }
-      }
-    }
-
-    return null
-  }, [company, searchState.dongId])
-
   const updateSearchState = (patch) => {
     setSearchState((current) => normalizeSearchState({ ...current, ...patch, pickupOption: 'delivery' }))
   }
@@ -184,15 +166,34 @@ export default function SearchBox({ compact = false }) {
   }
 
   const handleLocationSelect = ({ dongId, deliveryAddress }) => {
-    updateSearchState({
-      dongId,
-      deliveryAddress,
-    })
+    updateSearchState({ dongId, deliveryAddress })
+    setDeliveryErrors((current) => ({ ...current, dongId: '' }))
+  }
+
+  const handleDeliveryAddressDetailChange = (value) => {
+    updateSearchState({ deliveryAddressDetail: value })
+    setDeliveryErrors((current) => ({ ...current, deliveryAddressDetail: '' }))
   }
 
   const goSearch = () => {
+    const nextErrors = {}
+
     if (!searchState.dongId) {
+      nextErrors.dongId = '딜리버리 위치를 선택해 주세요.'
+    }
+
+    if (!searchState.deliveryAddressDetail) {
+      nextErrors.deliveryAddressDetail = '상세주소를 입력해 주세요.'
+    }
+
+    setDeliveryErrors(nextErrors)
+
+    if (nextErrors.dongId) {
       setIsGuardModalOpen(true)
+      return
+    }
+
+    if (Object.keys(nextErrors).length > 0) {
       return
     }
 
@@ -214,18 +215,18 @@ export default function SearchBox({ compact = false }) {
               <span className="search-panel-icon"><LocationIcon /></span>
               <span className="search-panel-title">딜리버리 위치</span>
             </div>
-            <div className="search-panel-body">
+            <div className="search-panel-body delivery-summary-box">
+              <div className="delivery-readonly-box" role="status" aria-live="polite">
+                {searchState.deliveryAddress || '딜리버리 지역을 선택해 주세요.'}
+              </div>
+              {deliveryErrors.dongId && <p className="muted small-note">{deliveryErrors.dongId}</p>}
               <input
-                className="field-input"
-                value={searchState.deliveryAddress || ''}
-                placeholder="딜리버리 지역을 선택해 주세요."
-                readOnly
+                className="field-input delivery-detail-input"
+                value={searchState.deliveryAddressDetail}
+                placeholder="상세주소를 입력해 주세요."
+                onChange={(e) => handleDeliveryAddressDetailChange(e.target.value)}
               />
-              <p className="schedule-note">
-                {selectedDongSummary
-                  ? `왕복 딜리버리 ${formatMoney(selectedDongSummary.roundTrip)}`
-                  : '검색 전에 딜리버리 위치를 먼저 확정합니다.'}
-              </p>
+              {deliveryErrors.deliveryAddressDetail && <p className="muted small-note">{deliveryErrors.deliveryAddressDetail}</p>}
               {companyFetchError && <p className="muted small-note">{companyFetchError}</p>}
             </div>
             <div className="search-panel-footer">

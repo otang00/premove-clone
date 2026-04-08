@@ -1,9 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
 
-function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString('ko-KR')}원`
-}
-
 function findSelectedPath(provinces, selectedDongId) {
   if (!selectedDongId) return null
 
@@ -68,7 +64,7 @@ export default function DeliveryLocationModal({
 
   return (
     <div className="delivery-modal-backdrop" onClick={onClose}>
-      <div className="delivery-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 지역 선택">
+      <div className="delivery-modal delivery-region-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 지역 선택">
         <div className="delivery-modal-header">
           <div>
             <strong>딜리버리 지역 선택</strong>
@@ -83,14 +79,14 @@ export default function DeliveryLocationModal({
             : '딜리버리 가능 시간 확인 필요'}
         </div>
 
-        <div className="delivery-modal-body">
-          <div className="delivery-column province-column">
+        <div className="delivery-modal-body delivery-region-grid">
+          <div className="delivery-column delivery-region-column province-column">
             <span className="field-label">시/도</span>
-            <div className="delivery-option-list">
+            <div className="delivery-option-list delivery-region-list">
               {provinces.map((province) => (
                 <button
                   key={province.id}
-                  className={`delivery-option-button ${selectedProvince?.id === province.id ? 'is-active' : ''}`}
+                  className={`delivery-option-button delivery-region-button ${selectedProvince?.id === province.id ? 'is-active' : ''}`}
                   onClick={() => {
                     setSelectedProvinceId(province.id)
                     setSelectedCityId(province.cities?.[0]?.id || null)
@@ -102,13 +98,13 @@ export default function DeliveryLocationModal({
             </div>
           </div>
 
-          <div className="delivery-column city-column">
+          <div className="delivery-column delivery-region-column city-column">
             <span className="field-label">시/구/군</span>
-            <div className="delivery-option-list">
+            <div className="delivery-option-list delivery-region-list">
               {cities.map((city) => (
                 <button
                   key={city.id}
-                  className={`delivery-option-button ${selectedCity?.id === city.id ? 'is-active' : ''}`}
+                  className={`delivery-option-button delivery-region-button ${selectedCity?.id === city.id ? 'is-active' : ''}`}
                   onClick={() => setSelectedCityId(city.id)}
                 >
                   {city.name}
@@ -117,28 +113,24 @@ export default function DeliveryLocationModal({
             </div>
           </div>
 
-          <div className="delivery-column dong-column">
-            <span className="field-label">동별 왕복 요금</span>
-            <div className="delivery-fee-list">
+          <div className="delivery-column delivery-region-column dong-column">
+            <span className="field-label">딜리버리 지역</span>
+            <div className="delivery-fee-list delivery-region-list">
               {dongs.map((dong) => (
                 <button
                   key={dong.id}
-                  className={`delivery-fee-card ${selectedDongId === dong.id ? 'is-active' : ''}`}
+                  className={`delivery-fee-card delivery-region-card ${selectedDongId === dong.id ? 'is-active' : ''}`}
                   onClick={() => {
                     onSelect({
                       dongId: dong.id,
                       deliveryAddress: dong.fullLabel,
-                      deliveryRoundTrip: dong.roundTrip,
                     })
                     onClose()
                   }}
                 >
-                  <div className="delivery-fee-head">
+                  <div className="delivery-fee-head delivery-region-summary">
                     <strong>{dong.name}</strong>
                     <span>{selectedCity?.name}</span>
-                  </div>
-                  <div className="delivery-fee-prices delivery-fee-prices-single">
-                    <div><span>왕복</span><strong>{formatMoney(dong.roundTrip)}</strong></div>
                   </div>
                 </button>
               ))}
