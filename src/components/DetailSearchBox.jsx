@@ -66,7 +66,7 @@ export default function DetailSearchBox({
             {deliveryAddressDetailError && (
               <p className="muted small-note">{deliveryAddressDetailError}</p>
             )}
-            <p className="schedule-note detail-note">메인에서 입력한 상세주소를 여기서 수정할 수 있습니다.</p>
+            <p className="schedule-note detail-note">상세주소는 예약 요청 전에 입력해 주세요.</p>
           </div>
         </div>
       </div>

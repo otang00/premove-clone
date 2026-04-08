@@ -93,7 +93,7 @@ export default function CarDetailSection() {
   )
 
   const isDeliveryAddressDetailValid = parsedSearchState.pickupOption !== 'delivery' || Boolean(deliveryAddressDetail.trim())
-  const isFinalSubmissionValid = submitValidation.isValid && isDeliveryAddressDetailValid
+  const isReservationActionEnabled = submitValidation.isValid
 
   useEffect(() => {
     let isCancelled = false

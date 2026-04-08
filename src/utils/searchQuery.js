@@ -111,10 +111,6 @@ export function validateSearchState(searchState) {
     errors.dongId = '딜리버리 위치를 선택해 주세요.'
   }
 
-  if (normalized.pickupOption === 'delivery' && !normalized.deliveryAddressDetail) {
-    errors.deliveryAddressDetail = '상세주소를 입력해 주세요.'
-  }
-
   const pickupAt = parseDateTimeString(normalized.deliveryDateTime)
   const returnAt = parseDateTimeString(normalized.returnDateTime)
 

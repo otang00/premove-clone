@@ -63,7 +63,7 @@ function SearchGuardModal({ open, onClose, onOpenLocation }) {
     <div className="delivery-modal-backdrop" onClick={onClose}>
       <div className="search-guard-modal panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 위치 선택 안내">
         <strong>딜리버리 위치 선택</strong>
-        <p className="field-note">검색 전에 딜리버리 지역과 상세주소를 먼저 입력해 주세요.</p>
+        <p className="field-note">검색 전에 딜리버리 지역을 먼저 선택해 주세요.</p>
         <div className="search-guard-actions">
           <button className="btn btn-outline btn-md" onClick={onClose}>닫기</button>
           <button className="btn btn-dark btn-md" onClick={onOpenLocation}>위치 선택</button>
