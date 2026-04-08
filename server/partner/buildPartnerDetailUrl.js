@@ -9,7 +9,6 @@ const DEFAULT_SEARCH_STATE = {
   order: 'lower',
   dongId: null,
   deliveryAddress: '',
-  deliveryAddressDetail: '',
 }
 
 const PICKUP_OPTIONS = new Set(['pickup', 'delivery'])
@@ -72,10 +71,6 @@ function validateDetailSearch({ carId, searchState }) {
 
   if (normalized.pickupOption === 'delivery' && normalized.dongId == null) {
     errors.dongId = 'dongId is required for delivery search'
-  }
-
-  if (normalized.pickupOption === 'delivery' && !normalized.deliveryAddressDetail) {
-    errors.deliveryAddressDetail = 'deliveryAddressDetail is required for delivery search'
   }
 
   return {

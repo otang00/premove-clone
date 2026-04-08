@@ -9,7 +9,6 @@ const DEFAULT_SEARCH_STATE = {
   order: 'lower',
   dongId: null,
   deliveryAddress: '',
-  deliveryAddressDetail: '',
 }
 
 const PICKUP_OPTIONS = new Set(['pickup', 'delivery'])
@@ -52,7 +51,6 @@ function normalizeSearchState(rawState = {}) {
     order,
     dongId: pickupOption === 'delivery' ? dongId : null,
     deliveryAddress: pickupOption === 'delivery' ? deliveryAddress : '',
-    deliveryAddressDetail: pickupOption === 'delivery' ? deliveryAddressDetail : '',
   }
 }
 
@@ -105,13 +103,6 @@ module.exports = {
   PARTNER_BASE_URL,
   PARTNER_RENTCAR_ID,
   normalizeSearchState,
-  validateSearchState,
-  buildPartnerUrl,
-}
-hState,
-  validateSearchState,
-  buildPartnerUrl,
-}
   validateSearchState,
   buildPartnerUrl,
 }
