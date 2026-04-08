@@ -182,10 +182,6 @@ export default function SearchBox({ compact = false }) {
       nextErrors.dongId = '딜리버리 위치를 선택해 주세요.'
     }
 
-    if (!searchState.deliveryAddressDetail) {
-      nextErrors.deliveryAddressDetail = '상세주소를 입력해 주세요.'
-    }
-
     setDeliveryErrors(nextErrors)
 
     if (nextErrors.dongId) {
