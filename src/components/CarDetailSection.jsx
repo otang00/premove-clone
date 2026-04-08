@@ -74,6 +74,13 @@ export default function CarDetailSection() {
   const [reservationForm, setReservationForm] = useState(DEFAULT_RESERVATION_FORM)
   const [termsState, setTermsState] = useState(DEFAULT_TERMS_STATE)
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CARD)
+  const [deliveryAddressDetail, setDeliveryAddressDetail] = useState(parsedSearchState.deliveryAddressDetail || '')
+  const [deliveryAddressDetailError, setDeliveryAddressDetailError] = useState('')
+
+  useEffect(() => {
+    setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
+    setDeliveryAddressDetailError('')
+  }, [parsedSearchState.deliveryAddressDetail])
 
   const reservationValidation = useMemo(
     () => validateReservationForm(reservationForm),
@@ -84,6 +91,9 @@ export default function CarDetailSection() {
     () => validateReservationSubmission({ reservationValidation, termsValidation, paymentMethod }),
     [reservationValidation, termsValidation, paymentMethod],
   )
+
+  const isDeliveryAddressDetailValid = parsedSearchState.pickupOption !== 'delivery' || Boolean(deliveryAddressDetail.trim())
+  const isFinalSubmissionValid = submitValidation.isValid && isDeliveryAddressDetailValid
 
   useEffect(() => {
     let isCancelled = false
@@ -147,12 +157,24 @@ export default function CarDetailSection() {
     })
   }
 
+  const handleDeliveryAddressDetailChange = (value) => {
+    setDeliveryAddressDetail(value)
+    setDeliveryAddressDetailError('')
+  }
+
   const handleToggleAllTerms = (checked) => {
     setTermsState(toggleAllTerms(checked))
   }
 
   const handleToggleSingleTerm = (field, checked) => {
     setTermsState((current) => toggleSingleTerm(current, field, checked))
+  }
+
+  const handleReservationSubmit = () => {
+    if (parsedSearchState.pickupOption === 'delivery' && !deliveryAddressDetail.trim()) {
+      setDeliveryAddressDetailError('상세주소를 입력해 주세요.')
+      return
+    }
   }
 
   return (
@@ -162,6 +184,9 @@ export default function CarDetailSection() {
           fixedSearchInfo={fixedSearchInfo}
           searchState={parsedSearchState}
           company={company}
+          deliveryAddressDetail={deliveryAddressDetail}
+          deliveryAddressDetailError={deliveryAddressDetailError}
+          onDeliveryAddressDetailChange={handleDeliveryAddressDetailChange}
         />
 
         {!hasSearchContext && (
@@ -215,7 +240,7 @@ export default function CarDetailSection() {
               <article className="detail-card panel">
                 <h2>보험 정보</h2>
                 <div className="info-grid three info-stat-grid">
-                  <div><span>보험 안내</span><strong>일반 자차</strong><small>+ {pricing.insurancePrice}</small></div>
+                  <div><span>보험 안내</span><strong>일반 자차</strong><small>대여 조건에 따라 적용</small></div>
                   <div><span>보상한도</span><strong>{insurance.general?.coverage ? `${insurance.general.coverage}만원` : '확인 필요'}</strong><small>대인/대물 기준</small></div>
                   <div><span>자차 면책금</span><strong>{insurance.general?.indemnificationFee ? `${insurance.general.indemnificationFee}만원` : '확인 필요'}</strong><small>사고 시 고객 부담금</small></div>
                 </div>
@@ -292,18 +317,16 @@ export default function CarDetailSection() {
 
             <aside className="detail-side detail-card panel-sticky sticky-side">
               <h2>결제 정보</h2>
-              <div className="price-lines">
-                <div><span>기본 대여료</span><strong>{pricing.rentalCost}</strong></div>
-                <div><span>보험</span><strong>{pricing.insurancePrice}</strong></div>
-                {parsedSearchState.pickupOption === 'delivery' && parsedSearchState.dongId && (
-                  <div><span>왕복 딜리버리 비용</span><strong>{pricing.deliveryRoundTrip}</strong></div>
-                )}
+              <div className="price-lines price-lines-compact">
                 <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
               </div>
-              {!submitValidation.isValid && (
+              {!isDeliveryAddressDetailValid && (
+                <p className="muted small-note">상세주소를 입력해 주세요.</p>
+              )}
+              {isDeliveryAddressDetailValid && !submitValidation.isValid && (
                 <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
               )}
-              <button className="btn btn-dark btn-lg btn-block" disabled={!submitValidation.isValid}>예약 요청하기</button>
+              <button className="btn btn-dark btn-lg btn-block" disabled={!isFinalSubmissionValid} onClick={handleReservationSubmit}>예약 요청하기</button>
             </aside>
           </div>
         )}

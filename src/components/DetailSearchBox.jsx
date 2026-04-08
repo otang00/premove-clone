@@ -1,4 +1,3 @@
-import { useMemo } from 'react'
 import { parseDateTimeString } from '../utils/reservationSchedule'
 
 function formatDisplay(dateText) {
@@ -13,26 +12,17 @@ function formatDriverAge(driverAge) {
   return Number(driverAge) === 21 ? '만 21세~25세' : '만 26세 이상'
 }
 
-function formatMoney(value) {
-  return `${Number(value || 0).toLocaleString('ko-KR')}원`
-}
-
-export default function DetailSearchBox({ fixedSearchInfo, searchState, company }) {
-  const selectedDongSummary = useMemo(() => {
-    const provinces = Array.isArray(company?.deliveryCostList) ? company.deliveryCostList : []
-
-    for (const province of provinces) {
-      for (const city of province.cities || []) {
-        for (const dong of city.dongs || []) {
-          if (dong.id === searchState.dongId) {
-            return dong
-          }
-        }
-      }
-    }
-
-    return null
-  }, [company, searchState.dongId])
+export default function DetailSearchBox({
+  fixedSearchInfo,
+  searchState,
+  company,
+  deliveryAddressDetail,
+  deliveryAddressDetailError,
+  onDeliveryAddressDetailChange,
+}) {
+  const pickupLocation = searchState.pickupOption === 'delivery'
+    ? (searchState.deliveryAddress || '딜리버리 위치 확인 필요')
+    : (company?.fullGarageAddress || company?.address || '업체 주소 확인 필요')
 
   return (
     <section className="detail-card panel detail-search-box">
@@ -51,36 +41,33 @@ export default function DetailSearchBox({ fixedSearchInfo, searchState, company 
         </div>
       </div>
 
-      <div className="detail-search-grid detail-adjust-grid">
-        <div className="detail-search-section panel-form">
-          <span className="field-label">수령 방식</span>
+      <div className="detail-search-grid detail-location-grid">
+        <div className="detail-search-section panel-form detail-location-card">
+          <span className="field-label">수령위치</span>
           <div className="detail-location-summary">
-            <strong>{searchState.pickupOption === 'delivery' ? '왕복 딜리버리' : '직접수령'}</strong>
+            <div className="pickup-location-readonly-box">{pickupLocation}</div>
             <p className="schedule-note detail-note">
               {searchState.pickupOption === 'delivery'
-                ? '메인에서 확정한 딜리버리 위치 기준으로 예약을 진행합니다.'
+                ? '메인에서 확정한 수령 위치입니다.'
                 : '업체 방문 수령/반납'}
             </p>
           </div>
         </div>
 
-        <div className="detail-search-section panel-form detail-location-field">
-          <span className="field-label">위치</span>
-          {searchState.pickupOption === 'delivery' ? (
-            <div className="detail-location-summary selected-delivery-summary panel-info">
-              <strong>{searchState.deliveryAddress || '딜리버리 위치 확인 필요'}</strong>
-              {selectedDongSummary && (
-                <p className="schedule-note detail-note">
-                  왕복 {formatMoney(selectedDongSummary.roundTrip)}
-                </p>
-              )}
-            </div>
-          ) : (
-            <div className="detail-location-summary">
-              <strong>{company?.fullGarageAddress || company?.address || '업체 주소 확인 필요'}</strong>
-              <p className="schedule-note detail-note">업체 방문 수령/반납</p>
-            </div>
-          )}
+        <div className="detail-search-section panel-form detail-location-card">
+          <span className="field-label">상세위치</span>
+          <div className="detail-location-summary">
+            <input
+              className="field-input detail-location-input"
+              placeholder="상세주소를 입력해 주세요."
+              value={deliveryAddressDetail}
+              onChange={(e) => onDeliveryAddressDetailChange(e.target.value)}
+            />
+            {deliveryAddressDetailError && (
+              <p className="muted small-note">{deliveryAddressDetailError}</p>
+            )}
+            <p className="schedule-note detail-note">메인에서 입력한 상세주소를 여기서 수정할 수 있습니다.</p>
+          </div>
         </div>
       </div>
     </section>
