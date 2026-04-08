@@ -18,10 +18,6 @@ import {
   validateReservationSubmission,
   validateTermsState,
 } from '../services/reservationUiState'
-import {
-  DEFAULT_DELIVERY_FORM,
-  validateDeliveryForm,
-} from '../services/deliveryForm'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
@@ -78,73 +74,15 @@ export default function CarDetailSection() {
   const [reservationForm, setReservationForm] = useState(DEFAULT_RESERVATION_FORM)
   const [termsState, setTermsState] = useState(DEFAULT_TERMS_STATE)
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CARD)
-  const [detailAdjustState, setDetailAdjustState] = useState(() => ({
-    pickupOption: parsedSearchState.pickupOption,
-    dongId: parsedSearchState.dongId || null,
-    deliveryAddress: parsedSearchState.deliveryAddress || '',
-  }))
-  const [deliveryForm, setDeliveryForm] = useState(() => ({
-    ...DEFAULT_DELIVERY_FORM,
-    deliveryAddressDetail: '',
-    deliveryMemo: '',
-  }))
-
-  useEffect(() => {
-    setDetailAdjustState({
-      pickupOption: parsedSearchState.pickupOption,
-      dongId: parsedSearchState.dongId || null,
-      deliveryAddress: parsedSearchState.deliveryAddress || '',
-    })
-    setDeliveryForm((current) => ({
-      ...current,
-      deliveryAddressDetail: '',
-      deliveryMemo: '',
-    }))
-  }, [parsedSearchState.pickupOption, parsedSearchState.dongId, parsedSearchState.deliveryAddress])
-
-  const detailSearchState = useMemo(
-    () => ({
-      ...parsedSearchState,
-      pickupOption: detailAdjustState.pickupOption,
-      dongId: detailAdjustState.pickupOption === 'delivery' ? detailAdjustState.dongId : null,
-      deliveryAddress: detailAdjustState.pickupOption === 'delivery' ? detailAdjustState.deliveryAddress : '',
-    }),
-    [parsedSearchState, detailAdjustState],
-  )
-
-  const isDetailSearchFetchable = useMemo(
-    () => detailSearchState.pickupOption !== 'delivery' || detailSearchState.dongId != null,
-    [detailSearchState],
-  )
 
   const reservationValidation = useMemo(
     () => validateReservationForm(reservationForm),
     [reservationForm],
   )
   const termsValidation = useMemo(() => validateTermsState(termsState), [termsState])
-  const deliveryValidation = useMemo(
-    () => validateDeliveryForm({
-      selectedDongId: detailAdjustState.dongId,
-      selectedDongLabel: detailAdjustState.deliveryAddress,
-      deliveryAddressDetail: deliveryForm.deliveryAddressDetail,
-      deliveryMemo: deliveryForm.deliveryMemo,
-    }, detailAdjustState.pickupOption),
-    [detailAdjustState, deliveryForm],
-  )
   const submitValidation = useMemo(
-    () => {
-      const base = validateReservationSubmission({ reservationValidation, termsValidation, paymentMethod })
-      if (detailAdjustState.pickupOption !== 'delivery') return base
-      if (deliveryValidation.isValid) return base
-      return {
-        errors: {
-          ...base.errors,
-          delivery: Object.values(deliveryValidation.errors)[0] || '딜리버리 정보를 확인해 주세요.',
-        },
-        isValid: false,
-      }
-    },
-    [reservationValidation, termsValidation, paymentMethod, detailAdjustState.pickupOption, deliveryValidation],
+    () => validateReservationSubmission({ reservationValidation, termsValidation, paymentMethod }),
+    [reservationValidation, termsValidation, paymentMethod],
   )
 
   useEffect(() => {
@@ -161,18 +99,10 @@ export default function CarDetailSection() {
       }
     }
 
-    if (!isDetailSearchFetchable) {
-      setFetchError('')
-      setIsLoading(false)
-      return () => {
-        isCancelled = true
-      }
-    }
-
     setIsLoading(true)
     setFetchError('')
 
-    fetchCarDetail(carId, detailSearchState)
+    fetchCarDetail(carId, parsedSearchState)
       .then((payload) => {
         if (isCancelled) return
         setCompany((current) => ({
@@ -201,7 +131,7 @@ export default function CarDetailSection() {
     return () => {
       isCancelled = true
     }
-  }, [carId, hasSearchContext, validation, isDetailSearchFetchable, detailSearchState])
+  }, [carId, hasSearchContext, validation, parsedSearchState])
 
   const updateReservationForm = (field, value) => {
     setReservationForm((current) => {
@@ -225,39 +155,13 @@ export default function CarDetailSection() {
     setTermsState((current) => toggleSingleTerm(current, field, checked))
   }
 
-  const handlePickupOptionChange = (pickupOption) => {
-    setDetailAdjustState((current) => ({
-      ...current,
-      pickupOption,
-      dongId: pickupOption === 'delivery' ? current.dongId : current.dongId,
-      deliveryAddress: pickupOption === 'delivery' ? current.deliveryAddress : current.deliveryAddress,
-    }))
-  }
-
-  const handleLocationChange = ({ dongId, deliveryAddress }) => {
-    setDetailAdjustState((current) => ({
-      ...current,
-      dongId,
-      deliveryAddress,
-    }))
-  }
-
-  const updateDeliveryForm = (field, value) => {
-    setDeliveryForm((current) => ({ ...current, [field]: value }))
-  }
-
   return (
     <section className="section-bg detail-page">
       <div className="container detail-layout">
         <DetailSearchBox
           fixedSearchInfo={fixedSearchInfo}
-          adjustState={detailAdjustState}
-          deliveryForm={deliveryForm}
-          deliveryValidation={deliveryValidation}
+          searchState={parsedSearchState}
           company={company}
-          onPickupOptionChange={handlePickupOptionChange}
-          onLocationChange={handleLocationChange}
-          onDeliveryFieldChange={updateDeliveryForm}
         />
 
         {!hasSearchContext && (
@@ -270,7 +174,7 @@ export default function CarDetailSection() {
         {hasSearchContext && !validation.isValid && (
           <ContextErrorState
             title="검색 조건 오류"
-            message="대여/반납 시간 또는 검색 상태가 올바르지 않습니다. 메인에서 다시 검색해 주세요."
+            message={Object.values(validation.errors)[0] || '검색 조건이 올바르지 않습니다. 메인에서 다시 검색해 주세요.'}
           />
         )}
 
@@ -391,7 +295,7 @@ export default function CarDetailSection() {
               <div className="price-lines">
                 <div><span>기본 대여료</span><strong>{pricing.rentalCost}</strong></div>
                 <div><span>보험</span><strong>{pricing.insurancePrice}</strong></div>
-                {detailAdjustState.pickupOption === 'delivery' && detailAdjustState.dongId && (
+                {parsedSearchState.pickupOption === 'delivery' && parsedSearchState.dongId && (
                   <div><span>왕복 딜리버리 비용</span><strong>{pricing.deliveryRoundTrip}</strong></div>
                 )}
                 <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
