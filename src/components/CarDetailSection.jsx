@@ -326,7 +326,7 @@ export default function CarDetailSection() {
               {isDeliveryAddressDetailValid && !submitValidation.isValid && (
                 <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
               )}
-              <button className="btn btn-dark btn-lg btn-block" disabled={!isFinalSubmissionValid} onClick={handleReservationSubmit}>예약 요청하기</button>
+              <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>예약 요청하기</button>
             </aside>
           </div>
         )}
