@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import DeliveryLocationModal from './DeliveryLocationModal'
 import {
   buildSearchQuery,
   normalizeSearchState,
@@ -17,13 +18,11 @@ import {
   splitDateTimeString,
   toDateTimeString,
 } from '../utils/reservationSchedule'
+import { fetchSearchCompany, getMockCompany } from '../services/company'
 
-const DELIVERY_LOCATION_OPTIONS = [
-  { id: 425, label: '서울특별시 서초구 반포동' },
-  { id: 424, label: '서울특별시 서초구 잠원동' },
-  { id: 423, label: '서울특별시 서초구 방배동' },
-  { id: 422, label: '서울특별시 서초구 서초동' },
-]
+function formatMoney(value) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
 
 function LocationIcon() {
   return (
@@ -61,35 +60,17 @@ function formatDisplay(dateText) {
   return `${String(parsed.getMonth() + 1).padStart(2, '0')}.${String(parsed.getDate()).padStart(2, '0')}(${week}) ${String(parsed.getHours()).padStart(2, '0')}:00`
 }
 
-function DeliveryLocationModal({ open, selectedDongId, onClose, onSelect }) {
+function SearchGuardModal({ open, onClose, onOpenLocation }) {
   if (!open) return null
 
   return (
     <div className="delivery-modal-backdrop" onClick={onClose}>
-      <div className="delivery-modal simple-delivery-modal" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 위치 선택">
-        <div className="delivery-modal-header">
-          <div>
-            <strong>딜리버리 위치 선택</strong>
-            <p>지역을 선택하면 검색창 주소가 자동으로 채워집니다.</p>
-          </div>
-          <button className="btn btn-outline btn-md delivery-modal-close" onClick={onClose}>닫기</button>
-        </div>
-
-        <div className="delivery-fee-list simple-delivery-list">
-          {DELIVERY_LOCATION_OPTIONS.map((option) => (
-            <button
-              key={option.id}
-              className={`delivery-fee-card ${selectedDongId === option.id ? 'is-active' : ''}`}
-              onClick={() => {
-                onSelect({ dongId: option.id, deliveryAddress: option.label })
-                onClose()
-              }}
-            >
-              <div className="delivery-fee-head simple-delivery-head">
-                <strong>{option.label}</strong>
-              </div>
-            </button>
-          ))}
+      <div className="search-guard-modal panel" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true" aria-label="딜리버리 위치 선택 안내">
+        <strong>딜리버리 위치 선택</strong>
+        <p className="field-note">검색 전에 딜리버리 지역을 먼저 선택해 주세요.</p>
+        <div className="search-guard-actions">
+          <button className="btn btn-outline btn-md" onClick={onClose}>닫기</button>
+          <button className="btn btn-dark btn-md" onClick={onOpenLocation}>위치 선택</button>
         </div>
       </div>
     </div>
@@ -101,11 +82,39 @@ export default function SearchBox({ compact = false }) {
   const location = useLocation()
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const [searchState, setSearchState] = useState(parsedSearchState)
+  const [company, setCompany] = useState(() => getMockCompany())
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false)
+  const [isGuardModalOpen, setIsGuardModalOpen] = useState(false)
+  const [companyFetchError, setCompanyFetchError] = useState('')
 
   useEffect(() => {
     setSearchState(parsedSearchState)
   }, [parsedSearchState])
+
+  useEffect(() => {
+    let isCancelled = false
+
+    fetchSearchCompany(searchState)
+      .then((payload) => {
+        if (isCancelled) return
+        setCompany((current) => ({
+          ...current,
+          ...payload,
+          name: payload.companyName || current.name,
+          address: payload.fullGarageAddress || current.address,
+          phone: payload.companyTel || current.phone,
+        }))
+        setCompanyFetchError('')
+      })
+      .catch((error) => {
+        if (isCancelled) return
+        setCompanyFetchError(error.message || '딜리버리 지역 정보를 불러오지 못했습니다.')
+      })
+
+    return () => {
+      isCancelled = true
+    }
+  }, [searchState.deliveryDateTime, searchState.returnDateTime, searchState.driverAge, searchState.order])
 
   const earliestPickupDate = useMemo(() => getEarliestPickupDateTime(), [])
   const earliestPickupDateKey = useMemo(() => formatDateKey(earliestPickupDate), [earliestPickupDate])
@@ -138,8 +147,24 @@ export default function SearchBox({ compact = false }) {
     [returnSchedule.date, searchState.deliveryDateTime],
   )
 
+  const selectedDongSummary = useMemo(() => {
+    const provinces = Array.isArray(company?.deliveryCostList) ? company.deliveryCostList : []
+
+    for (const province of provinces) {
+      for (const city of province.cities || []) {
+        for (const dong of city.dongs || []) {
+          if (dong.id === searchState.dongId) {
+            return dong
+          }
+        }
+      }
+    }
+
+    return null
+  }, [company, searchState.dongId])
+
   const updateSearchState = (patch) => {
-    setSearchState((current) => normalizeSearchState({ ...current, ...patch }))
+    setSearchState((current) => normalizeSearchState({ ...current, ...patch, pickupOption: 'delivery' }))
   }
 
   const updateDeliverySchedule = (patch) => {
@@ -160,15 +185,24 @@ export default function SearchBox({ compact = false }) {
 
   const handleLocationSelect = ({ dongId, deliveryAddress }) => {
     updateSearchState({
-      pickupOption: 'delivery',
       dongId,
       deliveryAddress,
     })
   }
 
   const goSearch = () => {
+    if (!searchState.dongId) {
+      setIsGuardModalOpen(true)
+      return
+    }
+
     const nextQuery = buildSearchQuery({ ...searchState, pickupOption: 'delivery' })
     navigate(`/?${nextQuery}`)
+  }
+
+  const openLocationModalFromGuard = () => {
+    setIsGuardModalOpen(false)
+    setIsLocationModalOpen(true)
   }
 
   return (
@@ -184,9 +218,15 @@ export default function SearchBox({ compact = false }) {
               <input
                 className="field-input"
                 value={searchState.deliveryAddress || ''}
-                placeholder=""
+                placeholder="딜리버리 지역을 선택해 주세요."
                 readOnly
               />
+              <p className="schedule-note">
+                {selectedDongSummary
+                  ? `왕복 딜리버리 ${formatMoney(selectedDongSummary.roundTrip)}`
+                  : '검색 전에 딜리버리 위치를 먼저 확정합니다.'}
+              </p>
+              {companyFetchError && <p className="muted small-note">{companyFetchError}</p>}
             </div>
             <div className="search-panel-footer">
               <button className="btn btn-dark btn-lg btn-block" onClick={() => setIsLocationModalOpen(true)}>
@@ -283,9 +323,16 @@ export default function SearchBox({ compact = false }) {
 
       <DeliveryLocationModal
         open={isLocationModalOpen}
+        company={company}
         selectedDongId={searchState.dongId}
         onClose={() => setIsLocationModalOpen(false)}
         onSelect={handleLocationSelect}
+      />
+
+      <SearchGuardModal
+        open={isGuardModalOpen}
+        onClose={() => setIsGuardModalOpen(false)}
+        onOpenLocation={openLocationModalFromGuard}
       />
     </>
   )

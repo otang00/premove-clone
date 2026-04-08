@@ -101,6 +101,10 @@ export function validateSearchState(searchState) {
     errors.driverAge = 'driverAge is invalid'
   }
 
+  if (normalized.pickupOption === 'delivery' && normalized.dongId == null) {
+    errors.dongId = '딜리버리 위치를 선택해 주세요.'
+  }
+
   const pickupAt = parseDateTimeString(normalized.deliveryDateTime)
   const returnAt = parseDateTimeString(normalized.returnDateTime)
 
