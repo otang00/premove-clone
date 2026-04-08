@@ -1,4 +1,5 @@
 import { buildSearchQuery } from '../utils/searchQuery'
+import { parseApiResponse } from '../utils/apiResponse'
 
 import { calculateReservationPricing, formatReservationPricing } from './pricing'
 
@@ -60,11 +61,7 @@ function toDetailViewModel(payload) {
 export async function fetchCarDetail(carId, searchState) {
   const query = buildSearchQuery(searchState)
   const response = await fetch(`/api/car-detail?carId=${encodeURIComponent(carId)}&${query}`)
-  const payload = await response.json()
-
-  if (!response.ok) {
-    throw new Error(payload.message || payload.error || '상세 조회에 실패했습니다.')
-  }
+  const payload = await parseApiResponse(response, '상세 조회에 실패했습니다.')
 
   return toDetailViewModel(payload)
 }

@@ -1,5 +1,6 @@
 import { buildSearchQuery } from '../utils/searchQuery'
 import { cars as mockCars } from '../data/mock'
+import { parseApiResponse } from '../utils/apiResponse'
 
 function sortCars(cars, order) {
   const nextCars = [...cars]
@@ -80,11 +81,7 @@ export function getMockCars(searchState) {
 export async function fetchSearchCars(searchState) {
   const query = buildSearchQuery(searchState)
   const response = await fetch(`/api/search-cars?${query}`)
-  const payload = await response.json()
-
-  if (!response.ok) {
-    throw new Error(payload.message || payload.error || '차량 조회에 실패했습니다.')
-  }
+  const payload = await parseApiResponse(response, '차량 조회에 실패했습니다.')
 
   return {
     search: payload.search,
