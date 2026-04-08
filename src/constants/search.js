@@ -8,6 +8,7 @@ export const SEARCH_QUERY_KEYS = [
   'order',
   'dongId',
   'deliveryAddress',
+  'deliveryAddressDetail',
 ]
 
 export const PICKUP_OPTIONS = ['pickup', 'delivery']
@@ -29,3 +30,4 @@ export function getDefaultSearchState() {
 }
 
 export const DEFAULT_SEARCH_STATE = getDefaultSearchState()
+e()

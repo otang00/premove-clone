@@ -61,6 +61,7 @@ export function normalizeSearchState(rawState = {}) {
   const order = normalizeOrder(rawState.order, fallbackState)
   const dongId = normalizeDongId(rawState.dongId)
   const deliveryAddress = normalizeDeliveryAddress(rawState.deliveryAddress)
+  const deliveryAddressDetail = normalizeDeliveryAddressDetail(rawState.deliveryAddressDetail)
   const sanitizedDateTimes = sanitizeSearchDateTimes({
     deliveryDateTime: normalizeDateTime(rawState.deliveryDateTime, fallbackState.deliveryDateTime),
     returnDateTime: normalizeDateTime(rawState.returnDateTime, fallbackState.returnDateTime),
@@ -158,6 +159,10 @@ export function buildSearchQuery(searchState) {
 
     if (normalized.deliveryAddress) {
       params.set('deliveryAddress', normalized.deliveryAddress)
+    }
+
+    if (normalized.deliveryAddressDetail) {
+      params.set('deliveryAddressDetail', normalized.deliveryAddressDetail)
     }
   }
 
