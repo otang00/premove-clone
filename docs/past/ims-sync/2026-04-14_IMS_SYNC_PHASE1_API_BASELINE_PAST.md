@@ -15,8 +15,16 @@ IMS 예약 동기화 Phase 1의 단일 기준 API는 아래로 고정한다.
 - `/v2/company-car-schedules/reservations`
 
 ### 기본 헤더
-- `Authorization: <captured from logged-in browser session>`
+- `Authorization: JWT <access_token>`
 - `Accept: application/json, text/plain, */*`
+
+인증 기준:
+- `POST https://api.rencar.co.kr/auth`
+- body:
+  - `username`: IMS 아이디 평문
+  - `password`: `sha256(IMS_PW).hex()`
+- 로그인 성공 시 받은 `access_token` 을 `JWT <token>` 형식으로 헤더에 넣는다.
+- 브라우저 세션 캡처는 디버깅/임시 우회 수단일 뿐, Phase 1 기준 인증 경로는 아니다.
 
 ### 기본 쿼리 전략
 - `page`: 1부터 증가

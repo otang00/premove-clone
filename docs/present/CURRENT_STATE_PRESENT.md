@@ -34,5 +34,6 @@
 - 상세 전환 1차의 source 분리 기준은 `docs/05_DETAIL_DB_INTEGRATION_PHASE1.md` 를 따른다.
 
 ## 현재 문서 원칙
-- 현재 기준 문서는 `README.md`, `docs/CURRENT_STATE.md`, `docs/00_FINAL_GOAL.md`, `docs/04_PARTNER_SITE_REFERENCE.md`, `docs/05_DETAIL_DB_INTEGRATION_PHASE1.md`, `docs/99_DECISIONS.md`, `docs/references/*`만 우선 본다.
-- 과거 단계별 실행 문서와 작업 지시문은 `docs/archive/`로 이동한다.
+- 현재 기준 문서는 `docs/README.md`, `docs/present/CURRENT_STATE_PRESENT.md`, `docs/00_FINAL_GOAL.md`, `docs/present/IMS_SYNC_PRESENT.md`, `docs/present/DECISIONS_PRESENT.md`, `docs/04_PARTNER_SITE_REFERENCE.md`, `docs/05_DETAIL_DB_INTEGRATION_PHASE1.md`, `docs/references/*`만 우선 본다.
+- phase별 검토/잠금 문서는 `docs/past/` 로 내린다.
+- 더 오래된 설계/작업 지시문은 `docs/archive/` 에 둔다.

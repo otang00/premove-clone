@@ -10,16 +10,16 @@
 ---
 
 ## 결론
-IMS는 현재 확인 기준으로 **직접 로그인 API를 먼저 때리는 구조가 아니라**,
+최신 검증 기준으로 IMS는 **브라우저 없이 직접 로그인 API 호출이 가능**하다.
 
-1. `https://imsform.com/` 웹 로그인
-2. 로그인된 브라우저 세션에서 내부 API 호출 발생
-3. 그 요청의 `Authorization` 헤더 캡처
-4. 캡처한 헤더로 `https://api.rencar.co.kr/...` API 호출
+1. `POST https://api.rencar.co.kr/auth`
+2. `username` 은 평문 아이디 사용
+3. `password` 는 `sha256(plainPassword).hex()` 로 변환 후 전송
+4. 응답의 `access_token` 을 받아
+5. `Authorization: JWT <access_token>` 로 `https://api.rencar.co.kr/...` API 호출
 
-이 흐름으로 접근하는 것이 가장 확실하다.
-
-즉, 사장님 말씀대로 **브라우저 로그인 인증을 가지고 API를 부르는 방식**이 맞다.
+즉, 브라우저 로그인 + Authorization 캡처는 임시 디버깅 수단일 수는 있지만,
+현재 기준 **기본 운영 경로는 서버 단독 로그인 + JWT 호출**이다.
 
 ---
 
@@ -52,22 +52,20 @@ IMS는 현재 확인 기준으로 **직접 로그인 API를 먼저 때리는 구
 - `IMS_PW`
 
 ### 중요한 점
-현재 코드에서 **API용 별도 로그인 엔드포인트는 확인되지 않았다.**
-대신 브라우저 로그인 후, 화면이 호출하는 API 요청에서 아래 Authorization 헤더를 잡아 사용한다.
+현재 확인된 API용 로그인 엔드포인트는 아래다.
 
-```js
-page.on('request', (req) => {
-  if (!auth && req.url().includes('/v2/company-car-schedules/reservations')) {
-    auth = req.headers().authorization || null;
-  }
-});
-```
+- `POST https://api.rencar.co.kr/auth`
 
-즉, 서버 사이드에서 IMS API를 직접 쓰려면 다음 중 하나가 필요하다.
-- 브라우저 자동화로 로그인 후 헤더 캡처
-- 또는 별도 인증 토큰 발급 방식이 추가로 발견되어야 함
+로그인 페이지 소스맵 기준 프론트는 아래 값을 전송한다.
+- `username: this.refs.id.value`
+- `password: sha256(this.refs.password.value).toString()`
 
-현재까지 **검증된 방법은 브라우저 로그인 + Authorization 캡처** 뿐이다.
+즉, 서버 사이드에서 IMS API를 직접 쓰는 기본 방식은 아래다.
+- `IMS_PW` 를 SHA-256 hex 로 변환
+- `/auth` 로 `access_token` 발급
+- `Authorization: JWT <token>` 로 IMS API 호출
+
+브라우저 자동화로 헤더를 캡처하는 방식은 보조 진단 경로로만 남긴다.
 
 ---
 
@@ -82,11 +80,23 @@ page.on('request', (req) => {
 `GET https://api.rencar.co.kr/v2/company-car-schedules/reservations`
 
 ### 인증
-헤더에 로그인 후 캡처한 Authorization 필요
+헤더에 JWT Authorization 필요
 
 ```http
-Authorization: <captured header>
+Authorization: JWT <access_token>
 Accept: application/json, text/plain, */*
+```
+
+토큰 발급:
+```http
+POST https://api.rencar.co.kr/auth
+Content-Type: application/json
+
+{
+  "username": "<IMS_ID>",
+  "password": "<sha256 hex of IMS_PW>",
+  "disableErrorHandler": true
+}
 ```
 
 ### 현재 확인된 쿼리 파라미터

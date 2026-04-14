@@ -74,8 +74,7 @@ create table if not exists public.reservations (
 );
 
 create unique index if not exists uq_reservations_ims_reservation_id
-  on public.reservations (ims_reservation_id)
-  where ims_reservation_id is not null;
+  on public.reservations (ims_reservation_id);
 create index if not exists idx_reservations_car_period
   on public.reservations (car_id, start_at, end_at);
 create index if not exists idx_reservations_status

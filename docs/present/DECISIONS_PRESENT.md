@@ -133,7 +133,7 @@
 - 기간 필드는 `start_at`, `end_at` 를 그대로 사용한다.
 - 고객 필드는 `detail.customer_name`, `detail.customer_contact` 를 선택 저장한다.
 - 주소는 `pickup_address`, `dropoff_address` 를 둘 다 보관하고, 필요 시 `delivery_address` 를 파생 사용한다.
-- 세부 매핑표는 `docs/2026-04-14-1936-05bdd61_IMS_SYNC_PHASE2_FIELD_MAPPING.md` 에서 관리한다.
+- 세부 매핑표는 `docs/past/ims-sync/2026-04-14_IMS_SYNC_PHASE2_FIELD_MAPPING_PAST.md` 에서 관리한다.
 - 이유: 예약 blocking 은 실차 단위여야 하고, 그룹키는 가격/차종 규칙 연결용으로만 써야 하기 때문이다.
 
 ### 20. IMS 동기화 Phase 3 스키마는 raw / normalized / sync-log 4테이블로 확정한다
@@ -155,6 +155,7 @@
 - 기본 운영 주기는 3분이다.
 - 실패 시 1회 짧은 재시도만 허용하고, 무한 재시도는 금지한다.
 - 동시 실행 방지를 위해 run 잠금 규칙을 둔다.
-- 초기 인증 주입은 자동 로그인보다 `IMS_AUTHORIZATION` 환경변수 사용을 기준으로 잡는다.
+- 초기 인증은 `IMS_ID` + `IMS_PW` 기반 자동 로그인(`sha256(password)` → `/auth` → JWT)을 기준으로 잡는다.
+- `IMS_AUTHORIZATION` 직접 주입은 디버깅/비상 우회 용도로만 둔다.
 - 세부 런타임 구조는 `docs/2026-04-14-2003-e3c8850_IMS_SYNC_PHASE4_WORKER_RUNTIME.md` 에서 관리한다.
 - 이유: 웹 요청과 동기화 책임을 분리하고, 운영 주기/재시도/장애 추적을 단순하게 유지하기 위해.
