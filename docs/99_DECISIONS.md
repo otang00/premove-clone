@@ -121,3 +121,13 @@
 - 운영 active 기준은 우리 DB에서 `end_at > now()` 로 다시 자른다.
 - 세부 요청 규칙은 `docs/2026-04-14-1938-d7ecfb2_IMS_SYNC_PHASE1_API_BASELINE.md` 에서 관리한다.
 - 이유: 초기엔 누락 방지와 재현성을 우선하고, returned 처리와 active 판정은 우리 쪽에서 통제하기 위해.
+
+### 19. IMS 동기화 Phase 2의 기본 매핑은 schedule id + car_group_id 중심으로 잠근다
+- `ims_reservation_id` 는 IMS 응답의 상위 `id` 를 사용한다.
+- `car_id` 는 우선 `car.car_group_id` 를 사용한다.
+- `status_raw` 는 상위 `status` 원본을 그대로 저장한다.
+- 앱 운영용 `status` 는 내부 표준값으로 별도 매핑하되, 실제 enum 전수 확인 전까지는 raw 보관을 우선한다.
+- 기간 필드는 `start_at`, `end_at` 를 그대로 사용한다.
+- 고객 필드는 `detail.customer_name`, `detail.customer_contact` 를 선택 저장한다.
+- 세부 매핑표는 `docs/2026-04-14-1936-05bdd61_IMS_SYNC_PHASE2_FIELD_MAPPING.md` 에서 관리한다.
+- 이유: upsert 키, 차량 연결키, 기간 필드를 먼저 고정해야 스키마와 워커 구현을 이어갈 수 있기 때문이다.
