@@ -113,3 +113,11 @@
 - 구현은 API 기준 잠금 → 필드 매핑 → DB 스키마 → 워커 구조 → 수집기 → upsert → 주기 검증 순으로 끊는다.
 - 세부 실행계획은 `docs/2026-04-14-1932-f5555a8_IMS_SYNC_WORKER_PHASE_PLAN.md` 에서 관리한다.
 - 이유: 동기화 실패/재시도/로그 책임을 사용자 API 흐름과 분리하고, 단계별 검증이 가능한 구조로 고정하기 위해.
+
+### 18. IMS 동기화 Phase 1 API 기준은 reservations 목록 API로 잠근다
+- Phase 1 단일 엔드포인트는 `GET /v2/company-car-schedules/reservations` 로 고정한다.
+- 기본 쿼리는 `page`, `base_date`, `rental_type=all`, `status=all`, `option=customer_name`, `exclude_returned=false`, `date_option=start_at`, `start`, `end` 를 사용한다.
+- 초기 수집 범위는 실행일 기준 `오늘 - 1일` 부터 `오늘 + 30일` 까지로 본다.
+- 운영 active 기준은 우리 DB에서 `end_at > now()` 로 다시 자른다.
+- 세부 요청 규칙은 `docs/2026-04-14-1938-d7ecfb2_IMS_SYNC_PHASE1_API_BASELINE.md` 에서 관리한다.
+- 이유: 초기엔 누락 방지와 재현성을 우선하고, returned 처리와 active 판정은 우리 쪽에서 통제하기 위해.
