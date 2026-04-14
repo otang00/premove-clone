@@ -28,6 +28,11 @@
 - 반납은 대여 시각 기준 최소 1일(24시간) 이후부터 가능
 - 대여 기간은 최대 30일
 
+## 현재 상세 데이터 기준
+- 현재 상세 API `api/car-detail.js` 는 partner 상세 파싱 DTO를 그대로 프론트에 공급한다.
+- 상세 전환 1차의 목표는 프론트 응답 shape를 유지한 채, 차량 기본 정보 source만 Supabase `public.cars` 쪽으로 옮길 준비를 마치는 것이다.
+- 상세 전환 1차의 source 분리 기준은 `docs/05_DETAIL_DB_INTEGRATION_PHASE1.md` 를 따른다.
+
 ## 현재 문서 원칙
-- 현재 기준 문서는 `README.md`, `docs/CURRENT_STATE.md`, `docs/00_FINAL_GOAL.md`, `docs/04_PARTNER_SITE_REFERENCE.md`, `docs/99_DECISIONS.md`, `docs/references/*`만 우선 본다.
+- 현재 기준 문서는 `README.md`, `docs/CURRENT_STATE.md`, `docs/00_FINAL_GOAL.md`, `docs/04_PARTNER_SITE_REFERENCE.md`, `docs/05_DETAIL_DB_INTEGRATION_PHASE1.md`, `docs/99_DECISIONS.md`, `docs/references/*`만 우선 본다.
 - 과거 단계별 실행 문서와 작업 지시문은 `docs/archive/`로 이동한다.

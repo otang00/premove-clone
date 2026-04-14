@@ -6,8 +6,9 @@
 1. `CURRENT_STATE.md`
 2. `00_FINAL_GOAL.md`
 3. `04_PARTNER_SITE_REFERENCE.md`
-4. `99_DECISIONS.md`
-5. `references/IMS_API_CALLS.md`
+4. `05_DETAIL_DB_INTEGRATION_PHASE1.md`
+5. `99_DECISIONS.md`
+6. `references/IMS_API_CALLS.md`
 
 ## archive
 - `archive/spec-history/`: 단계별 설계/실행 문서
