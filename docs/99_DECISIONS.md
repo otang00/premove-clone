@@ -131,3 +131,14 @@
 - 고객 필드는 `detail.customer_name`, `detail.customer_contact` 를 선택 저장한다.
 - 세부 매핑표는 `docs/2026-04-14-1936-05bdd61_IMS_SYNC_PHASE2_FIELD_MAPPING.md` 에서 관리한다.
 - 이유: upsert 키, 차량 연결키, 기간 필드를 먼저 고정해야 스키마와 워커 구현을 이어갈 수 있기 때문이다.
+
+### 20. IMS 동기화 Phase 3 스키마는 raw / normalized / sync-log 4테이블로 확정한다
+- `ims_reservations_raw` 는 IMS 원본 payload 보관과 재처리 기준이다.
+- `reservations` 는 앱 조회와 가용성 계산의 기준 테이블이다.
+- `reservation_sync_runs` 는 실행 단위 로그다.
+- `reservation_sync_errors` 는 개별 실패 추적용이다.
+- `reservations` upsert 기준 키는 `ims_reservation_id` 로 유지한다.
+- active 운영 기준은 계속 `end_at > now()` 로 본다.
+- SQL 초안은 `supabase/migrations/20260414195200_create_ims_sync_tables.sql` 에서 관리한다.
+- 세부 설명은 `docs/2026-04-14-1952-300f32d_IMS_SYNC_PHASE3_DB_SCHEMA.md` 에서 관리한다.
+- 이유: raw 보존, idempotent upsert, 실패 추적을 동시에 만족하는 최소 구조이기 때문이다.
