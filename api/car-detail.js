@@ -2,6 +2,8 @@ const { buildPartnerDetailUrl, normalizeSearchState, validateDetailSearch } = re
 const { fetchPartnerCarDetail } = require('../server/partner/fetchPartnerCarDetail')
 const { parsePartnerCarDetail } = require('../server/partner/parsePartnerCarDetail')
 const { mapPartnerCarDetailDto } = require('../server/partner/mapPartnerCarDetailDto')
+const { fetchCarBySourceCarId } = require('../server/supabase/fetchCarBySourceCarId')
+const { mergeCarDetailSources } = require('../server/detail/mergeCarDetailSources')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -33,14 +35,14 @@ module.exports = async function handler(req, res) {
       search: validation.normalized,
       parsed,
     })
+    const supabaseCar = await fetchCarBySourceCarId(carId)
+    const mergedDto = mergeCarDetailSources({
+      dto,
+      supabaseCar,
+    })
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
-    return res.status(200).json({
-      ...dto,
-      meta: {
-        source: 'partner-url-fetch',
-      },
-    })
+    return res.status(200).json(mergedDto)
   } catch (error) {
     const message = error && error.message ? error.message : 'external_detail_lookup_failed'
     const statusCode = /partner detail fetch failed/.test(message) || error.code === 'PARTNER_DETAIL_FETCH_TIMEOUT'
