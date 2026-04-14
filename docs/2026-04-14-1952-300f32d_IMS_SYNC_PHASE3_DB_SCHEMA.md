@@ -48,10 +48,14 @@ IMS 원본 payload 적재
 - `source text not null default 'ims'`
 - `source_updated_at timestamptz null`
 - `car_id text not null`
+- `car_number text null`
+- `car_group_id text null`
 - `status text not null`
 - `status_raw text null`
 - `pickup_option text null`
 - `delivery_region_id text null`
+- `pickup_address text null`
+- `dropoff_address text null`
 - `delivery_address text null`
 - `customer_name text null`
 - `customer_phone text null`
@@ -132,7 +136,8 @@ IMS 원본 payload 적재
 
 ## 운영 조회 기준
 - active 예약: `end_at > now()`
-- blocking status 세부값은 후속 phase에서 status mapping 구현과 함께 반영
+- blocking 예약: active 예약 중 취소/실패/완료 성격 status 제외
+- 즉 조회 기준은 시간 + status 를 함께 본다.
 
 ---
 

@@ -23,17 +23,22 @@ IMS 예약 동기화 Phase 1의 단일 기준 API는 아래로 고정한다.
 - `base_date`: 실행일 기준 yyyy-mm-dd
 - `rental_type=all`
 - `status=all`
-- `option=customer_name`
 - `exclude_returned=false`
-- `date_option=start_at`
-- `start`: 오늘 - 1일
+- `date_option=end_at`
+- `start`: 오늘
 - `end`: 오늘 + 30일
+
+보조 원칙:
+- 이미 시작했더라도 아직 안 끝난 예약이 빠지면 안 된다.
+- 따라서 초기 기준은 `end_at >= today` 성격으로 잡는다.
+- `option=customer_name` 는 검색 필터 성격일 수 있어 동기화 기본값에서 제외한다.
 
 ---
 
 ## 왜 이렇게 잡는가
 - 초기엔 누락보다 단순성과 재현성을 우선한다.
-- IMS 쪽 `exclude_returned` 동작을 아직 완전히 신뢰하지 않고, 우리 DB 기준 active 필터를 별도로 둔다.
+- 장기 예약이 이미 시작된 상태여도 아직 안 끝났다면 반드시 수집돼야 한다.
+- IMS 쪽 `exclude_returned` 동작을 아직 완전히 신뢰하지 않고, 우리 DB 기준 active/blocking 필터를 별도로 둔다.
 - 따라서 수집은 넓게 받고, 운영 active 기준은 우리 쪽에서 다시 자른다.
 
 ---
@@ -41,11 +46,12 @@ IMS 예약 동기화 Phase 1의 단일 기준 API는 아래로 고정한다.
 ## active 예약 기준
 운영 active 기준은 아래로 고정한다.
 
-- `end_at > now()`
+- 시간 조건: `end_at > now()`
+- 상태 조건: 취소/실패/완료 성격 status 제외
 
 즉:
 - IMS fetch 범위는 조금 넓게
-- 우리 DB 운영 대상은 아직 안 끝난 예약만
+- 우리 DB 운영 대상은 아직 안 끝난 예약 중 blocking status 만 본다.
 
 ---
 
@@ -58,7 +64,7 @@ IMS 예약 동기화 Phase 1의 단일 기준 API는 아래로 고정한다.
 
 ## 샘플 요청
 ```txt
-GET https://api.rencar.co.kr/v2/company-car-schedules/reservations?page=1&base_date=2026-04-14&rental_type=all&status=all&option=customer_name&exclude_returned=false&date_option=start_at&start=2026-04-13&end=2026-05-14
+GET https://api.rencar.co.kr/v2/company-car-schedules/reservations?page=1&base_date=2026-04-14&rental_type=all&status=all&exclude_returned=false&date_option=end_at&start=2026-04-14&end=2026-05-14
 ```
 
 ---

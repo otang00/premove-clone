@@ -116,21 +116,25 @@
 
 ### 18. IMS 동기화 Phase 1 API 기준은 reservations 목록 API로 잠근다
 - Phase 1 단일 엔드포인트는 `GET /v2/company-car-schedules/reservations` 로 고정한다.
-- 기본 쿼리는 `page`, `base_date`, `rental_type=all`, `status=all`, `option=customer_name`, `exclude_returned=false`, `date_option=start_at`, `start`, `end` 를 사용한다.
-- 초기 수집 범위는 실행일 기준 `오늘 - 1일` 부터 `오늘 + 30일` 까지로 본다.
-- 운영 active 기준은 우리 DB에서 `end_at > now()` 로 다시 자른다.
+- 기본 쿼리는 `page`, `base_date`, `rental_type=all`, `status=all`, `exclude_returned=false`, `date_option=end_at`, `start`, `end` 를 사용한다.
+- 초기 수집 범위는 실행일 기준 `오늘` 부터 `오늘 + 30일` 까지로 본다.
+- 이미 시작됐지만 아직 안 끝난 장기 예약이 빠지지 않도록 조회 기준은 `end_at` 중심으로 잡는다.
+- 운영 active 기준은 우리 DB에서 `end_at > now()` + blocking status 조건으로 다시 자른다.
 - 세부 요청 규칙은 `docs/2026-04-14-1938-d7ecfb2_IMS_SYNC_PHASE1_API_BASELINE.md` 에서 관리한다.
 - 이유: 초기엔 누락 방지와 재현성을 우선하고, returned 처리와 active 판정은 우리 쪽에서 통제하기 위해.
 
-### 19. IMS 동기화 Phase 2의 기본 매핑은 schedule id + car_group_id 중심으로 잠근다
+### 19. IMS 동기화 Phase 2의 기본 매핑은 schedule id + 실차키 중심으로 잠근다
 - `ims_reservation_id` 는 IMS 응답의 상위 `id` 를 사용한다.
-- `car_id` 는 우선 `car.car_group_id` 를 사용한다.
+- `car_id` 는 실차 기준인 `car.id` 를 사용한다.
+- `car.car_identity` 는 `car_number` 로 별도 저장한다.
+- `car.car_group_id` 는 차종/가격 규칙 연결용으로 별도 저장한다.
 - `status_raw` 는 상위 `status` 원본을 그대로 저장한다.
 - 앱 운영용 `status` 는 내부 표준값으로 별도 매핑하되, 실제 enum 전수 확인 전까지는 raw 보관을 우선한다.
 - 기간 필드는 `start_at`, `end_at` 를 그대로 사용한다.
 - 고객 필드는 `detail.customer_name`, `detail.customer_contact` 를 선택 저장한다.
+- 주소는 `pickup_address`, `dropoff_address` 를 둘 다 보관하고, 필요 시 `delivery_address` 를 파생 사용한다.
 - 세부 매핑표는 `docs/2026-04-14-1936-05bdd61_IMS_SYNC_PHASE2_FIELD_MAPPING.md` 에서 관리한다.
-- 이유: upsert 키, 차량 연결키, 기간 필드를 먼저 고정해야 스키마와 워커 구현을 이어갈 수 있기 때문이다.
+- 이유: 예약 blocking 은 실차 단위여야 하고, 그룹키는 가격/차종 규칙 연결용으로만 써야 하기 때문이다.
 
 ### 20. IMS 동기화 Phase 3 스키마는 raw / normalized / sync-log 4테이블로 확정한다
 - `ims_reservations_raw` 는 IMS 원본 payload 보관과 재처리 기준이다.
@@ -138,7 +142,9 @@
 - `reservation_sync_runs` 는 실행 단위 로그다.
 - `reservation_sync_errors` 는 개별 실패 추적용이다.
 - `reservations` upsert 기준 키는 `ims_reservation_id` 로 유지한다.
-- active 운영 기준은 계속 `end_at > now()` 로 본다.
+- `reservations` 는 실차키(`car_id`), 차량번호(`car_number`), 그룹키(`car_group_id`)를 분리 저장한다.
+- 주소는 `pickup_address`, `dropoff_address`, `delivery_address` 를 함께 둘 수 있게 둔다.
+- active 운영 기준은 `end_at > now()` + blocking status 조건으로 본다.
 - SQL 초안은 `supabase/migrations/20260414195200_create_ims_sync_tables.sql` 에서 관리한다.
 - 세부 설명은 `docs/2026-04-14-1952-300f32d_IMS_SYNC_PHASE3_DB_SCHEMA.md` 에서 관리한다.
-- 이유: raw 보존, idempotent upsert, 실패 추적을 동시에 만족하는 최소 구조이기 때문이다.
+- 이유: raw 보존, idempotent upsert, 실차 단위 blocking, 실패 추적을 동시에 만족하는 최소 구조이기 때문이다.
