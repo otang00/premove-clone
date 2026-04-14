@@ -148,3 +148,13 @@
 - SQL 초안은 `supabase/migrations/20260414195200_create_ims_sync_tables.sql` 에서 관리한다.
 - 세부 설명은 `docs/2026-04-14-1952-300f32d_IMS_SYNC_PHASE3_DB_SCHEMA.md` 에서 관리한다.
 - 이유: raw 보존, idempotent upsert, 실차 단위 blocking, 실패 추적을 동시에 만족하는 최소 구조이기 때문이다.
+
+### 21. IMS 동기화 Phase 4는 repo 내부 별도 워커 + 3분 cron 구조로 잠근다
+- IMS 예약 동기화는 웹 요청 경로가 아니라 repo 내부 별도 워커로 실행한다.
+- 권장 entrypoint 는 `node scripts/ims-sync/run-ims-reservation-sync.js` 다.
+- 기본 운영 주기는 3분이다.
+- 실패 시 1회 짧은 재시도만 허용하고, 무한 재시도는 금지한다.
+- 동시 실행 방지를 위해 run 잠금 규칙을 둔다.
+- 초기 인증 주입은 자동 로그인보다 `IMS_AUTHORIZATION` 환경변수 사용을 기준으로 잡는다.
+- 세부 런타임 구조는 `docs/2026-04-14-2003-e3c8850_IMS_SYNC_PHASE4_WORKER_RUNTIME.md` 에서 관리한다.
+- 이유: 웹 요청과 동기화 책임을 분리하고, 운영 주기/재시도/장애 추적을 단순하게 유지하기 위해.
