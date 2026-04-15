@@ -4,6 +4,7 @@ const { parsePartnerSearch } = require('../server/partner/parsePartnerSearch')
 const { mapPartnerSearchDto } = require('../server/partner/mapPartnerDto')
 const { createServerClient } = require('../server/supabase/createServerClient')
 const { dbSearchService } = require('../server/search-db/dbSearchService')
+const { recordShadowDiff } = require('../server/search-db/recorders/recordShadowDiff')
 
 function isShadowEnabled() {
   return /^true$/i.test(process.env.SEARCH_SHADOW_ENABLED || '')
@@ -26,10 +27,14 @@ async function runShadowSearch(search) {
       options: { stage: 'shadow' },
     })
 
-    return { enabled: true, status: 'fulfilled', result }
+    return { enabled: true, status: 'fulfilled', result, supabaseClient }
   } catch (error) {
     return { enabled: true, status: 'rejected', error }
   }
+}
+
+function getShadowLogPath() {
+  return (process.env.SEARCH_SHADOW_LOG_PATH || '').trim()
 }
 
 function buildShadowMeta(shadowResult) {
@@ -54,6 +59,24 @@ function buildShadowMeta(shadowResult) {
   return {
     status: 'error',
     error: shadowResult.error && shadowResult.error.message ? shadowResult.error.message : 'db_search_failed',
+  }
+}
+
+async function handleShadowLogging({ dto, shadowResult, normalizedSearch }) {
+  if (!shadowResult || shadowResult.status !== 'fulfilled') {
+    return { logged: false, reason: 'shadow_unavailable' }
+  }
+
+  try {
+    return await recordShadowDiff({
+      partnerDto: dto,
+      dbDto: shadowResult.result,
+      normalizedSearch,
+      supabaseClient: shadowResult.supabaseClient,
+      filePath: getShadowLogPath(),
+    })
+  } catch (error) {
+    return { logged: false, error }
   }
 }
 
@@ -94,6 +117,19 @@ module.exports = async function handler(req, res) {
 
     if (shadowMeta) {
       meta.shadow = shadowMeta
+    }
+
+    const loggingOutcome = await handleShadowLogging({
+      dto,
+      shadowResult,
+      normalizedSearch: validation.normalized,
+    })
+
+    if (meta.shadow) {
+      meta.shadow.logged = Boolean(loggingOutcome.logged)
+      if (!loggingOutcome.logged && loggingOutcome.error) {
+        meta.shadow.warning = 'shadow_log_failed'
+      }
     }
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
