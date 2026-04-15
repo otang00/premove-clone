@@ -2,6 +2,8 @@ import { buildSearchQuery } from '../utils/searchQuery'
 import { cars as mockCars } from '../data/mock'
 import { parseApiResponse } from '../utils/apiResponse'
 
+const SEARCH_SOURCE = (import.meta.env.VITE_SEARCH_SOURCE || 'db').toLowerCase()
+
 function sortCars(cars, order) {
   const nextCars = [...cars]
 
@@ -68,6 +70,11 @@ function toCardModel(car, searchState) {
   }
 }
 
+function buildRequestQuery(searchState) {
+  const base = buildSearchQuery(searchState)
+  return SEARCH_SOURCE === 'db' ? `${base}&source=db` : base
+}
+
 export function getMockCars(searchState) {
   const filteredCars = applyAgeFilter(mockCars, searchState.driverAge)
   const sortedCars = sortCars(filteredCars, searchState.order)
@@ -79,7 +86,7 @@ export function getMockCars(searchState) {
 }
 
 export async function fetchSearchCars(searchState) {
-  const query = buildSearchQuery(searchState)
+  const query = buildRequestQuery(searchState)
   const response = await fetch(`/api/search-cars?${query}`)
   const payload = await parseApiResponse(response, '차량 조회에 실패했습니다.')
 

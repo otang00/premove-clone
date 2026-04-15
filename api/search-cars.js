@@ -6,8 +6,41 @@ const { createServerClient } = require('../server/supabase/createServerClient')
 const { dbSearchService } = require('../server/search-db/dbSearchService')
 const { recordShadowDiff } = require('../server/search-db/recorders/recordShadowDiff')
 
+const DB_PREVIEW_COMPANY = {
+  companyId: 35457,
+  companyName: '빵빵카(주)',
+  companyTel: '025920079',
+  fullGarageAddress: '서울 서초구 신반포로23길 78-9 (수푸레하우스) 1층',
+}
+
 function isShadowEnabled() {
   return /^true$/i.test(process.env.SEARCH_SHADOW_ENABLED || '')
+}
+
+function shouldUseDbPreview(req) {
+  const source = (req.query?.source || req.query?.preview || '').toString().toLowerCase()
+  return source === 'db'
+}
+
+async function runDbPreviewSearch(search) {
+  const supabaseClient = createServerClient()
+  if (!supabaseClient) {
+    throw new Error('supabase_client_unavailable')
+  }
+
+  const company = {
+    ...DB_PREVIEW_COMPANY,
+    companyName: process.env.SEARCH_COMPANY_NAME || DB_PREVIEW_COMPANY.companyName,
+  }
+
+  return dbSearchService.run({
+    search,
+    supabaseClient,
+    options: {
+      stage: 'db-preview',
+      company,
+    },
+  })
 }
 
 async function runShadowSearch(search) {
@@ -95,6 +128,25 @@ module.exports = async function handler(req, res) {
       errors: validation.errors,
       search: validation.normalized,
     })
+  }
+
+  if (shouldUseDbPreview(req)) {
+    try {
+      const dbResult = await runDbPreviewSearch(validation.normalized)
+      return res.status(200).json({
+        ...dbResult,
+        company: dbResult.company || DB_PREVIEW_COMPANY,
+        meta: {
+          source: 'db-search-preview',
+        },
+      })
+    } catch (error) {
+      const message = error && error.message ? error.message : 'db_search_failed'
+      return res.status(500).json({
+        error: 'db_search_failed',
+        message,
+      })
+    }
   }
 
   const shadowPromise = runShadowSearch(validation.normalized)

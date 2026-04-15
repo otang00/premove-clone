@@ -20,15 +20,31 @@ function mapOptions(car) {
 
 function mapDbCarsToDto({ cars = [], priceRules = [] } = {}) {
   const priceIndex = buildPriceIndex(priceRules)
+  const seenPartnerIds = new Set()
+  const dtoCars = []
 
-  return cars.map((car) => {
-    const priceRule = priceIndex[car.id] || priceIndex[car.source_car_id] || {}
+  for (const car of cars) {
+    if (!car) continue
+    const carId = car.id || car.car_id || car.source_car_id
+    if (!carId) continue
+
+    const priceRule = priceIndex[carId]
+    if (!priceRule) {
+      continue
+    }
+
+    const partnerCarId = car.source_group_id || car.source_car_id || car.id
+    if (seenPartnerIds.has(partnerCarId)) {
+      continue
+    }
+
+    seenPartnerIds.add(partnerCarId)
 
     const basePrice = Number(priceRule.base_price || 0)
     const discountPrice = Number(priceRule.discount_price || priceRule.base_price || 0)
 
-    return {
-      carId: car.source_car_id || car.id,
+    dtoCars.push({
+      carId: partnerCarId,
       name: car.display_name || car.name || '',
       capacity: Number(car.seats || 0),
       imageUrl: car.image_url || '',
@@ -40,8 +56,10 @@ function mapDbCarsToDto({ cars = [], priceRules = [] } = {}) {
       price: basePrice,
       discountPrice,
       deliveryPrice: Number(priceRule.delivery_price || 0),
-    }
-  })
+    })
+  }
+
+  return dtoCars
 }
 
 module.exports = {
