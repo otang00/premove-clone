@@ -11,19 +11,24 @@ async function run({
   search,
   supabaseClient,
   options = {},
+  repositories = {},
 } = {}) {
   if (!search) {
     throw new Error('search state is required')
   }
 
-  if (!supabaseClient) {
+  if (!supabaseClient && !repositories.fetchCandidateCars) {
     throw new Error('supabase client is required')
   }
 
   const normalizedSearch = normalizeSearchState(search)
   const searchWindow = buildSearchWindow(normalizedSearch)
 
-  const candidateCars = await fetchCandidateCars({
+  const fetchCars = repositories.fetchCandidateCars || fetchCandidateCars
+  const fetchReservations = repositories.fetchBlockingReservations || fetchBlockingReservations
+  const fetchPrices = repositories.fetchPriceRules || fetchPriceRules
+
+  const candidateCars = await fetchCars({
     supabaseClient,
     search: normalizedSearch,
     searchWindow,
@@ -32,20 +37,25 @@ async function run({
   const carIds = candidateCars.map((car) => car.id || car.source_car_id).filter(Boolean)
 
   const [reservations, priceRules] = await Promise.all([
-    fetchBlockingReservations({ supabaseClient, carIds, searchWindow }),
-    fetchPriceRules({ supabaseClient, carIds }),
+    fetchReservations({ supabaseClient, carIds, searchWindow }),
+    fetchPrices({ supabaseClient, carIds }),
   ])
 
-  const readModel = composeReadModel({ cars: candidateCars, reservations, priceRules })
+  const readModel = composeReadModel({
+    cars: candidateCars,
+    reservations,
+    priceRules,
+    searchWindow,
+  })
 
   return {
     search: normalizedSearch,
     company: options.company || null,
-    totalCount: readModel.cars.length,
-    cars: readModel.cars,
+    totalCount: readModel.dtoCars.length,
+    cars: readModel.dtoCars,
     meta: {
       source: 'db-search',
-      stage: 'scaffold',
+      stage: options.stage || 'scaffold',
     },
   }
 }

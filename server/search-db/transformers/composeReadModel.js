@@ -1,26 +1,20 @@
 'use strict'
 
-function indexPriceRules(priceRules = []) {
-  return priceRules.reduce((acc, rule) => {
-    acc[rule.car_id] = rule
-    return acc
-  }, {})
-}
+const { filterAvailableCars } = require('../helpers/filterAvailableCars')
+const { mapDbCarsToDto } = require('./mapDbCarsToDto')
 
-function composeReadModel({ cars = [], reservations = [], priceRules = [] } = {}) {
-  const priceMap = indexPriceRules(priceRules)
+function composeReadModel({ cars = [], reservations = [], priceRules = [], searchWindow } = {}) {
+  if (!searchWindow) {
+    throw new Error('search window is required')
+  }
 
-  const nextCars = cars.map((car) => {
-    const priceRule = priceMap[car.id] || priceMap[car.source_car_id]
-    return {
-      ...car,
-      priceRule,
-    }
-  })
+  const availableCars = filterAvailableCars({ cars, reservations, searchWindow })
+  const dtoCars = mapDbCarsToDto({ cars: availableCars, priceRules })
 
   return {
-    cars: nextCars,
+    cars: availableCars,
     reservations,
+    dtoCars,
   }
 }
 
