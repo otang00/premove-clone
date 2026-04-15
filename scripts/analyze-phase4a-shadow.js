@@ -10,12 +10,12 @@ const SAMPLE_SEARCHES = [
   { id: 'S04', search: { deliveryDateTime: '2026-04-22 08:00', returnDateTime: '2026-04-27 08:00', pickupOption: 'pickup', driverAge: 26, order: 'lower', dongId: null, deliveryAddress: '' } },
   { id: 'S05', search: { deliveryDateTime: '2026-04-25 14:00', returnDateTime: '2026-05-05 14:00', pickupOption: 'pickup', driverAge: 26, order: 'lower', dongId: null, deliveryAddress: '' } },
   { id: 'S06', search: { deliveryDateTime: '2026-04-23 11:00', returnDateTime: '2026-04-24 11:00', pickupOption: 'pickup', driverAge: 21, order: 'lower', dongId: null, deliveryAddress: '' } },
-  { id: 'S07', search: { deliveryDateTime: '2026-04-16 10:00', returnDateTime: '2026-04-17 10:00', pickupOption: 'delivery', driverAge: 26, order: 'lower', dongId: 1111010100, deliveryAddress: '서울 종로구 청운동' } },
-  { id: 'S08', search: { deliveryDateTime: '2026-04-16 14:00', returnDateTime: '2026-04-16 20:00', pickupOption: 'delivery', driverAge: 26, order: 'lower', dongId: 1168010300, deliveryAddress: '서울 강남구 삼성동' } },
-  { id: 'S09', search: { deliveryDateTime: '2026-04-19 09:00', returnDateTime: '2026-04-21 09:00', pickupOption: 'delivery', driverAge: 26, order: 'higher', dongId: 1159010800, deliveryAddress: '서울 동작구 흑석동' } },
-  { id: 'S10', search: { deliveryDateTime: '2026-04-24 15:00', returnDateTime: '2026-05-01 15:00', pickupOption: 'delivery', driverAge: 21, order: 'lower', dongId: 1174010100, deliveryAddress: '경기도 성남시 분당구 분당동' } },
-  { id: 'S11', search: { deliveryDateTime: '2026-04-17 18:00', returnDateTime: '2026-04-18 12:00', pickupOption: 'delivery', driverAge: 26, order: 'newer', dongId: 1120011400, deliveryAddress: '서울 성북구 정릉동' } },
-  { id: 'S12', search: { deliveryDateTime: '2026-04-20 13:00', returnDateTime: '2026-04-21 13:00', pickupOption: 'delivery', driverAge: 21, order: 'higher', dongId: 1154510800, deliveryAddress: '서울 금천구 가산동' } },
+  { id: 'S07', search: { deliveryDateTime: '2026-04-16 10:00', returnDateTime: '2026-04-17 10:00', pickupOption: 'delivery', driverAge: 26, order: 'lower', dongId: 1, deliveryAddress: '서울 종로구 청운동' } },
+  { id: 'S08', search: { deliveryDateTime: '2026-04-16 14:00', returnDateTime: '2026-04-16 20:00', pickupOption: 'delivery', driverAge: 26, order: 'lower', dongId: 436, deliveryAddress: '서울 강남구 삼성동' } },
+  { id: 'S09', search: { deliveryDateTime: '2026-04-19 09:00', returnDateTime: '2026-04-21 09:00', pickupOption: 'delivery', driverAge: 26, order: 'higher', dongId: 414, deliveryAddress: '서울 동작구 흑석동' } },
+  { id: 'S10', search: { deliveryDateTime: '2026-04-24 15:00', returnDateTime: '2026-05-01 15:00', pickupOption: 'delivery', driverAge: 21, order: 'lower', dongId: 1598, deliveryAddress: '경기도 성남시 분당구 분당동' } },
+  { id: 'S11', search: { deliveryDateTime: '2026-04-17 18:00', returnDateTime: '2026-04-18 12:00', pickupOption: 'delivery', driverAge: 26, order: 'newer', dongId: 270, deliveryAddress: '서울 성북구 정릉동' } },
+  { id: 'S12', search: { deliveryDateTime: '2026-04-20 13:00', returnDateTime: '2026-04-21 13:00', pickupOption: 'delivery', driverAge: 21, order: 'higher', dongId: 373, deliveryAddress: '서울 금천구 가산동' } },
 ]
 
 function buildKey(params = {}) {
