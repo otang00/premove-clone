@@ -32,7 +32,7 @@ function mapOptions(car) {
 function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, search = {}, searchWindow } = {}) {
   const priceIndex = buildPriceIndex(priceRules)
   const groupPolicyIndex = buildGroupPolicyIndex(priceRules)
-  const seenPartnerIds = new Set()
+  const seenGroupIds = new Set()
   const dtoCars = []
   const isDelivery = search.pickupOption === 'delivery'
   const deliveryPrice = isDelivery
@@ -41,21 +41,24 @@ function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, sea
 
   for (const car of cars) {
     if (!car) continue
-    const carId = car.id || car.car_id || car.source_car_id
-    if (!carId) continue
+    const vehicleId = car.source_car_id || car.car_id || car.id
+    if (!vehicleId) continue
 
-    const groupPriceRule = groupPolicyIndex[String(car.source_group_id)]
-    const priceRule = groupPriceRule || priceIndex[String(carId)]
+    const groupId = car.source_group_id || null
+    const groupKey = groupId != null ? String(groupId) : null
+    const groupPriceRule = groupKey ? groupPolicyIndex[groupKey] : null
+    const priceRule = groupPriceRule || priceIndex[String(vehicleId)] || priceIndex[String(car.id || '')]
     if (!priceRule) {
       continue
     }
 
-    const partnerCarId = car.source_group_id || car.source_car_id || car.id
-    if (seenPartnerIds.has(partnerCarId)) {
+    if (groupKey && seenGroupIds.has(groupKey)) {
       continue
     }
 
-    seenPartnerIds.add(partnerCarId)
+    if (groupKey) {
+      seenGroupIds.add(groupKey)
+    }
 
     const computedPrice = groupPriceRule && searchWindow
       ? calculateGroupPrice({
@@ -70,11 +73,12 @@ function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, sea
     const finalDeliveryPrice = Number(computedPrice?.deliveryPrice || deliveryPrice || 0)
 
     dtoCars.push({
-      carId: partnerCarId,
+      carId: vehicleId,
+      groupId,
       name: car.display_name || car.name || '',
-      capacity: Number(car.seats || 0),
       imageUrl: car.image_url || '',
       oilType: car.fuel_type || '',
+      capacity: Number(car.seats || 0),
       minModelYear: car.model_year || 0,
       maxModelYear: car.model_year || 0,
       insuranceAge: car.rent_age || 0,

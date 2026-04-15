@@ -89,6 +89,8 @@ test('dbSearchService applies group policy pricing when available', async () => 
 
   const result = await dbSearchService.run({ search, repositories })
   assert.equal(result.totalCount, 1)
+  assert.equal(result.cars[0].carId, 'car_a')
+  assert.equal(result.cars[0].groupId, 23069)
   assert.equal(result.cars[0].price, 160000)
   assert.equal(result.cars[0].discountPrice, 56000)
 })
@@ -125,10 +127,10 @@ test('dbSearchService applies higher and newer ordering', async () => {
   }
 
   const higherResult = await dbSearchService.run({ search: { ...baseSearch, order: 'higher' }, repositories })
-  assert.deepEqual(higherResult.cars.map((car) => car.carId), [102, 101, 103])
+  assert.deepEqual(higherResult.cars.map((car) => car.carId), ['car_b', 'car_a', 'car_c'])
 
   const newerResult = await dbSearchService.run({ search: { ...baseSearch, order: 'newer' }, repositories })
-  assert.deepEqual(newerResult.cars.map((car) => car.carId), [102, 103, 101])
+  assert.deepEqual(newerResult.cars.map((car) => car.carId), ['car_b', 'car_c', 'car_a'])
 })
 
 test('dbSearchService applies delivery region price for valid dong', async () => {

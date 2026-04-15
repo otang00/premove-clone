@@ -2,8 +2,6 @@ import { buildSearchQuery } from '../utils/searchQuery'
 import { cars as mockCars } from '../data/mock'
 import { parseApiResponse } from '../utils/apiResponse'
 
-const SEARCH_SOURCE = (import.meta.env.VITE_SEARCH_SOURCE || 'db').toLowerCase()
-
 function sortCars(cars, order) {
   const nextCars = [...cars]
 
@@ -57,6 +55,7 @@ function toCardModel(car, searchState) {
 
   return {
     id: String(car.carId),
+    groupId: car.groupId == null ? null : String(car.groupId),
     name: car.name,
     image: car.imageUrl,
     yearLabel: formatYearLabel(car.minModelYear, car.maxModelYear),
@@ -71,8 +70,7 @@ function toCardModel(car, searchState) {
 }
 
 function buildRequestQuery(searchState) {
-  const base = buildSearchQuery(searchState)
-  return SEARCH_SOURCE === 'db' ? `${base}&source=db` : base
+  return buildSearchQuery(searchState)
 }
 
 export function getMockCars(searchState) {
