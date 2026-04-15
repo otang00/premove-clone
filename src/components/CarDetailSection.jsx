@@ -42,9 +42,22 @@ function LoadingState() {
   return (
     <article className="detail-card panel">
       <h2>상세 정보 불러오는 중</h2>
-      <p className="muted small-note">partner 상세 데이터를 불러오는 중입니다.</p>
+      <p className="muted small-note">상세 데이터를 불러오는 중입니다.</p>
     </article>
   )
+}
+
+function formatOperatingHours(deliveryTimes = []) {
+  if (!Array.isArray(deliveryTimes) || deliveryTimes.length === 0) {
+    return '매일 09:00 ~ 21:00'
+  }
+
+  const first = deliveryTimes[0]
+  if (!first?.startAt || !first?.endAt) {
+    return '매일 09:00 ~ 21:00'
+  }
+
+  return `매일 ${first.startAt} ~ ${first.endAt}`
 }
 
 export default function CarDetailSection() {
@@ -217,7 +230,7 @@ export default function CarDetailSection() {
             <section className="detail-main">
               <article className="detail-card panel summary-card">
                 <div className="summary-image-wrap">
-                  <img src={car.image} alt={car.name} />
+                  {car.image ? <img src={car.image} alt={car.name} /> : <div className="pickup-location-readonly-box">이미지 준비중</div>}
                 </div>
                 <div>
                   <h1>{car.name}</h1>
@@ -240,10 +253,20 @@ export default function CarDetailSection() {
               <article className="detail-card panel">
                 <h2>보험 정보</h2>
                 <div className="info-grid three info-stat-grid">
-                  <div><span>보험 안내</span><strong>일반 자차</strong><small>대여 조건에 따라 적용</small></div>
-                  <div><span>보상한도</span><strong>{insurance.general?.coverage ? `${insurance.general.coverage}만원` : '확인 필요'}</strong><small>대인/대물 기준</small></div>
-                  <div><span>자차 면책금</span><strong>{insurance.general?.indemnificationFee ? `${insurance.general.indemnificationFee}만원` : '확인 필요'}</strong><small>사고 시 고객 부담금</small></div>
+                  <div><span>보험 안내</span><strong>일반 자차</strong><small>현재 운영 기준 보험입니다</small></div>
+                  <div><span>보상한도</span><strong>{insurance.general?.coverage ? `${insurance.general.coverage}만원` : '업체 기준 적용'}</strong><small>세부 한도는 예약 단계에서 다시 안내합니다</small></div>
+                  <div><span>자차 면책금</span><strong>{insurance.general?.indemnificationFee ? `${insurance.general.indemnificationFee}만원` : '업체 기준 적용'}</strong><small>완전 자차는 후속 기능에서 추가 예정입니다</small></div>
                 </div>
+              </article>
+
+              <article className="detail-card panel">
+                <h2>업체 정보</h2>
+                <div className="info-grid three info-stat-grid">
+                  <div><span>업체명</span><strong>{company.name || company.companyName || '빵빵카(주)'}</strong><small>{company.phone || company.companyTel || '연락처 확인 필요'}</small></div>
+                  <div><span>운영시간</span><strong>{formatOperatingHours(company.deliveryTimes)}</strong><small>배차/반차는 운영시간 내 가능합니다</small></div>
+                  <div><span>수령 방식</span><strong>{parsedSearchState.pickupOption === 'delivery' ? '딜리버리' : '업체 방문'}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '메인에서 선택한 위치 기준' : '업체 방문 수령/반납'}</small></div>
+                </div>
+                <p className="muted small-note">{company.address || company.fullGarageAddress || '업체 주소 확인 필요'}</p>
               </article>
 
               <article className="detail-card panel">
@@ -286,7 +309,7 @@ export default function CarDetailSection() {
                   </div>
                   <button className="btn btn-outline btn-lg btn-block">인증번호</button>
                 </div>
-                <p className="muted small-note">만 {car.rentAge}세 이상 / 면허 취득 {car.drivingYears}년 경과. 현장에서 면허 진위를 확인합니다.</p>
+                <p className="muted small-note">만 {car.rentAge}세 이상 예약 가능 기준입니다. 현장에서 면허 진위와 운전자 정보를 확인합니다.</p>
               </article>
 
               <article className="detail-card panel">
