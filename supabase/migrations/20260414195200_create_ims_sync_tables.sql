@@ -1,5 +1,4 @@
 create extension if not exists pgcrypto;
-
 create table if not exists public.reservation_sync_runs (
   id uuid primary key default gen_random_uuid(),
   sync_type text not null,
@@ -15,12 +14,10 @@ create table if not exists public.reservation_sync_runs (
   error_summary text,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_reservation_sync_runs_started_at
   on public.reservation_sync_runs (started_at desc);
 create index if not exists idx_reservation_sync_runs_status
   on public.reservation_sync_runs (status);
-
 create table if not exists public.ims_reservations_raw (
   id uuid primary key default gen_random_uuid(),
   sync_run_id uuid not null references public.reservation_sync_runs(id) on delete cascade,
@@ -35,14 +32,12 @@ create table if not exists public.ims_reservations_raw (
   created_at timestamptz not null default now(),
   unique (sync_run_id, ims_reservation_id)
 );
-
 create index if not exists idx_ims_reservations_raw_ims_reservation_id
   on public.ims_reservations_raw (ims_reservation_id);
 create index if not exists idx_ims_reservations_raw_fetched_at
   on public.ims_reservations_raw (fetched_at desc);
 create index if not exists idx_ims_reservations_raw_parse_status
   on public.ims_reservations_raw (parse_status);
-
 create table if not exists public.reservations (
   id uuid primary key default gen_random_uuid(),
   ims_reservation_id text,
@@ -72,16 +67,15 @@ create table if not exists public.reservations (
   updated_at timestamptz not null default now(),
   constraint reservations_end_after_start check (end_at > start_at)
 );
-
 create unique index if not exists uq_reservations_ims_reservation_id
-  on public.reservations (ims_reservation_id);
+  on public.reservations (ims_reservation_id)
+  where ims_reservation_id is not null;
 create index if not exists idx_reservations_car_period
   on public.reservations (car_id, start_at, end_at);
 create index if not exists idx_reservations_status
   on public.reservations (status);
 create index if not exists idx_reservations_last_synced_at
   on public.reservations (last_synced_at desc);
-
 create table if not exists public.reservation_sync_errors (
   id uuid primary key default gen_random_uuid(),
   sync_run_id uuid not null references public.reservation_sync_runs(id) on delete cascade,
@@ -92,7 +86,6 @@ create table if not exists public.reservation_sync_errors (
   payload jsonb,
   created_at timestamptz not null default now()
 );
-
 create index if not exists idx_reservation_sync_errors_sync_run_id
   on public.reservation_sync_errors (sync_run_id);
 create index if not exists idx_reservation_sync_errors_ims_reservation_id
