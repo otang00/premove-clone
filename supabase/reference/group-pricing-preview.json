@@ -1,15 +1,15 @@
 {
-  "generatedAt": "2026-04-15T07:49:55.061Z",
+  "generatedAt": "2026-04-15T08:01:12.221Z",
   "summary": {
     "carGroups": 34,
     "pricePolicies": 19,
     "pricePolicyGroups": 34,
-    "resolvedGroupIds": 0,
-    "unresolvedGroupIds": 34
+    "resolvedGroupIds": 34,
+    "unresolvedGroupIds": 0
   },
   "carGroups": [
     {
-      "imsGroupId": null,
+      "imsGroupId": 24154,
       "groupName": "더 뉴 카니발(KA4) (2023년)_디젤",
       "grade": "RV",
       "metadata": {
@@ -24,7 +24,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23398,
       "groupName": "[특가] 더 뉴 셀토스_가솔린",
       "grade": "소형",
       "metadata": {
@@ -39,7 +39,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23159,
       "groupName": "디 올 뉴 그랜저 (2025년)_가솔린",
       "grade": "준대형",
       "metadata": {
@@ -54,7 +54,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23143,
       "groupName": "더 뉴 K8 (2025년)_가솔린_베스트셀렉션",
       "grade": "준대형",
       "metadata": {
@@ -69,7 +69,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23142,
       "groupName": "더 뉴 K5 3세대 (2025년)_가솔린",
       "grade": "중형",
       "metadata": {
@@ -84,7 +84,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22533,
       "groupName": "더 뉴 아반떼 (CN7) (2023년)_가솔린",
       "grade": "준중형",
       "metadata": {
@@ -99,7 +99,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23049,
       "groupName": "E 클래스 (W214) (2024년)_가솔린",
       "grade": "준대형",
       "metadata": {
@@ -114,7 +114,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23043,
       "groupName": "모델 Y 주니퍼 (2025년)_전기",
       "grade": "중형",
       "metadata": {
@@ -129,7 +129,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 23032,
       "groupName": "더 뉴 카니발(KA4) (2023년)_가솔린",
       "grade": "RV",
       "metadata": {
@@ -144,7 +144,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22789,
       "groupName": "더 뉴 코나 (2022년~)_가솔린",
       "grade": "소형",
       "metadata": {
@@ -159,7 +159,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22533,
       "groupName": "더 뉴 아반떼 (CN7) (2023년)_가솔린_어라운드뷰",
       "grade": "준중형",
       "metadata": {
@@ -174,7 +174,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22380,
       "groupName": "디 올 뉴 싼타페 (MX5) (2025년)_가솔린",
       "grade": "중형",
       "metadata": {
@@ -189,7 +189,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22318,
       "groupName": "더 뉴 K5 3세대 (2024년)_LPG",
       "grade": "중형",
       "metadata": {
@@ -204,7 +204,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22179,
       "groupName": "더 뉴 셀토스 (2024년)_특가요청_가솔린",
       "grade": "소형",
       "metadata": {
@@ -219,7 +219,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22105,
       "groupName": "2024 모델 Y (2020년)_전기",
       "grade": "중형",
       "metadata": {
@@ -234,7 +234,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22036,
       "groupName": "모델 Y (2020년)_전기_롱레인지",
       "grade": "중형",
       "metadata": {
@@ -249,7 +249,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22035,
       "groupName": "모델 3 (2017년)_전기",
       "grade": "중형",
       "metadata": {
@@ -264,7 +264,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22034,
       "groupName": "GV80 (2020년)_가솔린",
       "grade": "준대형",
       "metadata": {
@@ -279,7 +279,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22033,
       "groupName": "GV70 (2021년)_가솔린",
       "grade": "중형",
       "metadata": {
@@ -294,7 +294,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22032,
       "groupName": "G80 (RG3) (2020년~)_가솔린",
       "grade": "준대형",
       "metadata": {
@@ -309,7 +309,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22031,
       "groupName": "카니발 4세대 (2020년~)_디젤_9인승",
       "grade": "RV",
       "metadata": {
@@ -324,7 +324,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22030,
       "groupName": "더 뉴 팰리세이드 (2022년)_가솔린_7인승",
       "grade": "준대형",
       "metadata": {
@@ -339,7 +339,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22029,
       "groupName": "디 올 뉴 스포티지 (NQ5) (2021년)_가솔린",
       "grade": "준중형",
       "metadata": {
@@ -354,7 +354,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22027,
       "groupName": "더 뉴 셀토스 (2023년)_가솔린",
       "grade": "소형",
       "metadata": {
@@ -369,7 +369,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22026,
       "groupName": "더 뉴 코나 (2020년~)_가솔린",
       "grade": "소형",
       "metadata": {
@@ -384,7 +384,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22025,
       "groupName": "K7 프리미어 (2019년~)_LPG",
       "grade": "준대형",
       "metadata": {
@@ -399,7 +399,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22024,
       "groupName": "올 뉴 K7 (2016년~)_LPG",
       "grade": "준대형",
       "metadata": {
@@ -414,7 +414,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22023,
       "groupName": "디 올 뉴 그랜저 (2022년)_가솔린",
       "grade": "준대형",
       "metadata": {
@@ -429,7 +429,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22022,
       "groupName": "더 뉴 그랜저 IG 2022_LPG",
       "grade": "준대형",
       "metadata": {
@@ -444,7 +444,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22020,
       "groupName": "그랜저 IG (2016년~)_LPG",
       "grade": "준대형",
       "metadata": {
@@ -459,7 +459,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22019,
       "groupName": "그랜저 IG (2016년~)_가솔린",
       "grade": "준대형",
       "metadata": {
@@ -474,7 +474,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22017,
       "groupName": "K5 3세대 (2019년~)_LPG",
       "grade": "중형",
       "metadata": {
@@ -489,7 +489,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22016,
       "groupName": "쏘나타 (DN8) (2019년~)_LPG",
       "grade": "중형",
       "metadata": {
@@ -504,7 +504,7 @@
       }
     },
     {
-      "imsGroupId": null,
+      "imsGroupId": 22015,
       "groupName": "아반떼 (CN7) (2020년~)_LPG",
       "grade": "준중형",
       "metadata": {
@@ -1468,207 +1468,241 @@
   "pricePolicyGroups": [
     {
       "policyName": "테슬라 모델3",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "모델 3 (2017년)_전기",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22035,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "모델Y 롱레인지",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "모델 Y (2020년)_전기_롱레인지",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22036,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "모델Y 롱레인지",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "2024 모델 Y (2020년)_전기",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22105,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "G80 요금표",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "G80 (RG3) (2020년~)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22032,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "G80 요금표",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "E 클래스 (W214) (2024년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23049,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "K7 프리미어",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 K5 3세대 (2024년)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22318,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "K7구형",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "올 뉴 K7 (2016년~)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22024,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "디올뉴그렌져2.5",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "디 올 뉴 그랜저 (2022년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22023,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "디올뉴그렌져2.5",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "카니발 4세대 (2020년~)_디젤_9인승",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22031,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "디올뉴그렌져2.5",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 K8 (2025년)_가솔린_베스트셀렉션",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23143,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "디올뉴그렌져2.5",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "디 올 뉴 그랜저 (2025년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23159,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "디올뉴그렌져2.5",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 카니발(KA4) (2023년)_디젤",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 24154,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "더뉴그렌져2019",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 그랜저 IG 2022_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22022,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "더뉴그렌져2019",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "K7 프리미어 (2019년~)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22025,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "더뉴그렌져2019",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "디 올 뉴 싼타페 (MX5) (2025년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22380,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "GV80",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "GV80 (2020년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22034,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "GV70",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "GV70 (2021년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22033,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "카니발 4세대",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 카니발(KA4) (2023년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23032,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "펠리셰이드",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 팰리세이드 (2022년)_가솔린_7인승",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22030,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "스포티지NQ5",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "디 올 뉴 스포티지 (NQ5) (2021년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22029,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "셀토스",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "쏘나타 (DN8) (2019년~)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22016,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "셀토스",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 셀토스 (2023년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22027,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "셀토스",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 셀토스 (2024년)_특가요청_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22179,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "셀토스",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "[특가] 더 뉴 셀토스_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23398,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "코나",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 코나 (2020년~)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22026,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "코나",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 코나 (2022년~)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22789,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "아반떼",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "아반떼 (CN7) (2020년~)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22015,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "아반떼",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 아반떼 (CN7) (2023년)_가솔린_어라운드뷰",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22533,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "아반떼",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 아반떼 (CN7) (2023년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22533,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "K5 3세대",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "K5 3세대 (2019년~)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22017,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "K5 3세대",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "더 뉴 K5 3세대 (2025년)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23142,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "구IG그렌져",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "그랜저 IG (2016년~)_가솔린",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22019,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "구IG그렌져",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "그랜저 IG (2016년~)_LPG",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 22020,
+      "matchSource": "current-cars"
     },
     {
       "policyName": "모델 Y 쥬니퍼",
+      "sourceFile": "group_cost---08457946-b17c-4145-a62a-91dcc5b55600.xlsx",
       "groupName": "모델 Y 주니퍼 (2025년)_전기",
-      "imsGroupId": null,
-      "matchSource": "xlsx-only"
+      "imsGroupId": 23043,
+      "matchSource": "current-cars"
     }
   ]
 }

@@ -4,6 +4,7 @@ const fs = require('fs')
 const path = require('path')
 
 const { readWorkbook } = require('./lib/readWorkbook')
+const { loadEnvFile } = require('./lib/loadEnvFile')
 const { createServerClient } = require('../../server/supabase/createServerClient')
 
 function parseMoney(value) {
@@ -136,6 +137,7 @@ async function buildPreview({ groupListPath, priceSheetPath, outPath }) {
     for (const groupName of policy.appliedGroups) {
       pricePolicyGroups.push({
         policyName: policy.policyName,
+        sourceFile: policy.sourceFile,
         groupName,
         imsGroupId: currentGroupIds.get(groupName) || null,
         matchSource: currentGroupIds.has(groupName) ? 'current-cars' : 'xlsx-only',
@@ -164,6 +166,7 @@ async function buildPreview({ groupListPath, priceSheetPath, outPath }) {
 
 async function main() {
   const projectRoot = path.resolve(__dirname, '..', '..')
+  loadEnvFile(path.join(projectRoot, '.env'))
   const groupListPath = process.argv[2]
   const priceSheetPath = process.argv[3]
   const outPath = process.argv[4] || path.join(projectRoot, 'supabase/reference/group-pricing-preview.json')
