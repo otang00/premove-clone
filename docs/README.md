@@ -3,18 +3,19 @@
 문서는 아래 4구역으로 본다.
 
 ## 1. present
-지금 당장 실행 기준으로 삼는 문서는 **1개만 유지**한다.
+지금 당장 실행 기준으로 삼는 문서는 **최대 1개만 유지**한다.
 
-현재 기준 문서:
-1. `present/EXECUTION_MASTER_PRESENT.md`
+현재 상태:
+1. active present 문서 없음
 2. `00_FINAL_GOAL.md`
 3. `04_PARTNER_SITE_REFERENCE.md`
 4. `06_EXTERNAL_PREVIEW_DEPLOY_RUNBOOK.md`
 5. `references/IMS_API_CALLS.md`
 
 원칙:
-- 실행 기준 변경은 `present/EXECUTION_MASTER_PRESENT.md` 에만 반영한다.
+- 새 실행 기준을 열 때만 `present/EXECUTION_MASTER_PRESENT.md` 를 다시 만든다.
 - 분산된 current-state / roadmap / validation 문서 체계는 더 이상 늘리지 않는다.
+- phase 종료 시 present 문서는 날짜 기준으로 `past/present-history/` 로 이동한다.
 
 ## 2. agents
 에이전트 병렬 작업용 지시문서.
@@ -41,7 +42,7 @@
 - `references/IMS_API_CALLS.md`
 
 ## 원칙
-- 현재 실행 판단은 먼저 `present/EXECUTION_MASTER_PRESENT.md` 를 본다.
+- active present 문서가 있으면 그것을 먼저 본다.
 - 병렬 작업 준비가 필요하면 `agents/*` 지시문서를 만든다.
 - phase가 끝난 문서는 `past/*` 로 내린다.
-- 큰 기준 전환 시 기존 present 문서는 날짜 기준으로 `past/present-history/` 로 이동한다.
+- 큰 기준 전환 또는 phase 종료 시 present 문서는 날짜 기준으로 `past/present-history/` 로 이동한다.
