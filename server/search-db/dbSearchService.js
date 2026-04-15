@@ -5,7 +5,7 @@ const { composeReadModel } = require('./transformers/composeReadModel')
 const { fetchCandidateCars } = require('./repositories/fetchCandidateCars')
 const { fetchBlockingReservations } = require('./repositories/fetchBlockingReservations')
 const { fetchPriceRules } = require('./repositories/fetchPriceRules')
-const { normalizeSearchState } = require('../partner/buildPartnerUrl')
+const { normalizeSearchState } = require('../search/searchState')
 
 async function run({
   search,
