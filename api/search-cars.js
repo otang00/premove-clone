@@ -2,6 +2,60 @@ const { buildPartnerUrl, normalizeSearchState, validateSearchState } = require('
 const { fetchPartnerSearch } = require('../server/partner/fetchPartnerSearch')
 const { parsePartnerSearch } = require('../server/partner/parsePartnerSearch')
 const { mapPartnerSearchDto } = require('../server/partner/mapPartnerDto')
+const { createServerClient } = require('../server/supabase/createServerClient')
+const { dbSearchService } = require('../server/search-db/dbSearchService')
+
+function isShadowEnabled() {
+  return /^true$/i.test(process.env.SEARCH_SHADOW_ENABLED || '')
+}
+
+async function runShadowSearch(search) {
+  if (!isShadowEnabled()) {
+    return { enabled: false }
+  }
+
+  const supabaseClient = createServerClient()
+  if (!supabaseClient) {
+    return { enabled: false, reason: 'supabase_client_unavailable' }
+  }
+
+  try {
+    const result = await dbSearchService.run({
+      search,
+      supabaseClient,
+      options: { stage: 'shadow' },
+    })
+
+    return { enabled: true, status: 'fulfilled', result }
+  } catch (error) {
+    return { enabled: true, status: 'rejected', error }
+  }
+}
+
+function buildShadowMeta(shadowResult) {
+  if (!shadowResult) {
+    return null
+  }
+
+  if (!shadowResult.enabled) {
+    if (shadowResult.reason) {
+      return { status: 'disabled', reason: shadowResult.reason }
+    }
+    return null
+  }
+
+  if (shadowResult.status === 'fulfilled') {
+    return {
+      status: 'ok',
+      totalCount: shadowResult.result.totalCount,
+    }
+  }
+
+  return {
+    status: 'error',
+    error: shadowResult.error && shadowResult.error.message ? shadowResult.error.message : 'db_search_failed',
+  }
+}
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -20,6 +74,8 @@ module.exports = async function handler(req, res) {
     })
   }
 
+  const shadowPromise = runShadowSearch(validation.normalized)
+
   try {
     const partnerUrl = buildPartnerUrl(validation.normalized)
     const raw = await fetchPartnerSearch(partnerUrl)
@@ -29,14 +85,25 @@ module.exports = async function handler(req, res) {
       parsed,
     })
 
+    const shadowResult = await shadowPromise
+    const shadowMeta = buildShadowMeta(shadowResult)
+
+    const meta = {
+      source: 'partner-url-fetch',
+    }
+
+    if (shadowMeta) {
+      meta.shadow = shadowMeta
+    }
+
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
     return res.status(200).json({
       ...dto,
-      meta: {
-        source: 'partner-url-fetch',
-      },
+      meta,
     })
   } catch (error) {
+    shadowPromise.catch(() => null)
+
     const message = error && error.message ? error.message : 'external_lookup_failed'
     const statusCode = /partner fetch failed/.test(message) || error.code === 'PARTNER_FETCH_TIMEOUT'
       ? 502
