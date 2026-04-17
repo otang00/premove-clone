@@ -81,62 +81,74 @@ export default function DeliveryLocationModal({
 
         <div className="delivery-modal-body delivery-region-grid">
           <div className="delivery-column delivery-region-column province-column">
-            <span className="field-label">시/도</span>
-            <div className="delivery-option-list delivery-region-list">
-              {provinces.map((province) => (
-                <button
-                  key={province.id}
-                  className={`delivery-option-button delivery-region-button ${selectedProvince?.id === province.id ? 'is-active' : ''}`}
-                  onClick={() => {
-                    setSelectedProvinceId(province.id)
-                    setSelectedCityId(province.cities?.[0]?.id || null)
-                  }}
-                >
-                  {province.name}
-                </button>
-              ))}
+            <div className="delivery-column-heading">
+              <span className="field-label">시/도</span>
+            </div>
+            <div className="delivery-column-content">
+              <div className="delivery-option-list delivery-region-list">
+                {provinces.map((province) => (
+                  <button
+                    key={province.id}
+                    className={`delivery-option-button delivery-region-button ${selectedProvince?.id === province.id ? 'is-active' : ''}`}
+                    onClick={() => {
+                      setSelectedProvinceId(province.id)
+                      setSelectedCityId(province.cities?.[0]?.id || null)
+                    }}
+                  >
+                    {province.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="delivery-column delivery-region-column city-column">
-            <span className="field-label">시/구/군</span>
-            <div className="delivery-option-list delivery-region-list">
-              {cities.map((city) => (
-                <button
-                  key={city.id}
-                  className={`delivery-option-button delivery-region-button ${selectedCity?.id === city.id ? 'is-active' : ''}`}
-                  onClick={() => setSelectedCityId(city.id)}
-                >
-                  {city.name}
-                </button>
-              ))}
+            <div className="delivery-column-heading">
+              <span className="field-label">시/구/군</span>
+            </div>
+            <div className="delivery-column-content">
+              <div className="delivery-option-list delivery-region-list">
+                {cities.map((city) => (
+                  <button
+                    key={city.id}
+                    className={`delivery-option-button delivery-region-button ${selectedCity?.id === city.id ? 'is-active' : ''}`}
+                    onClick={() => setSelectedCityId(city.id)}
+                  >
+                    {city.name}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
           <div className="delivery-column delivery-region-column dong-column">
-            <span className="field-label">딜리버리 지역</span>
-            <div className="delivery-fee-list delivery-region-list">
-              {dongs.map((dong) => (
-                <button
-                  key={dong.id}
-                  className={`delivery-fee-card delivery-region-card ${selectedDongId === dong.id ? 'is-active' : ''}`}
-                  onClick={() => {
-                    onSelect({
-                      dongId: dong.id,
-                      deliveryAddress: dong.fullLabel,
-                    })
-                    onClose()
-                  }}
-                >
-                  <div className="delivery-fee-head delivery-region-summary">
-                    <strong>{dong.name}</strong>
-                    <span>{selectedCity?.name}</span>
-                  </div>
-                </button>
-              ))}
-              {dongs.length === 0 && (
-                <div className="delivery-empty">선택 가능한 딜리버리 지역이 없습니다.</div>
-              )}
+            <div className="delivery-column-heading">
+              <span className="field-label">딜리버리 지역</span>
+            </div>
+            <div className="delivery-column-content">
+              <div className="delivery-fee-list delivery-region-list">
+                {dongs.map((dong) => (
+                  <button
+                    key={dong.id}
+                    className={`delivery-fee-card delivery-region-card ${selectedDongId === dong.id ? 'is-active' : ''}`}
+                    onClick={() => {
+                      onSelect({
+                        dongId: dong.id,
+                        deliveryAddress: dong.fullLabel,
+                      })
+                      onClose()
+                    }}
+                  >
+                    <div className="delivery-fee-head delivery-region-summary">
+                      <strong>{dong.name}</strong>
+                      <span>{selectedCity?.name}</span>
+                    </div>
+                  </button>
+                ))}
+                {dongs.length === 0 && (
+                  <div className="delivery-empty">선택 가능한 딜리버리 지역이 없습니다.</div>
+                )}
+              </div>
             </div>
           </div>
         </div>
