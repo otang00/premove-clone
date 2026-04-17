@@ -2,9 +2,17 @@
 
 const { isRangeOverlapping } = require('./overlap')
 
+function resolveReservationCarKey(reservation = {}) {
+  return reservation.car_id || reservation.carId || reservation.source_car_id || null
+}
+
+function resolveCarKey(car = {}) {
+  return car.source_car_id || car.car_id || car.id || null
+}
+
 function buildReservationIndex(reservations = []) {
   return reservations.reduce((acc, reservation) => {
-    const carId = reservation.car_id || reservation.carId || reservation.source_car_id
+    const carId = resolveReservationCarKey(reservation)
     if (!carId) return acc
     if (!acc[carId]) {
       acc[carId] = []
@@ -39,7 +47,7 @@ function filterAvailableCars({ cars = [], reservations = [], searchWindow, overl
   const reservationIndex = buildReservationIndex(reservations)
 
   return cars.filter((car) => {
-    const carId = car.id || car.source_car_id
+    const carId = resolveCarKey(car)
     const carReservations = reservationIndex[carId] || []
     return isCarAvailable({
       car,
@@ -53,4 +61,6 @@ function filterAvailableCars({ cars = [], reservations = [], searchWindow, overl
 module.exports = {
   buildReservationIndex,
   filterAvailableCars,
+  resolveCarKey,
+  resolveReservationCarKey,
 }

@@ -61,7 +61,9 @@ async function run({
     }
   }
 
-  const carIds = candidateCars.map((car) => car.id || car.source_car_id).filter(Boolean)
+  const carIds = candidateCars
+    .map((car) => car.source_car_id || car.car_id || car.id)
+    .filter(Boolean)
   const sourceGroupIds = candidateCars.map((car) => car.source_group_id).filter((value) => value != null)
 
   const [reservations, groupPolicies] = await Promise.all([

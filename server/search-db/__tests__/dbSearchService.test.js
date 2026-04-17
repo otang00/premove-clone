@@ -232,3 +232,62 @@ test('dbSearchService returns zero cars when delivery dong is not allowed', asyn
   assert.equal(result.totalCount, 0)
   assert.deepEqual(result.cars, [])
 })
+
+test('dbSearchService blocks cars when reservation car_id matches source_car_id instead of uuid id', async () => {
+  const search = {
+    deliveryDateTime: '2026-04-17 10:00',
+    returnDateTime: '2026-04-18 10:00',
+    pickupOption: 'pickup',
+    driverAge: 26,
+    order: 'lower',
+  }
+
+  const repositories = {
+    async fetchCandidateCars() {
+      return [
+        {
+          id: '61d37789-c3a9-4a1b-9522-0bf931934734',
+          source_car_id: 233063,
+          source_group_id: 24154,
+          name: '카니발',
+          seats: 9,
+          model_year: 2025,
+          rent_age: 26,
+        },
+        {
+          id: '109a8c1c-e9c0-4db7-bf6d-a11890b8de56',
+          source_car_id: 226059,
+          source_group_id: 23032,
+          name: '카니발 가솔린',
+          seats: 9,
+          model_year: 2025,
+          rent_age: 26,
+        },
+      ]
+    },
+    async fetchBlockingReservations() {
+      return [
+        {
+          car_id: '233063',
+          status: 'confirmed',
+          start_at: '2026-04-17T09:00:00Z',
+          end_at: '2026-04-18T09:00:00Z',
+        },
+      ]
+    },
+    async fetchPriceRules() {
+      return [
+        createGroupPolicy({ imsGroupId: 24154, policyName: '카니발', baseDailyPrice: 200000, weekdayPrice: 180000 }),
+        createGroupPolicy({ imsGroupId: 23032, policyName: '카니발 가솔린', baseDailyPrice: 190000, weekdayPrice: 170000 }),
+      ]
+    },
+    async fetchDeliveryRegions() {
+      return []
+    },
+  }
+
+  const result = await dbSearchService.run({ search, repositories })
+
+  assert.equal(result.totalCount, 1)
+  assert.equal(result.cars[0].carId, 226059)
+})
