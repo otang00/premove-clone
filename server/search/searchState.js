@@ -53,8 +53,7 @@ function normalizeSearchState(rawState = {}) {
   }
 }
 
-function validateSearchState(searchState) {
-  const normalized = normalizeSearchState(searchState)
+function buildSearchErrors(normalized) {
   const errors = {}
 
   const pickupAt = new Date(normalized.deliveryDateTime.replace(' ', 'T'))
@@ -68,6 +67,28 @@ function validateSearchState(searchState) {
     errors.dongId = 'dongId is required for delivery search'
   }
 
+  return errors
+}
+
+function validateSearchState(searchState) {
+  const normalized = normalizeSearchState(searchState)
+  const errors = buildSearchErrors(normalized)
+
+  return {
+    normalized,
+    errors,
+    isValid: Object.keys(errors).length === 0,
+  }
+}
+
+function validateDetailSearch({ carId, searchState } = {}) {
+  const normalized = normalizeSearchState(searchState)
+  const errors = buildSearchErrors(normalized)
+
+  if (!carId) {
+    errors.carId = 'carId is required'
+  }
+
   return {
     normalized,
     errors,
@@ -79,4 +100,5 @@ module.exports = {
   DEFAULT_SEARCH_STATE,
   normalizeSearchState,
   validateSearchState,
+  validateDetailSearch,
 }

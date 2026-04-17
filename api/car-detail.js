@@ -1,4 +1,4 @@
-const { normalizeSearchState, validateDetailSearch } = require('../server/partner/buildPartnerDetailUrl')
+const { normalizeSearchState, validateDetailSearch } = require('../server/search/searchState')
 const { createServerClient } = require('../server/supabase/createServerClient')
 const { buildDbCarDetailDto } = require('../server/detail/buildDbCarDetailDto')
 
