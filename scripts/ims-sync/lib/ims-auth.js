@@ -10,16 +10,31 @@ function getAuthorizationHeader(token) {
   return `JWT ${token}`;
 }
 
+function resolveImsPassword(env = process.env) {
+  const candidates = [
+    env.IMS_PW,
+    env.IMS_PASSWORD,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate && String(candidate).trim()) {
+      return String(candidate).trim();
+    }
+  }
+
+  return '';
+}
+
 async function loginToIms(options = {}) {
   const username = options.username || process.env.IMS_ID;
-  const password = options.password || process.env.IMS_PW;
+  const password = options.password || resolveImsPassword();
 
   if (!username) {
     throw new Error('IMS_ID is required');
   }
 
   if (!password) {
-    throw new Error('IMS_PW is required');
+    throw new Error('IMS_PW or IMS_PASSWORD is required');
   }
 
   const passwordHash = sha256Hex(password);

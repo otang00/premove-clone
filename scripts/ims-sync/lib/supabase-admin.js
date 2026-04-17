@@ -1,15 +1,27 @@
 const { createClient } = require('@supabase/supabase-js');
 
+function resolveSupabaseUrl(env = process.env) {
+  if (env.SUPABASE_URL && String(env.SUPABASE_URL).trim()) {
+    return String(env.SUPABASE_URL).trim();
+  }
+
+  if (env.SUPABASE_PROJECT_REF && String(env.SUPABASE_PROJECT_REF).trim()) {
+    return `https://${String(env.SUPABASE_PROJECT_REF).trim()}.supabase.co`;
+  }
+
+  return '';
+}
+
 function hasSupabaseConfig() {
-  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  return Boolean(resolveSupabaseUrl() && process.env.SUPABASE_SERVICE_ROLE_KEY);
 }
 
 function getSupabaseAdmin() {
-  const url = process.env.SUPABASE_URL;
+  const url = resolveSupabaseUrl();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!url) {
-    throw new Error('SUPABASE_URL is required');
+    throw new Error('SUPABASE_URL or SUPABASE_PROJECT_REF is required');
   }
 
   if (!key) {
@@ -27,4 +39,5 @@ function getSupabaseAdmin() {
 module.exports = {
   getSupabaseAdmin,
   hasSupabaseConfig,
+  resolveSupabaseUrl,
 };
