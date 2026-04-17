@@ -28,6 +28,22 @@
   overflow-wrap:anywhere;
 }
 
+.delivery-column{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+}
+
+.delivery-column .field-label{
+  display:block;
+  margin-bottom:8px;
+  line-height:1.4;
+}
+
+.delivery-region-list{
+  margin-top:0;
+}
+
 @media (max-width: 960px){
   .search-panel-grid{
     gap:10px;
