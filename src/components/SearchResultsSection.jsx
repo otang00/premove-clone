@@ -27,7 +27,7 @@ function LoadingState() {
   return (
     <div className="detail-card panel">
       <h2>차량 조회 중</h2>
-      <p className="muted small-note">partner 데이터를 불러오는 중입니다.</p>
+      <p className="muted small-note">차량 데이터를 불러오는 중입니다.</p>
     </div>
   )
 }
