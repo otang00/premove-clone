@@ -129,3 +129,59 @@
     padding:16px;
   }
 }
+
+@media (max-width: 960px){
+  .delivery-region-modal .delivery-modal-body{
+    display:block;
+    overflow-y:auto;
+    overflow-x:hidden;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .delivery-region-modal .delivery-column{
+    display:block;
+    padding:12px 14px;
+    min-height:auto;
+  }
+
+  .delivery-region-modal .province-column,
+  .delivery-region-modal .city-column{
+    border-right:0;
+    border-bottom:1px solid var(--border);
+  }
+
+  .delivery-region-modal .delivery-column-heading{
+    position:relative;
+    z-index:2;
+    padding:0 0 10px;
+    background:#fff;
+  }
+
+  .delivery-region-modal .delivery-column-content{
+    position:relative;
+    z-index:1;
+    min-height:auto;
+  }
+
+  .delivery-region-modal .field-label{
+    display:block;
+    margin:0;
+    line-height:1.45;
+  }
+
+  .delivery-region-modal .delivery-option-list,
+  .delivery-region-modal .delivery-fee-list,
+  .delivery-region-modal .delivery-region-list{
+    margin-top:0;
+    max-height:none;
+    overflow:visible;
+    gap:6px;
+  }
+
+  .delivery-region-modal .delivery-fee-card,
+  .delivery-region-modal .delivery-region-card{
+    position:relative;
+    z-index:1;
+    gap:8px;
+  }
+}
