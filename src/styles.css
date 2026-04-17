@@ -53,6 +53,70 @@
   margin-top:0;
 }
 
+.delivery-mobile-only{
+  display:none;
+}
+
+.delivery-mobile-flow{
+  display:none;
+}
+
+.delivery-mobile-summary{
+  display:flex;
+  gap:8px;
+  padding:14px 16px 10px;
+  border-bottom:1px solid var(--border);
+  background:#fff;
+  overflow-x:auto;
+}
+
+.delivery-mobile-chip{
+  flex:0 0 auto;
+  min-height:36px;
+  padding:0 12px;
+  border:1px solid var(--border);
+  border-radius:999px;
+  background:#f8fafc;
+  color:var(--text);
+  font-size:var(--fs-s);
+  font-weight:700;
+}
+
+.delivery-mobile-chip.is-active{
+  background:var(--color-cta-bg);
+  border-color:var(--color-cta-bg);
+  color:#fff;
+}
+
+.delivery-mobile-chip:disabled{
+  opacity:.45;
+}
+
+.delivery-mobile-panel{
+  display:grid;
+  grid-template-rows:auto minmax(0,1fr);
+  min-height:0;
+}
+
+.delivery-mobile-panel-header{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:14px 16px 10px;
+}
+
+.delivery-mobile-panel-header strong{
+  font-size:var(--fs-m);
+}
+
+.delivery-mobile-back{
+  min-width:58px;
+}
+
+.delivery-mobile-list{
+  padding:0 16px 16px;
+}
+
 @media (max-width: 960px){
   .search-panel-grid{
     gap:10px;
@@ -131,48 +195,35 @@
 }
 
 @media (max-width: 960px){
+  .delivery-desktop-only{
+    display:none !important;
+  }
+
+  .delivery-mobile-only,
+  .delivery-mobile-flow{
+    display:grid;
+  }
+
+  .delivery-region-modal{
+    grid-template-rows:auto auto auto minmax(0,1fr);
+  }
+
   .delivery-region-modal .delivery-modal-body{
-    display:block;
-    overflow-y:auto;
-    overflow-x:hidden;
+    display:none;
+  }
+
+  .delivery-region-modal .delivery-mobile-flow{
+    min-height:0;
+    grid-template-rows:auto minmax(0,1fr);
+    overflow:hidden;
+  }
+
+  .delivery-region-modal .delivery-mobile-panel{
+    overflow:auto;
     -webkit-overflow-scrolling:touch;
   }
 
-  .delivery-region-modal .delivery-column{
-    display:block;
-    padding:12px 14px;
-    min-height:auto;
-  }
-
-  .delivery-region-modal .province-column,
-  .delivery-region-modal .city-column{
-    border-right:0;
-    border-bottom:1px solid var(--border);
-  }
-
-  .delivery-region-modal .delivery-column-heading{
-    position:relative;
-    z-index:2;
-    padding:0 0 10px;
-    background:#fff;
-  }
-
-  .delivery-region-modal .delivery-column-content{
-    position:relative;
-    z-index:1;
-    min-height:auto;
-  }
-
-  .delivery-region-modal .field-label{
-    display:block;
-    margin:0;
-    line-height:1.45;
-  }
-
-  .delivery-region-modal .delivery-option-list,
-  .delivery-region-modal .delivery-fee-list,
-  .delivery-region-modal .delivery-region-list{
-    margin-top:0;
+  .delivery-region-modal .delivery-mobile-list{
     max-height:none;
     overflow:visible;
     gap:6px;
@@ -180,8 +231,6 @@
 
   .delivery-region-modal .delivery-fee-card,
   .delivery-region-modal .delivery-region-card{
-    position:relative;
-    z-index:1;
     gap:8px;
   }
 }
