@@ -1,15 +1,6 @@
 'use strict'
 
-const { calculateGroupPrice } = require('../pricing/calculateGroupPrice')
-
-function buildPriceIndex(priceRules = []) {
-  return priceRules.reduce((acc, rule) => {
-    const carId = rule.car_id || rule.carId || rule.source_car_id
-    if (!carId) return acc
-    acc[String(carId)] = rule
-    return acc
-  }, {})
-}
+const { buildAppliedGroupPricing } = require('../pricing/buildAppliedGroupPricing')
 
 function buildGroupPolicyIndex(priceRules = []) {
   return priceRules.reduce((acc, rule) => {
@@ -30,14 +21,9 @@ function mapOptions(car) {
 }
 
 function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, search = {}, searchWindow } = {}) {
-  const priceIndex = buildPriceIndex(priceRules)
   const groupPolicyIndex = buildGroupPolicyIndex(priceRules)
   const seenGroupIds = new Set()
   const dtoCars = []
-  const isDelivery = search.pickupOption === 'delivery'
-  const deliveryPrice = isDelivery
-    ? Number(deliveryRegion?.round_trip_price || deliveryRegion?.roundTripPrice || 0)
-    : 0
 
   for (const car of cars) {
     if (!car) continue
@@ -46,9 +32,8 @@ function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, sea
 
     const groupId = car.source_group_id || null
     const groupKey = groupId != null ? String(groupId) : null
-    const groupPriceRule = groupKey ? groupPolicyIndex[groupKey] : null
-    const priceRule = groupPriceRule || priceIndex[String(vehicleId)] || priceIndex[String(car.id || '')]
-    if (!priceRule) {
+    const groupPolicy = groupKey ? groupPolicyIndex[groupKey] : null
+    if (!groupPolicy) {
       continue
     }
 
@@ -60,17 +45,12 @@ function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, sea
       seenGroupIds.add(groupKey)
     }
 
-    const computedPrice = groupPriceRule && searchWindow
-      ? calculateGroupPrice({
-          policy: groupPriceRule,
-          searchWindow,
-          deliveryPrice,
-        })
-      : null
-
-    const basePrice = Number(computedPrice?.price || priceRule.base_price || 0)
-    const discountPrice = Number(computedPrice?.discountPrice || priceRule.discount_price || priceRule.base_price || 0)
-    const finalDeliveryPrice = Number(computedPrice?.deliveryPrice || deliveryPrice || 0)
+    const appliedPricing = buildAppliedGroupPricing({
+      policy: groupPolicy,
+      searchWindow,
+      search,
+      deliveryRegion,
+    })
 
     dtoCars.push({
       carId: vehicleId,
@@ -83,9 +63,9 @@ function mapDbCarsToDto({ cars = [], priceRules = [], deliveryRegion = null, sea
       maxModelYear: car.model_year || 0,
       insuranceAge: car.rent_age || 0,
       options: mapOptions(car),
-      price: basePrice,
-      discountPrice,
-      deliveryPrice: finalDeliveryPrice,
+      price: appliedPricing.basePrice,
+      discountPrice: appliedPricing.discountPrice,
+      deliveryPrice: appliedPricing.deliveryPrice,
     })
   }
 

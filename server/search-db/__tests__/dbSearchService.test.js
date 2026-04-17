@@ -5,7 +5,27 @@ const assert = require('node:assert/strict')
 
 const { dbSearchService } = require('../dbSearchService')
 
-test('dbSearchService filters unavailable cars and maps price', async () => {
+function createGroupPolicy({ imsGroupId, policyName, baseDailyPrice, weekdayPrice } = {}) {
+  return {
+    ims_group_id: imsGroupId,
+    price_policy_id: `policy_${imsGroupId}`,
+    policy_name: policyName,
+    base_daily_price: baseDailyPrice,
+    weekday_1_2d_price: weekdayPrice,
+    weekday_3_4d_price: weekdayPrice,
+    weekday_5_6d_price: weekdayPrice,
+    weekday_7d_plus_price: weekdayPrice,
+    weekend_1_2d_price: weekdayPrice,
+    weekend_3_4d_price: weekdayPrice,
+    weekend_5_6d_price: weekdayPrice,
+    weekend_7d_plus_price: weekdayPrice,
+    hour_1_price: Math.floor(weekdayPrice / 10),
+    hour_6_price: 0,
+    hour_12_price: 0,
+  }
+}
+
+test('dbSearchService filters unavailable cars and maps group pricing', async () => {
   const search = {
     deliveryDateTime: '2026-04-15 10:00',
     returnDateTime: '2026-04-16 10:00',
@@ -17,8 +37,8 @@ test('dbSearchService filters unavailable cars and maps price', async () => {
   const repositories = {
     async fetchCandidateCars() {
       return [
-        { id: 'car_a', name: '차A', seats: 5, model_year: 2024, rent_age: 26 },
-        { id: 'car_b', name: '차B', seats: 5, model_year: 2024, rent_age: 26 },
+        { id: 'car_a', source_group_id: 101, name: '차A', seats: 5, model_year: 2024, rent_age: 26 },
+        { id: 'car_b', source_group_id: 102, name: '차B', seats: 5, model_year: 2024, rent_age: 26 },
       ]
     },
     async fetchBlockingReservations() {
@@ -28,7 +48,7 @@ test('dbSearchService filters unavailable cars and maps price', async () => {
     },
     async fetchPriceRules() {
       return [
-        { car_id: 'car_b', base_price: 90000, discount_price: 80000, delivery_price: 10000 },
+        createGroupPolicy({ imsGroupId: 102, policyName: '차B', baseDailyPrice: 90000, weekdayPrice: 80000 }),
       ]
     },
     async fetchDeliveryRegions() {
@@ -41,6 +61,7 @@ test('dbSearchService filters unavailable cars and maps price', async () => {
   assert.equal(result.totalCount, 1)
   assert.equal(result.cars[0].carId, 'car_b')
   assert.equal(result.cars[0].price, 90000)
+  assert.equal(result.cars[0].discountPrice, 80000)
 })
 
 test('dbSearchService applies group policy pricing when available', async () => {
@@ -63,23 +84,7 @@ test('dbSearchService applies group policy pricing when available', async () => 
     },
     async fetchPriceRules() {
       return [
-        {
-          ims_group_id: 23069,
-          price_policy_id: 'policy_1',
-          policy_name: '아반떼',
-          base_daily_price: 160000,
-          weekday_1_2d_price: 56000,
-          weekday_3_4d_price: 52000,
-          weekday_5_6d_price: 50000,
-          weekday_7d_plus_price: 48000,
-          weekend_1_2d_price: 80000,
-          weekend_3_4d_price: 76000,
-          weekend_5_6d_price: 72000,
-          weekend_7d_plus_price: 70000,
-          hour_1_price: 5300,
-          hour_6_price: 0,
-          hour_12_price: 0,
-        },
+        createGroupPolicy({ imsGroupId: 23069, policyName: '아반떼', baseDailyPrice: 160000, weekdayPrice: 56000 }),
       ]
     },
     async fetchDeliveryRegions() {
@@ -116,9 +121,9 @@ test('dbSearchService applies higher and newer ordering', async () => {
     },
     async fetchPriceRules() {
       return [
-        { car_id: 'car_a', base_price: 100000, discount_price: 90000 },
-        { car_id: 'car_b', base_price: 130000, discount_price: 120000 },
-        { car_id: 'car_c', base_price: 110000, discount_price: 80000 },
+        createGroupPolicy({ imsGroupId: 101, policyName: '차A', baseDailyPrice: 100000, weekdayPrice: 90000 }),
+        createGroupPolicy({ imsGroupId: 102, policyName: '차B', baseDailyPrice: 130000, weekdayPrice: 120000 }),
+        createGroupPolicy({ imsGroupId: 103, policyName: '차C', baseDailyPrice: 110000, weekdayPrice: 80000 }),
       ]
     },
     async fetchDeliveryRegions() {
@@ -154,7 +159,7 @@ test('dbSearchService applies delivery region price for valid dong', async () =>
     },
     async fetchPriceRules() {
       return [
-        { car_id: 'car_a', base_price: 100000, discount_price: 90000 },
+        createGroupPolicy({ imsGroupId: 101, policyName: '차A', baseDailyPrice: 100000, weekdayPrice: 90000 }),
       ]
     },
     async fetchDeliveryRegions({ dongId } = {}) {
@@ -202,7 +207,7 @@ test('dbSearchService returns zero cars when delivery dong is not allowed', asyn
     },
     async fetchPriceRules() {
       return [
-        { car_id: 'car_a', base_price: 100000, discount_price: 90000 },
+        createGroupPolicy({ imsGroupId: 101, policyName: '차A', baseDailyPrice: 100000, weekdayPrice: 90000 }),
       ]
     },
     async fetchDeliveryRegions({ dongId } = {}) {

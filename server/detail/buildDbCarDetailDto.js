@@ -4,7 +4,7 @@ const { buildSearchWindow } = require('../search-db/helpers/buildSearchWindow')
 const { fetchDeliveryRegions } = require('../search-db/repositories/fetchDeliveryRegions')
 const { fetchPriceRules } = require('../search-db/repositories/fetchPriceRules')
 const { mapDeliveryRegionsToCompany } = require('../search-db/transformers/mapDeliveryRegionsToCompany')
-const { calculateGroupPrice } = require('../search-db/pricing/calculateGroupPrice')
+const { buildAppliedGroupPricing } = require('../search-db/pricing/buildAppliedGroupPricing')
 
 const DEFAULT_DELIVERY_TIMES = [
   { dayOfWeek: '월', startAt: '09:00', endAt: '21:00', holiday: false },
@@ -72,34 +72,13 @@ function buildCompany({ deliveryRegions = [] } = {}) {
   }
 }
 
-function buildPricing({ car, priceRule, searchWindow, search, deliveryRegion } = {}) {
-  const deliveryPrice = search.pickupOption === 'delivery'
-    ? Number(deliveryRegion?.round_trip_price || deliveryRegion?.roundTripPrice || 0)
-    : 0
-
-  let computed = null
-  if (priceRule && searchWindow) {
-    computed = calculateGroupPrice({
-      policy: priceRule,
-      searchWindow,
-      deliveryPrice,
-    })
-  }
-
-  const rentalCost = Number(computed?.discountPrice || priceRule?.discount_price || priceRule?.base_price || 0)
-  const originCost = Number(computed?.price || priceRule?.base_price || rentalCost || 0)
-  const insurancePrice = 0
-
-  return {
-    rentalCost,
-    originCost,
-    insurancePrice,
-    delivery: {
-      oneWay: Math.floor(deliveryPrice / 2),
-      roundTrip: deliveryPrice,
-    },
-    finalPrice: rentalCost + insurancePrice + deliveryPrice,
-  }
+function buildPricing({ priceRule, searchWindow, search, deliveryRegion } = {}) {
+  return buildAppliedGroupPricing({
+    policy: priceRule,
+    searchWindow,
+    search,
+    deliveryRegion,
+  }).detailPricing
 }
 
 function buildInsurance() {
@@ -170,12 +149,12 @@ async function buildDbCarDetailDto({ supabaseClient, carId, search } = {}) {
     search,
     company: buildCompany({ deliveryRegions }),
     car: buildCar({ car }),
-    pricing: buildPricing({ car, priceRule, searchWindow, search, deliveryRegion }),
+    pricing: buildPricing({ priceRule, searchWindow, search, deliveryRegion }),
     insurance: buildInsurance(),
     meta: {
       source: 'db-detail',
       carSource: 'supabase',
-      pricingSource: priceRule?.ims_group_id ? 'group-price-policy' : 'fallback-zero',
+      pricingSource: priceRule?.ims_group_id ? 'group-price-policy' : 'missing-group-price-policy',
       groupId: car.source_group_id == null ? null : Number(car.source_group_id),
     },
   }
