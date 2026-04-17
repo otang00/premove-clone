@@ -127,7 +127,7 @@ async function buildDbCarDetailDto({ supabaseClient, carId, search } = {}) {
   }
 
   const searchWindow = buildSearchWindow(search)
-  const [deliveryRegions, deliveryRegionRows, priceRules] = await Promise.all([
+  const [deliveryRegions, deliveryRegionRows, groupPolicies] = await Promise.all([
     fetchDeliveryRegions({ supabaseClient }),
     search.pickupOption === 'delivery' && search.dongId != null
       ? fetchDeliveryRegions({ supabaseClient, dongId: search.dongId })
@@ -140,7 +140,7 @@ async function buildDbCarDetailDto({ supabaseClient, carId, search } = {}) {
     }),
   ])
 
-  const priceRule = Array.isArray(priceRules) && priceRules.length > 0 ? priceRules[0] : null
+  const priceRule = Array.isArray(groupPolicies) && groupPolicies.length > 0 ? groupPolicies[0] : null
   const deliveryRegion = Array.isArray(deliveryRegionRows) && deliveryRegionRows.length > 0
     ? deliveryRegionRows[0]
     : null

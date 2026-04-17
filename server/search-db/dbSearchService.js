@@ -64,7 +64,7 @@ async function run({
   const carIds = candidateCars.map((car) => car.id || car.source_car_id).filter(Boolean)
   const sourceGroupIds = candidateCars.map((car) => car.source_group_id).filter((value) => value != null)
 
-  const [reservations, priceRules] = await Promise.all([
+  const [reservations, groupPolicies] = await Promise.all([
     fetchReservations({ supabaseClient, carIds, searchWindow }),
     fetchPrices({ supabaseClient, carIds, sourceGroupIds, searchWindow }),
   ])
@@ -72,7 +72,7 @@ async function run({
   const readModel = composeReadModel({
     cars: candidateCars,
     reservations,
-    priceRules,
+    priceRules: groupPolicies,
     deliveryRegion,
     searchWindow,
     search: normalizedSearch,
