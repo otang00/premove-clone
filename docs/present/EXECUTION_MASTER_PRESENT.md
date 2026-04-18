@@ -1,168 +1,267 @@
 # EXECUTION MASTER PRESENT
 
 ## 목적
-프리무브의 가격/검색/상세 구조를 **실행 가능한 기준**으로 다시 잠근다.
-이 문서는 설명용 요약이 아니라, 다음 수정 phase들이 그대로 따를 실행 기준 문서다.
+다음 수정 phase를 시작하기 전에, 현재 구조와 검증 사실을 **단일 기준 문서**로 잠근다.
+이 문서만 현재 실행 기준으로 사용한다.
 
-## 현재 기준점
+## 기준점
 - 브랜치: `feat/db-preview-home`
-- 기준 커밋: `67334d3`
-- active present 문서: 이 문서 1개만 사용
+- 현재 active present 문서: 이 문서 1개만 사용
+- 이전 current/present/agent 문서: `docs/past/doc-lock-2026-04-17/` 로 이관 완료
 
-## 이번 실행의 최종 목표
-아래 상태가 되면 이번 구조 정리 작업은 끝난다.
+## 현재 잠금 상태
+### 1. 검색 기준
+현재 공개 검색은 **일대차 검색** 기준으로 본다.
 
-1. 가격 경로가 **group policy only** 로 설명 가능하다
-2. `car_prices` 관련 legacy fallback 이 제거된다
-3. 검색/상세가 같은 pricing 조립 규칙을 사용한다
-4. ID 이름이 역할 기준으로 읽힌다
-5. 문서와 코드 설명이 일치한다
+### 2. 현재 검색 후보 조회 사실
+검색 후보는 현재 아래 조건만 사용한다.
+- `cars.active = true`
+- `rent_age <= driverAge`
 
-## 현재 상태
-- Phase 1 완료: 상세 입력 검증이 partner helper 에서 분리됨
-- Phase 2 완료: 가격 경로가 group-policy only 로 전환됨
-- Phase 3 완료: legacy `car_prices` 자산과 active 문서 참조가 정리됨
+파일:
+- `server/search-db/repositories/fetchCandidateCars.js`
 
-## 정답 구조
-### 1. 가격 기준축
-가격 계산의 기준 키는 차량 개별 id가 아니라 **그룹 id**다.
+즉, 아직 IMS 차량관리의 대여 가능 플래그는 검색에 반영되지 않았다.
 
-흐름:
-1. 차량 row 조회
-2. `cars.source_group_id` 확인
-3. `v_active_group_price_policies.ims_group_id` 로 정책 조회
-4. `calculateGroupPrice()` 로 가격 계산
-5. 검색/상세 DTO에 pricing 반영
+### 3. 현재 예약 차단 기준
+예약 차단은 IMS 예약 sync 데이터를 기준으로 동작한다.
+현재 sync 소스는 아래 API다.
+- `GET /v2/company-car-schedules/reservations`
 
-### 2. ID 역할
-- `source_car_id`: 차량 식별 키, 검색 결과 `carId` 및 상세 진입 기준
-- `source_group_id`: 차량이 속한 가격 계산 시작 키
-- `ims_group_id`: 그룹 가격 정책 조회 키
-- `car.id` (uuid): DB 내부 row 식별자, 외부 계약의 기준이 아님
+이 API는 예약/스케줄 정보용이며, 차량관리 on/off의 기준 소스가 아니다.
 
-### 3. 검색 결과 단위
-검색 결과는 실차 전체 목록이 아니라 **그룹 대표 1건 단위**다.
-같은 `source_group_id` 차량이 여러 대여도 검색 DTO는 대표 1건만 내려간다.
+## 이번에 검증된 IMS 차량관리 사실
+### 1. 차량관리 기준 API
+차량관리 플래그 확인용 API:
+- `GET /v2/rent-company-cars?page=1&state=all&per_page=200`
 
-### 4. 가격 공식 기준
-- 계산 엔진: `server/search-db/pricing/calculateGroupPrice.js`
-- 시간 구간:
-  - `<=1h`
-  - `<=6h`
-  - `<=12h`
-  - `12h~24h fallback`
-- 일 구간:
-  - `1~2일`
-  - `3~4일`
-  - `5~6일`
-  - `7일+`
-- 주중/주말은 서울 시간 기준으로 계산
-- `deliveryPrice` 는 `delivery_regions.round_trip_price` 별도 합산
+이 API는 예약/스케줄 API가 아니라 **차량관리 목록 API**다.
 
-### 5. 검색/상세의 올바른 책임 분리
-- 검색: 차량 후보 조회 + 예약 충돌 제외 + 그룹 가격 계산 + 그룹 대표 DTO 생성
-- 상세: 단일 차량 조회 + 동일 그룹 가격 계산 규칙 적용 + 상세 DTO 생성
-- 즉 가격 계산 규칙은 검색/상세가 따로 가지면 안 되고, 같은 정책 축을 써야 한다.
+### 2. 차량별 on/off 필드
+차량 목록 `list[*]` 에 아래 필드가 존재한다.
+- `can_general_rental`
+- `can_monthly_rental`
+- `is_day_off`
+- `using_state`
 
-## 현재 코드와 맞는 사실
-### 검색
-- `/api/search-cars` 는 `dbSearchService.run()` 만 사용
-- 후보 차량은 `cars` 테이블에서 조회
-- 가격 조회는 `fetchPriceRules()` 를 통해 group policy 만 읽는다
-- DTO는 `carId=source_car_id`, `groupId=source_group_id`
-- 그룹 dedupe 가 있어 그룹 대표 1건만 반환
+의미:
+- `can_general_rental`: 일대차 가능 여부
+- `can_monthly_rental`: 월대차 가능 여부
+- `is_day_off`: 차량 휴무 여부
+- `using_state`: 현재 차량 상태 텍스트
 
-### 상세
-- `buildDbCarDetailDto()` 는 `cars` 테이블에서 차량 1건 조회
-- 입력 검증은 `server/search/searchState.js` 를 사용한다
-- 가격 조회는 검색과 동일하게 `fetchPriceRules()` 를 사용한다
-- `source_group_id` 기반으로 정책을 찾고 공통 pricing builder 로 계산한다
-- `meta.groupId` 는 `source_group_id`
+샘플 검증:
+- `233063 / 177호3413`
+  - `can_general_rental: true`
+  - `can_monthly_rental: true`
+- `224219 / 142호4782`
+  - `can_general_rental: true`
+  - `can_monthly_rental: false`
 
-## 현재 확인 범위
-### 확인 완료
-- 검색 API 경로
-- 상세 DTO 생성 경로
-- 가격 계산기
-- 그룹 정책 조회 경로
-- 검색 DTO 그룹 dedupe 테스트
-- 검색 DB 서비스 테스트
+### 3. 저장 단위
+이 플래그는 **차량 단위**로 저장하고 반영해야 한다.
+같은 `car_group_id` 안에서도 값이 섞이는 사례를 확인했다.
+즉 그룹 단위 저장/필터는 오답 가능성이 있다.
 
-### 다음 phase에서 추가 확인 필요
-- 검색 프론트 전체 렌더 의존 필드
-- 상세 프론트 전체 렌더 의존 필드
-- 검색 → 상세 이동 계약 전체
-- legacy 문서 전수 정리 범위
+검증 예시:
+- 그룹 `22318`
+  - `207612` → `can_general_rental=true`, `can_monthly_rental=true`
+  - `207611` → `can_general_rental=false`, `can_monthly_rental=false`
 
-## 구조 문제의 핵심
-### 문제 1. 이름이 역할을 충분히 드러내지 못함
-`carId`, `groupId`, `priceRules` 같은 이름만 보면
-- 차량 식별 키인지
-- 그룹 정책 키인지
-- legacy 포함 조회 결과인지
-한 번에 안 보인다.
+따라서 저장/필터 기준 키는 그룹이 아니라 **`source_car_id`** 다.
 
-### 문제 2. 검색/상세 pricing 조립이 분산
-- 검색: `mapDbCarsToDto.js`
-- 상세: `buildDbCarDetailDto.js`
-같은 가격 규칙이 두 군데서 따로 조립되던 구조는 공통 builder 로 정리했다.
+### 4. 현재 검증 수치
+- 총 차량: 58
+- `can_general_rental = false`: 16대
+- `can_monthly_rental = false`: 19대
 
-## 유지 / 제거 / 변경 기준
-### 유지
-- `source_group_id -> ims_group_id -> group policy -> calculateGroupPrice()` 축
-- `fetchGroupPricePolicies.js`
-- `calculateGroupPrice.js`
-- delivery region 별도 합산 구조
+## 현재 검색에 주는 의미
+현재 검색 흐름은 아래 순서로 이해한다.
+1. 차량 후보 조회
+2. 예약 overlap 차단
+3. 그룹 dedupe
 
-### 제거 완료
-- `car_prices` fallback 경로
-- `scripts/build-car-price-seed.js`
-- `supabase/migrations/20260415013000_create_car_prices_and_shadow_diffs.sql`
-- `supabase/seed.sql` 내 `car_prices` seed
-- active 문서의 `car_prices` 기준 설명
+따라서 차량관리 on/off 반영은 그룹 dedupe 뒤가 아니라 **차량 후보 단계에서 먼저** 걸러야 한다.
 
-### 리네임 대상
-- `fetchPriceRules` -> 그룹 정책 전용 의미 이름으로 분리 필요
-- 내부 변수명도 역할 기준으로 분리 필요
-  - `vehicleId`
-  - `sourceCarId`
-  - `sourceGroupId`
-  - `imsGroupId`
-  - `groupPricingPolicy`
+정답 순서:
+1. `cars.active = true`
+2. `rent_age <= driverAge`
+3. `ims_can_general_rental = true`
+4. 예약 overlap 차단
+5. 그룹 dedupe
 
-### 공통화 대상
-- 검색/상세 공통 pricing builder
-- 가격 컨텍스트 조회 결과 shape
-- meta/pricing source 표기 규칙
+## 다음 실행 목표
+다음 실행은 아래 순서로 간다.
 
-## 실행 phase 결과
-### Phase 1. partner 경계 정리
-- `api/car-detail.js` 가 `server/search/searchState.js` 를 사용하도록 변경
-- detail 검증 로직이 partner helper 위치 의존에서 분리됨
+1. 저장 구조 잠금
+2. IMS 차량 상태 sync 추가
+3. 검색 필터 반영
+4. 상세 일치화
 
-### Phase 2. 가격 엔진 단일화
-- `fetchPriceRules()` 를 group-policy only 조회로 변경
-- 검색/상세 공통 pricing builder `buildAppliedGroupPricing.js` 추가
-- 검색 DTO와 상세 DTO가 같은 계산 기준을 사용
+월대차 확장은 위 4단계가 끝난 뒤 다음 단계로 본다.
 
-### Phase 3. legacy 삭제와 문서 정리
-- legacy price seed 제거
-- `car_prices` migration 제거 후 shadow diff migration 분리
-- active 문서와 agent 결과 문서 기준 업데이트
+## 다음 phase 원칙
+1. 먼저 문서 기준점부터 확인한다.
+2. 차량 상태는 **source_car_id 기준**으로 반영한다.
+3. 그룹 dedupe 전에 차량 필터가 먼저 적용되어야 한다.
+4. 저장 구조를 먼저 잠그고, 그 다음 sync 와 검색 반영으로 간다.
+5. 저장 위치는 `cars` 테이블로 고정하고 별도 테이블은 만들지 않는다.
+6. 컬럼은 검색 반영에 필요한 최소 범위만 둔다.
 
-## 실행 원칙
-1. 점검 phase 후에만 구조 변경 phase로 넘어간다
-2. 한 phase에는 한 종류의 변경만 넣는다
-3. legacy 삭제는 마지막 phase에서만 한다
-4. 각 phase는 검증 후 종료한다
+## 실행 phase 잠금
+### Phase 1. 저장 구조 잠금
+목적:
+- 차량관리 on/off 상태를 검색 반영에 필요한 최소 구조로 먼저 확정한다.
 
-## 최종 검증 기준
-- 검색 가격은 group policy 만으로 계산된다
-- 상세 가격도 같은 builder 를 사용한다
-- 검색 결과는 그룹 대표 1건만 반환한다
-- 상세 입력 검증은 partner helper 와 분리되었다
-- active 문서에는 `car_prices` 가 현재 기준처럼 남아 있지 않다
+Phase 1 확정안:
+- 저장 위치: `cars` 테이블
+- 별도 테이블: 사용하지 않음
+- 기준 키: `source_car_id`
+- 저장 필드:
+  - `ims_can_general_rental boolean`
+  - `ims_can_monthly_rental boolean`
+  - `ims_vehicle_synced_at timestamptz`
+- 보조 컬럼:
+  - 추가하지 않음
 
-## 이번 문서의 역할
-이 문서는 이번 3단계 실행 결과를 잠근 기준점이다.
-이후 변경은 이 문서를 기준으로만 판단한다.
+이유:
+- 현재 검색/상세가 `cars` 를 직접 읽는다.
+- 검색 반영 핵심은 일대차/월대차 가능 여부다.
+- `is_day_off`, `using_state` 는 현재 범위에서 직접 사용하지 않으므로 넣지 않는다.
+- 최소 컬럼만 두는 편이 더 덜 헷갈리고 이후 조건도 단순해진다.
+
+Phase 1 세부 단계:
+1. 현재 `cars` 스키마와 검색/상세 조회 지점 재확인
+2. 추가 컬럼 최종안 확정
+3. null/default 정책 확정
+4. Phase 2 sync 입력 shape 확정
+5. migration 범위 확정
+6. Phase 1 종료 조건 문서화
+
+Phase 1 확인 포인트:
+- 저장 위치가 `cars` 로 충분한가
+- 키 기준이 `source_car_id` 로 명확한가
+- 컬럼이 검색 반영에 필요한 최소 범위인가
+- 컬럼명이 검색 조건에 바로 붙기 쉬운가
+- 미수집 상태와 false 상태를 구분할 수 있는가
+
+Phase 1 정책 잠금:
+- `ims_can_general_rental`: nullable boolean
+- `ims_can_monthly_rental`: nullable boolean
+- `ims_vehicle_synced_at`: nullable timestamptz
+- null 의미: 아직 sync 되지 않음
+- false 의미: IMS 기준 비활성/off
+- true 의미: IMS 기준 활성/on
+
+Phase 1 종료 조건:
+- 저장 위치가 `cars` 로 확정되어 있다
+- 키 기준이 `source_car_id` 로 잠겨 있다
+- 저장 필드가 3개로 고정되어 있다
+- null/default 정책이 문서에 명시되어 있다
+- Phase 2 에서 바로 구현 가능한 입력 shape 가 정리되어 있다
+- migration 범위가 컬럼 추가로만 잠겨 있다
+
+### Phase 2. IMS 차량 상태 sync 추가
+목적:
+- IMS 차량관리 API에서 차량별 rental flag 를 수집해 DB에 적재한다.
+
+반영 기준:
+- 기존 5분 sync 워커 진입점: `scripts/ims-sync/run-ims-reservation-sync.js`
+- launchd 실행 스크립트: `scripts/ims-sync/run-launchd.sh`
+- 차량 상태 fetch: `GET /v2/rent-company-cars?page=1&state=all&per_page=200`
+- `id` 를 `source_car_id` 와 매핑
+- Phase 1 에서 잠근 3개 필드 기준으로 upsert
+- 응답에 없는 차량은 건드리지 않음
+- 기존 `cars` row 만 갱신하고 신규 insert 는 하지 않음
+
+실측 검증:
+- IMS 차량 수: 58
+- `cars` 매칭 수: 58
+- 미매칭 수: 0
+- `can_general_rental=false`: 16
+- `can_monthly_rental=false`: 19
+
+종료 조건:
+- DB에 차량별 on/off 상태가 실제 저장된다
+
+### Phase 3. 검색 필터 반영
+목적:
+- 현재 공개 검색에서 일대차 off 차량을 제외한다.
+
+반영 기준:
+- `fetchCandidateCars` 에 `ims_can_general_rental = true` 조건 추가
+- 차량 후보 단계에서 먼저 필터 적용
+
+종료 조건:
+- 일대차 off 차량이 검색 결과에서 빠진다
+
+### Phase 4. 상세 일치화
+목적:
+- 검색과 상세의 노출 기준을 일치시킨다.
+
+반영 기준:
+- 상세 조회도 같은 차량 상태 기준 적용
+- 직링크 진입 정책까지 같이 정리
+
+종료 조건:
+- 검색과 상세가 같은 차량 상태 기준으로 동작한다
+
+## Phase 1 실행 준비 상태
+다음에 바로 시작할 수 있도록 Phase 1 준비 항목을 아래로 고정한다.
+
+### Phase 1 시작 전 확인할 파일
+- `supabase/migrations/20260414000000_create_cars.sql`
+- `server/search-db/repositories/fetchCandidateCars.js`
+- `server/detail/buildDbCarDetailDto.js`
+- `scripts/pricing/build-group-pricing-preview.js`
+- IMS 차량관리 응답 샘플 기준
+
+### Phase 1 검증 결과
+- `cars` 테이블에는 이미 `source_car_id bigint not null unique` 가 있다.
+- 검색은 `fetchCandidateCars.js` 에서 `cars.select('*')` 를 사용한다.
+- 상세는 `buildDbCarDetailDto.js` 내부 `fetchCarRow()` 에서 `cars.select('*')` 를 사용한다.
+- 내부 preview 스크립트는 `cars` 에서 `source_group_id,name,display_name` 만 읽는다.
+- 따라서 새 컬럼 3개를 `cars` 에 추가해도 현재 검색/상세/preview 읽기 구조와 충돌하지 않는다.
+
+### Phase 1 체크리스트
+- [ ] 저장 위치를 `cars` 로 유지
+- [ ] 별도 테이블 미사용 확정
+- [ ] 기준 키를 `source_car_id` 로 잠금
+- [ ] 저장 필드를 3개로 잠금
+- [ ] nullable 정책 잠금
+- [ ] Phase 2 sync 입력 shape 잠금
+- [ ] migration 범위를 컬럼 추가만으로 잠금
+
+### Phase 1에서 바로 결정된 것
+- 저장 위치: `cars`
+- 기준 키: `source_car_id`
+- 저장 필드:
+  - `ims_can_general_rental`
+  - `ims_can_monthly_rental`
+  - `ims_vehicle_synced_at`
+- 제외 필드:
+  - `ims_is_day_off`
+  - `ims_using_state`
+
+### Phase 1 예상 sync 입력 shape
+- `source_car_id`
+- `ims_can_general_rental`
+- `ims_can_monthly_rental`
+- `ims_vehicle_synced_at`
+
+### Phase 1 산출물
+- 스키마 변경안 1개
+- 필드 의미 표 1개
+- Phase 2 sync 입력 shape 초안 1개
+
+## 추천 방향
+현재 기준 추천 순서는 아래다.
+1. Phase 1 저장 구조 잠금
+2. Phase 2 차량 상태 sync
+3. Phase 3 검색 반영
+4. Phase 4 상세 일치화
+
+## 문서 잠금 규칙
+- 이 문서를 다음 실행 기준 문서로 사용한다.
+- 추가 current 문서는 만들지 않는다.
+- phase 종료 후 이 문서는 `past/` 로 이동한다.
