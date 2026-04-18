@@ -20,6 +20,7 @@ async function fetchCandidateCars({
     .from('cars')
     .select('*')
     .eq('active', true)
+    .eq('ims_can_general_rental', true)
     .lte('rent_age', search.driverAge || 26)
     .limit(limit)
 

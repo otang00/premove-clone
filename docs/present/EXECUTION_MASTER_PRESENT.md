@@ -8,6 +8,13 @@
 - 브랜치: `feat/db-preview-home`
 - 현재 active present 문서: 이 문서 1개만 사용
 - 이전 current/present/agent 문서: `docs/past/doc-lock-2026-04-17/` 로 이관 완료
+- Phase 1, Phase 2 완료 커밋: `69543bb`
+
+## 현재 실행 체크포인트
+- Phase 1 완료: `cars` 저장 구조 잠금 완료
+- Phase 2 완료: 기존 5분 IMS sync 워커에 차량 상태 sync 연결 완료
+- Phase 3 완료: 검색 후보 단계에 `ims_can_general_rental = true` 반영 완료
+- 다음 active 작업은 **상세 일치화** 1건으로 잠근다
 
 ## 현재 잠금 상태
 ### 1. 검색 기준
@@ -93,12 +100,10 @@
 ## 다음 실행 목표
 다음 실행은 아래 순서로 간다.
 
-1. 저장 구조 잠금
-2. IMS 차량 상태 sync 추가
-3. 검색 필터 반영
-4. 상세 일치화
+1. 검색 필터 반영
+2. 상세 일치화
 
-월대차 확장은 위 4단계가 끝난 뒤 다음 단계로 본다.
+월대차 확장은 위 2단계가 끝난 뒤 다음 단계로 본다.
 
 ## 다음 phase 원칙
 1. 먼저 문서 기준점부터 확인한다.
@@ -162,17 +167,17 @@ Phase 1 종료 조건:
 - migration 범위가 컬럼 추가로만 잠겨 있다
 
 ### Phase 2. IMS 차량 상태 sync 추가
-목적:
-- IMS 차량관리 API에서 차량별 rental flag 를 수집해 DB에 적재한다.
+상태:
+- 완료
 
-반영 기준:
+실행 기준:
 - 기존 5분 sync 워커 진입점: `scripts/ims-sync/run-ims-reservation-sync.js`
 - launchd 실행 스크립트: `scripts/ims-sync/run-launchd.sh`
 - 차량 상태 fetch: `GET /v2/rent-company-cars?page=1&state=all&per_page=200`
 - `id` 를 `source_car_id` 와 매핑
-- Phase 1 에서 잠근 3개 필드 기준으로 upsert
+- 기존 `cars` row 만 `source_car_id` 기준 update
 - 응답에 없는 차량은 건드리지 않음
-- 기존 `cars` row 만 갱신하고 신규 insert 는 하지 않음
+- 신규 insert 는 하지 않음
 
 실측 검증:
 - IMS 차량 수: 58
@@ -180,20 +185,38 @@ Phase 1 종료 조건:
 - 미매칭 수: 0
 - `can_general_rental=false`: 16
 - `can_monthly_rental=false`: 19
+- `ims_vehicle_synced_at` 반영 차량 수: 58
 
-종료 조건:
-- DB에 차량별 on/off 상태가 실제 저장된다
+종료 상태:
+- DB에 차량별 on/off 상태가 실제 저장됨
 
 ### Phase 3. 검색 필터 반영
+상태:
+- 완료
+
 목적:
 - 현재 공개 검색에서 일대차 off 차량을 제외한다.
 
 반영 기준:
 - `fetchCandidateCars` 에 `ims_can_general_rental = true` 조건 추가
 - 차량 후보 단계에서 먼저 필터 적용
+- null 은 통과시키지 않고 `true` 만 통과시킨다
+- 예약 overlap 차단과 그룹 dedupe 전에 적용한다
 
-종료 조건:
+확인 파일:
+- `server/search-db/repositories/fetchCandidateCars.js`
+- 검색 경로 호출 지점
+- 관련 테스트 또는 샘플 검증 스크립트
+
+실측 검증:
+- active + 연령 통과 차량: 58
+- `ims_can_general_rental = true` 적용 후 후보: 42
+- 제외 차량: 16
+- 후보 결과 내 `ims_can_general_rental !== true`: 0
+
+종료 상태:
 - 일대차 off 차량이 검색 결과에서 빠진다
+- 필터 순서가 문서 기준과 일치한다
 
 ### Phase 4. 상세 일치화
 목적:
