@@ -56,6 +56,7 @@ function toCardModel(car, searchState) {
   return {
     id: String(car.carId),
     groupId: car.groupId == null ? null : String(car.groupId),
+    detailToken: car.detailToken || '',
     name: car.name,
     image: car.imageUrl,
     yearLabel: formatYearLabel(car.minModelYear, car.maxModelYear),
@@ -97,6 +98,3 @@ export async function fetchSearchCars(searchState) {
   }
 }
 
-export function getMockCarById(carId) {
-  return mockCars.find((car) => car.id === String(carId)) || null
-}

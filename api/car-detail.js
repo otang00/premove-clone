@@ -1,6 +1,7 @@
 const { normalizeSearchState, validateDetailSearch } = require('../server/search/searchState')
 const { createServerClient } = require('../server/supabase/createServerClient')
 const { buildDbCarDetailDto } = require('../server/detail/buildDbCarDetailDto')
+const { verifyDetailToken } = require('../server/security/detailToken')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -8,7 +9,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' })
   }
 
-  const { carId } = req.query || {}
+  const { carId, detailToken } = req.query || {}
   const search = normalizeSearchState(req.query || {})
   const validation = validateDetailSearch({ carId, searchState: search })
 
@@ -22,6 +23,18 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const tokenValidation = verifyDetailToken({
+      token: detailToken,
+      carId,
+      search: validation.normalized,
+    })
+
+    if (!tokenValidation.isValid) {
+      return res.status(403).json({
+        error: 'invalid_detail_token',
+      })
+    }
+
     const supabaseClient = createServerClient()
     if (!supabaseClient) {
       throw new Error('supabase_client_unavailable')

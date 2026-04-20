@@ -58,9 +58,15 @@ function toDetailViewModel(payload) {
   }
 }
 
-export async function fetchCarDetail(carId, searchState) {
-  const query = buildSearchQuery(searchState)
-  const response = await fetch(`/api/car-detail?carId=${encodeURIComponent(carId)}&${query}`)
+export async function fetchCarDetail(carId, searchState, detailToken) {
+  const params = new URLSearchParams(buildSearchQuery(searchState))
+  params.set('carId', String(carId))
+
+  if (detailToken) {
+    params.set('detailToken', detailToken)
+  }
+
+  const response = await fetch(`/api/car-detail?${params.toString()}`)
   const payload = await parseApiResponse(response, '상세 조회에 실패했습니다.')
 
   return toDetailViewModel(payload)

@@ -64,6 +64,10 @@ export default function CarDetailSection() {
   const { carId } = useParams()
   const location = useLocation()
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
+  const detailToken = useMemo(() => {
+    const params = new URLSearchParams(location.search)
+    return params.get('detailToken') || ''
+  }, [location.search])
   const validation = useMemo(() => validateSearchState(parsedSearchState), [parsedSearchState])
   const hasSearchContext = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -125,7 +129,7 @@ export default function CarDetailSection() {
     setIsLoading(true)
     setFetchError('')
 
-    fetchCarDetail(carId, parsedSearchState)
+    fetchCarDetail(carId, parsedSearchState, detailToken)
       .then((payload) => {
         if (isCancelled) return
         setCompany((current) => ({
@@ -154,7 +158,7 @@ export default function CarDetailSection() {
     return () => {
       isCancelled = true
     }
-  }, [carId, hasSearchContext, validation, parsedSearchState])
+  }, [carId, detailToken, hasSearchContext, validation, parsedSearchState])
 
   const updateReservationForm = (field, value) => {
     setReservationForm((current) => {

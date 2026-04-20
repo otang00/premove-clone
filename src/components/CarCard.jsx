@@ -1,13 +1,24 @@
 import { Link, useLocation } from 'react-router-dom'
 
+function buildDetailSearch(search, detailToken) {
+  const params = new URLSearchParams(search || '')
+
+  if (detailToken) {
+    params.set('detailToken', detailToken)
+  }
+
+  const nextQuery = params.toString()
+  return nextQuery ? `?${nextQuery}` : ''
+}
+
 export default function CarCard({ car }) {
   const location = useLocation()
+  const detailSearch = buildDetailSearch(location.search, car.detailToken)
 
   return (
     <Link
       className="car-card panel"
-      to={`/cars/${car.id}${location.search}`}
-      state={{ carSummary: car }}
+      to={`/cars/${car.id}${detailSearch}`}
     >
       <div className="car-thumb-wrap">
         <img src={car.image} alt={car.name} />

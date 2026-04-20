@@ -3,6 +3,7 @@
 const { validateSearchState } = require('../server/search/searchState')
 const { createServerClient } = require('../server/supabase/createServerClient')
 const { dbSearchService } = require('../server/search-db/dbSearchService')
+const { createDetailToken } = require('../server/security/detailToken')
 
 const DB_SEARCH_STAGE = process.env.SEARCH_DB_STAGE || 'db-primary'
 const DB_SEARCH_SOURCE = 'supabase-search'
@@ -53,10 +54,20 @@ module.exports = async function handler(req, res) {
 
   try {
     const dbResult = await runDbSearch(validation.normalized)
+    const carsWithDetailToken = Array.isArray(dbResult.cars)
+      ? dbResult.cars.map((car) => ({
+        ...car,
+        detailToken: createDetailToken({
+          carId: car.carId,
+          search: validation.normalized,
+        }).token,
+      }))
+      : []
 
     res.setHeader('Cache-Control', 's-maxage=60, stale-while-revalidate=300')
     return res.status(200).json({
       ...dbResult,
+      cars: carsWithDetailToken,
       company: dbResult.company || DB_DEFAULT_COMPANY,
       meta: {
         source: DB_SEARCH_SOURCE,
