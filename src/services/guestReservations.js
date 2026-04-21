@@ -79,24 +79,28 @@ export function getGuestReservation(reservationNumber) {
   return readReservations().find((item) => item.reservationNumber === normalizedReservationNumber) || null
 }
 
-export function findGuestReservation({ reservationNumber, customerPhone }) {
+export function findGuestReservation({ reservationNumber, customerPhone, customerBirth }) {
   const normalizedReservationNumber = normalizeReservationNumber(reservationNumber)
   const normalizedPhone = normalizePhone(customerPhone)
+  const normalizedBirth = String(customerBirth || '').replace(/[^\d]/g, '')
 
   return readReservations().find((item) => (
     item.reservationNumber === normalizedReservationNumber
     && normalizePhone(item.customerPhone) === normalizedPhone
+    && String(item.customerBirth || '') === normalizedBirth
   )) || null
 }
 
-export function cancelGuestReservation({ reservationNumber, customerPhone }) {
+export function cancelGuestReservation({ reservationNumber, customerPhone, customerBirth }) {
   const normalizedReservationNumber = normalizeReservationNumber(reservationNumber)
   const normalizedPhone = normalizePhone(customerPhone)
+  const normalizedBirth = String(customerBirth || '').replace(/[^\d]/g, '')
   const reservations = readReservations()
 
   const nextReservations = reservations.map((item) => {
     if (item.reservationNumber !== normalizedReservationNumber) return item
     if (normalizePhone(item.customerPhone) !== normalizedPhone) return item
+    if (String(item.customerBirth || '') !== normalizedBirth) return item
     if (item.status === 'cancelled') return item
 
     return {
@@ -110,5 +114,6 @@ export function cancelGuestReservation({ reservationNumber, customerPhone }) {
   return nextReservations.find((item) => (
     item.reservationNumber === normalizedReservationNumber
     && normalizePhone(item.customerPhone) === normalizedPhone
+    && String(item.customerBirth || '') === normalizedBirth
   )) || null
 }

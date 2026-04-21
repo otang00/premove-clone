@@ -123,6 +123,8 @@ export default function CarDetailSection() {
   const [deliveryAddressDetail, setDeliveryAddressDetail] = useState(parsedSearchState.deliveryAddressDetail || '')
   const [deliveryAddressDetailError, setDeliveryAddressDetailError] = useState('')
   const [isInsuranceExpanded, setIsInsuranceExpanded] = useState(false)
+  const [hasReservationSubmitAttempted, setHasReservationSubmitAttempted] = useState(false)
+  const [isReservationConfirmOpen, setIsReservationConfirmOpen] = useState(false)
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
@@ -140,6 +142,7 @@ export default function CarDetailSection() {
 
   const isDeliveryAddressDetailValid = parsedSearchState.pickupOption !== 'delivery' || Boolean(deliveryAddressDetail.trim())
   const isReservationActionEnabled = submitValidation.isValid && isDeliveryAddressDetailValid
+  const shouldShowReservationErrors = hasReservationSubmitAttempted
 
   useEffect(() => {
     let isCancelled = false
@@ -210,11 +213,20 @@ export default function CarDetailSection() {
   }
 
   const handleReservationSubmit = () => {
+    setHasReservationSubmitAttempted(true)
+
     if (parsedSearchState.pickupOption === 'delivery' && !deliveryAddressDetail.trim()) {
       setDeliveryAddressDetailError('상세주소를 입력해 주세요.')
+    }
+
+    if (!car || !pricing || !isReservationActionEnabled) {
       return
     }
 
+    setIsReservationConfirmOpen(true)
+  }
+
+  const handleConfirmReservation = () => {
     if (!car || !pricing || !isReservationActionEnabled) {
       return
     }
@@ -228,6 +240,7 @@ export default function CarDetailSection() {
       paymentMethod,
     })
 
+    setIsReservationConfirmOpen(false)
     navigate(`/reservation-complete?reservationNumber=${encodeURIComponent(reservation.reservationNumber)}`)
   }
 
@@ -312,7 +325,7 @@ export default function CarDetailSection() {
                       value={reservationForm.customerName}
                       onChange={(e) => updateReservationForm('customerName', e.target.value)}
                     />
-                    {reservationForm.customerName && reservationValidation.errors.customerName && (
+                    {(shouldShowReservationErrors || reservationForm.customerName) && reservationValidation.errors.customerName && (
                       <p className="muted small-note">{reservationValidation.errors.customerName}</p>
                     )}
                   </div>
@@ -324,7 +337,7 @@ export default function CarDetailSection() {
                       value={reservationForm.customerBirth}
                       onChange={(e) => updateReservationForm('customerBirth', e.target.value)}
                     />
-                    {reservationForm.customerBirth && reservationValidation.errors.customerBirth && (
+                    {(shouldShowReservationErrors || reservationForm.customerBirth) && reservationValidation.errors.customerBirth && (
                       <p className="muted small-note">{reservationValidation.errors.customerBirth}</p>
                     )}
                   </div>
@@ -336,13 +349,12 @@ export default function CarDetailSection() {
                       value={reservationForm.customerPhone}
                       onChange={(e) => updateReservationForm('customerPhone', e.target.value)}
                     />
-                    {reservationForm.customerPhone && reservationValidation.errors.customerPhone && (
+                    {(shouldShowReservationErrors || reservationForm.customerPhone) && reservationValidation.errors.customerPhone && (
                       <p className="muted small-note">{reservationValidation.errors.customerPhone}</p>
                     )}
                   </div>
-                  <button className="btn btn-outline btn-lg btn-block">인증번호</button>
                 </div>
-                <p className="muted small-note">차량 또는 계약서 기준 만 {car.rentAge}세 이상 예약 가능하며, 면허 취득 1년 이상이어야 합니다. 현장에서 면허와 예약자 본인 확인이 되지 않으면 배차가 불가할 수 있습니다.</p>
+                <p className="muted small-note">이름, 생년월일, 휴대폰번호를 정확히 입력해야 예약 확정 및 비회원 예약조회가 가능합니다. 차량 또는 계약서 기준 만 {car.rentAge}세 이상 예약 가능하며, 면허 취득 1년 이상이어야 합니다. 현장에서 면허와 예약자 본인 확인이 되지 않으면 배차가 불가할 수 있습니다.</p>
               </article>
 
               <article className="detail-card panel">
@@ -376,10 +388,10 @@ export default function CarDetailSection() {
                 <div className="price-lines">
                   <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
                 </div>
-                {!submitValidation.isValid && (
+                {(shouldShowReservationErrors || !isReservationActionEnabled) && !submitValidation.isValid && (
                   <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
                 )}
-                <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>예약 확정하기</button>
+                <button className="btn btn-dark btn-lg btn-block" onClick={handleReservationSubmit}>예약 확정하기</button>
               </article>
 
               <article className="detail-card panel">
@@ -427,6 +439,28 @@ export default function CarDetailSection() {
                 )}
               </article>
             </section>
+          </div>
+        )}
+        {isReservationConfirmOpen && car && pricing && (
+          <div className="delivery-modal-backdrop" onClick={() => setIsReservationConfirmOpen(false)}>
+            <div className="search-guard-modal" onClick={(event) => event.stopPropagation()}>
+              <strong>예약을 확정하시겠습니까?</strong>
+              <p className="field-note">입력한 예약자 정보와 예약 조건을 확인한 뒤 확정해 주세요.</p>
+              <div className="info-grid two">
+                <div><span>예약자명</span><strong>{reservationValidation.normalized.customerName}</strong></div>
+                <div><span>휴대폰번호</span><strong>{reservationValidation.normalized.customerPhone}</strong></div>
+                <div><span>생년월일</span><strong>{reservationValidation.normalized.customerBirth}</strong></div>
+                <div><span>차량</span><strong>{car.name}</strong></div>
+                <div><span>대여일시</span><strong>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</strong></div>
+                <div><span>반납일시</span><strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong></div>
+                <div><span>배차/수령</span><strong>{reservationLocationText}</strong></div>
+                <div><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
+              </div>
+              <div className="search-guard-actions">
+                <button className="btn btn-outline btn-md" onClick={() => setIsReservationConfirmOpen(false)}>다시 확인</button>
+                <button className="btn btn-dark btn-md" onClick={handleConfirmReservation}>예약 확정</button>
+              </div>
+            </div>
           </div>
         )}
       </div>

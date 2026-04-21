@@ -45,19 +45,21 @@ export default function ReservationCompletePage() {
                   <div><span>반납일시</span><strong>{formatDisplay(reservation.schedule.returnDateTime)}</strong></div>
                   <div><span>배차/수령</span><strong>{getPickupLabel(reservation.schedule)}</strong></div>
                   <div><span>예약자</span><strong>{reservation.customerName}</strong></div>
+                  <div><span>휴대폰번호</span><strong>{reservation.customerPhone}</strong></div>
+                  <div><span>생년월일</span><strong>{reservation.customerBirth}</strong></div>
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
                   <strong>비회원 예약조회 안내</strong>
                   <p className="field-note" style={{ margin: 0 }}>
-                    예약번호와 휴대폰번호로 조회할 수 있습니다. 필요하면 조회 화면에서 예약 취소도 가능합니다.
+                    예약번호, 휴대폰번호, 생년월일로 조회할 수 있습니다. 필요하면 조회 화면에서 예약 취소도 가능합니다.
                   </p>
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <Link
                     className="btn btn-dark btn-md"
-                    to={`/guest-bookings?reservationNumber=${encodeURIComponent(reservation.reservationNumber)}&customerPhone=${encodeURIComponent(reservation.customerPhone)}`}
+                    to={`/guest-bookings?reservationNumber=${encodeURIComponent(reservation.reservationNumber)}&customerPhone=${encodeURIComponent(reservation.customerPhone)}&customerBirth=${encodeURIComponent(reservation.customerBirth)}`}
                   >
                     비회원 예약조회로 이동
                   </Link>
