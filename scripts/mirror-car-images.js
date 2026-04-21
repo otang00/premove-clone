@@ -126,7 +126,6 @@ async function updateCarImage(supabase, row, uploadResult) {
       mirrored_at: new Date().toISOString(),
       bucket: BUCKET,
       object_path: uploadResult.objectPath,
-      original_url: row.image_url,
     },
   };
 
