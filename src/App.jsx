@@ -12,6 +12,9 @@ export default function App() {
       <Route path="/cars" element={<CarsPage />} />
       <Route path="/cars/:carId" element={<LandingPage />} />
       <Route path="/reservations" element={<PlaceholderPage title="예약내역" />} />
+      <Route path="/guest-bookings" element={<PlaceholderPage title="비회원 예약조회" />} />
+      <Route path="/login" element={<PlaceholderPage title="로그인" />} />
+      <Route path="/signup" element={<PlaceholderPage title="회원가입" />} />
       <Route path="/faq" element={<PlaceholderPage title="FAQ" />} />
       <Route path="/terms" element={<LegalPage kind="terms" />} />
       <Route path="/privacy" element={<LegalPage kind="privacy" />} />
