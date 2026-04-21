@@ -1,6 +1,6 @@
 create table if not exists public.booking_orders (
   id uuid primary key default gen_random_uuid(),
-  public_reservation_code text,
+  public_reservation_code text not null,
   booking_channel text not null,
   customer_name text not null,
   customer_phone text not null,
@@ -13,14 +13,12 @@ create table if not exists public.booking_orders (
   return_location_snapshot jsonb,
   quoted_total_amount numeric(12, 2) not null,
   pricing_snapshot jsonb,
-  payment_provider text,
-  payment_reference_id text,
+  payment_provider text not null,
+  payment_reference_id text not null,
   booking_status text not null,
   payment_status text not null,
   sync_status text not null,
   manual_review_required boolean not null default false,
-  hold_started_at timestamptz,
-  hold_expires_at timestamptz,
   cancelled_at timestamptz,
   completed_at timestamptz,
   created_at timestamptz not null default now(),
@@ -30,9 +28,6 @@ create table if not exists public.booking_orders (
   constraint booking_orders_customer_phone_last4_len check (char_length(customer_phone_last4) = 4),
   constraint booking_orders_booking_status_check check (
     booking_status in (
-      'draft',
-      'payment_pending_hold',
-      'payment_succeeded',
       'confirmed_pending_sync',
       'confirmed',
       'in_use',
@@ -43,12 +38,9 @@ create table if not exists public.booking_orders (
   ),
   constraint booking_orders_payment_status_check check (
     payment_status in (
-      'not_started',
-      'pending',
-      'authorized',
       'paid',
-      'failed',
       'cancelled',
+      'refund_pending',
       'refunded'
     )
   ),
@@ -70,23 +62,17 @@ create table if not exists public.booking_orders (
   ),
   constraint booking_orders_pickup_method_check check (
     pickup_method in ('pickup', 'delivery')
-  ),
-  constraint booking_orders_hold_window_valid check (
-    hold_started_at is null
-    or hold_expires_at is null
-    or hold_expires_at >= hold_started_at
   )
 );
 
 create unique index if not exists uq_booking_orders_public_reservation_code
-  on public.booking_orders (public_reservation_code)
-  where public_reservation_code is not null;
+  on public.booking_orders (public_reservation_code);
 
 create index if not exists idx_booking_orders_car_period
   on public.booking_orders (car_id, pickup_at, return_at);
 
-create index if not exists idx_booking_orders_booking_status_hold_expires
-  on public.booking_orders (booking_status, hold_expires_at);
+create index if not exists idx_booking_orders_booking_status_created_at
+  on public.booking_orders (booking_status, created_at desc);
 
 create index if not exists idx_booking_orders_payment_status_created_at
   on public.booking_orders (payment_status, created_at desc);
@@ -126,7 +112,6 @@ create table if not exists public.reservation_mappings (
     )
   )
 );
-
 
 create unique index if not exists uq_reservation_mappings_booking_order_active
   on public.reservation_mappings (booking_order_id)
