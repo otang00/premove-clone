@@ -44,7 +44,7 @@ async function fetchReservationsPage({ authorization, page = 1, ...rest } = {}) 
     headers: {
       Authorization: authHeader,
       Accept: 'application/json, text/plain, */*',
-      'User-Agent': 'premove-clone/ims-sync',
+      'User-Agent': 'rentcar00-booking-system/ims-sync',
     },
   });
 

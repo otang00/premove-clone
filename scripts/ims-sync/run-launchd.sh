@@ -1,7 +1,7 @@
 #!/bin/zsh
 set -euo pipefail
 
-PROJECT_ROOT="/Users/otang_server/.openclaw/workspace/projects/premove-clone"
+PROJECT_ROOT="/Users/otang_server/.openclaw/workspace/projects/rentcar00-booking-system"
 LOG_DIR="$PROJECT_ROOT/logs"
 LOCK_DIR="/tmp/premove-ims-sync.lock"
 STAMP="$(date '+%Y-%m-%d %H:%M:%S')"

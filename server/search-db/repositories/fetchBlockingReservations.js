@@ -20,7 +20,7 @@ async function fetchBlockingReservations({
   }
 
   const query = supabaseClient
-    .from('reservations')
+    .from('ims_sync_reservations')
     .select('*')
     .in('car_id', carIds)
     .lt('start_at', searchWindow.endIso)

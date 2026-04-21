@@ -1,10 +1,10 @@
 # IMS API 호출 문서
 
 ## 목적
-프리무브 클론에서 IMS 연동 시 현재 확인된 인증 방식, API 엔드포인트, 호출 흐름을 정리한다.
+`rentcar00-booking-system` 기준 IMS 연동 시 현재 확인된 인증 방식, API 엔드포인트, 호출 흐름을 정리한다.
 
 이 문서는 **현재 workspace 안의 별도 실험/운영 코드**를 기준으로 작성한 참고 문서다.
-즉, 이 파일에 적힌 외부 참조는 `premove-clone` repo 내부 문서가 아니라,
+즉, 이 파일에 적힌 외부 참조는 `rentcar00-booking-system` repo 내부 문서가 아니라,
 **workspace의 다른 프로젝트/스크립트**를 가리키는 메모 성격이다.
 
 ---

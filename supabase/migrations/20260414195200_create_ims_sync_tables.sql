@@ -38,7 +38,7 @@ create index if not exists idx_ims_reservations_raw_fetched_at
   on public.ims_reservations_raw (fetched_at desc);
 create index if not exists idx_ims_reservations_raw_parse_status
   on public.ims_reservations_raw (parse_status);
-create table if not exists public.reservations (
+create table if not exists public.ims_sync_reservations (
   id uuid primary key default gen_random_uuid(),
   ims_reservation_id text,
   source text not null default 'ims',
@@ -65,17 +65,17 @@ create table if not exists public.reservations (
   last_synced_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  constraint reservations_end_after_start check (end_at > start_at)
+  constraint ims_sync_reservations_end_after_start check (end_at > start_at)
 );
-create unique index if not exists uq_reservations_ims_reservation_id
-  on public.reservations (ims_reservation_id)
+create unique index if not exists uq_ims_sync_reservations_ims_reservation_id
+  on public.ims_sync_reservations (ims_reservation_id)
   where ims_reservation_id is not null;
-create index if not exists idx_reservations_car_period
-  on public.reservations (car_id, start_at, end_at);
-create index if not exists idx_reservations_status
-  on public.reservations (status);
-create index if not exists idx_reservations_last_synced_at
-  on public.reservations (last_synced_at desc);
+create index if not exists idx_ims_sync_reservations_car_period
+  on public.ims_sync_reservations (car_id, start_at, end_at);
+create index if not exists idx_ims_sync_reservations_status
+  on public.ims_sync_reservations (status);
+create index if not exists idx_ims_sync_reservations_last_synced_at
+  on public.ims_sync_reservations (last_synced_at desc);
 create table if not exists public.reservation_sync_errors (
   id uuid primary key default gen_random_uuid(),
   sync_run_id uuid not null references public.reservation_sync_runs(id) on delete cascade,

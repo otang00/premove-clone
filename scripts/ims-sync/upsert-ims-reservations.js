@@ -69,7 +69,7 @@ async function upsertReservations(rows) {
   if (!rows.length) return [];
   const supabase = getSupabaseAdmin();
   const { data, error } = await supabase
-    .from('reservations')
+    .from('ims_sync_reservations')
     .upsert(rows, { onConflict: 'ims_reservation_id' })
     .select('id, ims_reservation_id');
 

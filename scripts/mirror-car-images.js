@@ -75,7 +75,7 @@ async function fetchCarsToMirror(supabase) {
 async function downloadImage(url) {
   const response = await fetch(url, {
     headers: {
-      'User-Agent': 'premove-clone/car-image-mirror',
+      'User-Agent': 'rentcar00-booking-system/car-image-mirror',
       Accept: 'image/*,*/*;q=0.8',
     },
   });

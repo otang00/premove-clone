@@ -43,7 +43,7 @@ async function loginToIms(options = {}) {
     headers: {
       'Content-Type': 'application/json',
       Accept: 'application/json, text/plain, */*',
-      'User-Agent': 'premove-clone/ims-sync',
+      'User-Agent': 'rentcar00-booking-system/ims-sync',
     },
     body: JSON.stringify({
       username,
