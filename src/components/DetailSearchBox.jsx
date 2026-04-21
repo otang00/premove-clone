@@ -22,7 +22,7 @@ export default function DetailSearchBox({
 }) {
   const pickupLocation = searchState.pickupOption === 'delivery'
     ? (searchState.deliveryAddress || '딜리버리 위치 확인 필요')
-    : (company?.fullGarageAddress || company?.address || '업체 주소 확인 필요')
+    : (company?.fullGarageAddress || company?.address || '회사 주소 확인 필요')
 
   return (
     <section className="detail-card panel detail-search-box">
@@ -49,7 +49,7 @@ export default function DetailSearchBox({
             <p className="schedule-note detail-note">
               {searchState.pickupOption === 'delivery'
                 ? '메인에서 확정한 수령 위치입니다.'
-                : '업체 방문 수령/반납'}
+                : '회사 방문 수령/반납'}
             </p>
           </div>
         </div>

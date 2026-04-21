@@ -251,26 +251,26 @@ export default function CarDetailSection() {
               <div className="tab-row">
                 <button className="btn btn-tab btn-md is-active">예약 정보</button>
                 <button className="btn btn-tab btn-md">보험/유의사항</button>
-                <button className="btn btn-tab btn-md">업체 정보</button>
+                <button className="btn btn-tab btn-md">회사 정보</button>
               </div>
 
               <article className="detail-card panel">
                 <h2>보험 정보</h2>
                 <div className="info-grid three info-stat-grid">
                   <div><span>보험 안내</span><strong>일반 자차</strong><small>현재 운영 기준 보험입니다</small></div>
-                  <div><span>보상한도</span><strong>{insurance.general?.coverage ? `${insurance.general.coverage}만원` : '업체 기준 적용'}</strong><small>세부 한도는 예약 단계에서 다시 안내합니다</small></div>
-                  <div><span>자차 면책금</span><strong>{insurance.general?.indemnificationFee ? `${insurance.general.indemnificationFee}만원` : '업체 기준 적용'}</strong><small>완전 자차는 후속 기능에서 추가 예정입니다</small></div>
+                  <div><span>보상한도</span><strong>{insurance.general?.coverage ? `${insurance.general.coverage}만원` : '회사 기준 적용'}</strong><small>세부 한도는 예약 단계에서 다시 안내합니다</small></div>
+                  <div><span>자차 면책금</span><strong>{insurance.general?.indemnificationFee ? `${insurance.general.indemnificationFee}만원` : '회사 기준 적용'}</strong><small>완전 자차는 후속 기능에서 추가 예정입니다</small></div>
                 </div>
               </article>
 
               <article className="detail-card panel">
-                <h2>업체 정보</h2>
+                <h2>회사 정보</h2>
                 <div className="info-grid three info-stat-grid">
-                  <div><span>업체명</span><strong>{company.name || company.companyName || '빵빵카 주식회사'}</strong><small>{company.phone || company.companyTel || '연락처 확인 필요'}</small></div>
+                  <div><span>회사명</span><strong>{company.name || company.companyName || '빵빵카 주식회사'}</strong><small>{company.phone || company.companyTel || '연락처 확인 필요'}</small></div>
                   <div><span>운영시간</span><strong>{formatOperatingHours(company.deliveryTimes)}</strong><small>배차/반차는 운영시간 내 가능합니다</small></div>
-                  <div><span>수령 방식</span><strong>{parsedSearchState.pickupOption === 'delivery' ? '딜리버리' : '업체 방문'}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '메인에서 선택한 위치 기준' : '업체 방문 수령/반납'}</small></div>
+                  <div><span>수령 방식</span><strong>{parsedSearchState.pickupOption === 'delivery' ? '딜리버리' : '회사 방문'}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '메인에서 선택한 위치 기준' : '회사 방문 수령/반납'}</small></div>
                 </div>
-                <p className="muted small-note">{company.address || company.fullGarageAddress || '업체 주소 확인 필요'}</p>
+                <p className="muted small-note">{company.address || company.fullGarageAddress || '회사 주소 확인 필요'}</p>
               </article>
 
               <article className="detail-card panel">
@@ -313,16 +313,17 @@ export default function CarDetailSection() {
                   </div>
                   <button className="btn btn-outline btn-lg btn-block">인증번호</button>
                 </div>
-                <p className="muted small-note">만 {car.rentAge}세 이상 예약 가능 기준입니다. 현장에서 면허 진위와 운전자 정보를 확인합니다.</p>
+                <p className="muted small-note">차량 또는 계약서 기준 만 {car.rentAge}세 이상 예약 가능하며, 면허 취득 1년 이상이어야 합니다. 현장에서 면허와 예약자 본인 확인이 되지 않으면 배차가 불가할 수 있습니다.</p>
               </article>
 
               <article className="detail-card panel">
-                <h2>결제 수단</h2>
+                <h2>결제 방식 선택</h2>
                 <div className="info-grid three payment-method-grid">
-                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>신용/체크카드</strong><span>국내 주요 카드 결제</span></button>
-                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.KAKAO_PAY ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.KAKAO_PAY)}><strong>카카오페이</strong><span>간편결제</span></button>
-                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.GENERAL ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.GENERAL)}><strong>일반결제</strong><span>기본 결제창 이동</span></button>
+                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>결제 방식 1</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
+                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.KAKAO_PAY ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.KAKAO_PAY)}><strong>결제 방식 2</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
+                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.GENERAL ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.GENERAL)}><strong>결제 방식 3</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
                 </div>
+                <p className="muted small-note">세부 결제수단은 운영 정책에 따라 결제 단계에서 안내됩니다.</p>
               </article>
 
               <article className="detail-card panel">
@@ -337,7 +338,7 @@ export default function CarDetailSection() {
                   <p className="muted small-note">{Object.values(termsValidation.errors)[0]}</p>
                 )}
                 <div className="legal-note">
-                  빵빵카 주식회사는 본 서비스와 렌터카 계약 시스템을 직접 제공합니다.
+                  빵빵카 주식회사는 본 서비스와 렌터카 계약 시스템을 직접 제공합니다. 결제가 정상적으로 완료된 예약에 한해 예약이 확정되며, 운전자 자격 미충족, 본인 확인 실패, 면허 확인 실패, 결제 확인 실패, 차량 상태 이상, 배차 불가 등 회사가 고지한 사유가 있으면 예약이 거절되거나 취소될 수 있습니다.
                 </div>
               </article>
             </section>
@@ -353,7 +354,7 @@ export default function CarDetailSection() {
               {isDeliveryAddressDetailValid && !submitValidation.isValid && (
                 <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
               )}
-              <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>예약 요청하기</button>
+              <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>결제 진행하기</button>
             </aside>
           </div>
         )}

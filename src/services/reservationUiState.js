@@ -73,7 +73,7 @@ export function validateReservationSubmission({
   }
 
   if (!paymentMethod) {
-    errors.paymentMethod = '결제 수단을 선택해 주세요.'
+    errors.paymentMethod = '결제 방식을 선택해 주세요.'
   }
 
   return {

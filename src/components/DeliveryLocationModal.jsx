@@ -77,7 +77,7 @@ export default function DeliveryLocationModal({
         <div className="delivery-modal-header">
           <div>
             <strong>딜리버리 지역 선택</strong>
-            <p>{company?.fullGarageAddress || '업체 주소 확인 필요'}</p>
+            <p>{company?.fullGarageAddress || '회사 주소 확인 필요'}</p>
           </div>
           <button className="btn btn-outline btn-md delivery-modal-close" onClick={onClose}>닫기</button>
         </div>
