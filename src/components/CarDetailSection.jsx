@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchCarDetail } from '../services/carDetail'
@@ -127,6 +127,7 @@ export default function CarDetailSection() {
   const [isReservationConfirmOpen, setIsReservationConfirmOpen] = useState(false)
   const [reservationSubmitError, setReservationSubmitError] = useState('')
   const [isCreatingReservation, setIsCreatingReservation] = useState(false)
+  const paymentSummaryRef = useRef(null)
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
@@ -145,6 +146,27 @@ export default function CarDetailSection() {
   const isDeliveryAddressDetailValid = parsedSearchState.pickupOption !== 'delivery' || Boolean(deliveryAddressDetail.trim())
   const isReservationActionEnabled = submitValidation.isValid && isDeliveryAddressDetailValid
   const shouldShowReservationErrors = hasReservationSubmitAttempted
+  const reservationSubmitMessages = useMemo(() => {
+    const messages = []
+
+    if (!reservationValidation.isValid) {
+      messages.push(...Object.values(reservationValidation.errors))
+    }
+
+    if (!termsValidation.isValid) {
+      messages.push(...Object.values(termsValidation.errors))
+    }
+
+    if (!paymentMethod) {
+      messages.push('결제 방식을 선택해 주세요.')
+    }
+
+    if (parsedSearchState.pickupOption === 'delivery' && !deliveryAddressDetail.trim()) {
+      messages.push('상세주소를 입력해 주세요.')
+    }
+
+    return [...new Set(messages.filter(Boolean))]
+  }, [deliveryAddressDetail, parsedSearchState.pickupOption, paymentMethod, reservationValidation.errors, reservationValidation.isValid, termsValidation.errors, termsValidation.isValid])
 
   useEffect(() => {
     let isCancelled = false
@@ -223,6 +245,9 @@ export default function CarDetailSection() {
     }
 
     if (!car || !pricing || !isReservationActionEnabled) {
+      requestAnimationFrame(() => {
+        paymentSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
       return
     }
 
@@ -318,19 +343,21 @@ export default function CarDetailSection() {
                   <strong>{pricing.finalPrice}</strong>
                   <p className="field-note">보험 포함 기준이며, 최종 결제 단계에서 확정됩니다.</p>
                 </div>
-                <div className="reservation-detail-input-wrap">
-                  <span className="field-label">상세주소</span>
-                  <input
-                    className="field-input"
-                    placeholder="상세주소를 입력해 주세요."
-                    value={deliveryAddressDetail}
-                    onChange={(e) => handleDeliveryAddressDetailChange(e.target.value)}
-                  />
-                  {deliveryAddressDetailError && (
-                    <p className="muted small-note">{deliveryAddressDetailError}</p>
-                  )}
-                  <p className="muted small-note">배차를 위해 동, 호수, 건물명 등 상세주소를 입력해 주세요.</p>
-                </div>
+                {parsedSearchState.pickupOption === 'delivery' && (
+                  <div className="reservation-detail-input-wrap">
+                    <span className="field-label">상세주소</span>
+                    <input
+                      className="field-input"
+                      placeholder="상세주소를 입력해 주세요."
+                      value={deliveryAddressDetail}
+                      onChange={(e) => handleDeliveryAddressDetailChange(e.target.value)}
+                    />
+                    {deliveryAddressDetailError && (
+                      <p className="muted small-note">{deliveryAddressDetailError}</p>
+                    )}
+                    <p className="muted small-note">배차를 위해 동, 호수, 건물명 등 상세주소를 입력해 주세요.</p>
+                  </div>
+                )}
               </article>
 
               <article className="detail-card panel">
@@ -401,16 +428,23 @@ export default function CarDetailSection() {
                 </div>
               </article>
 
-              <article className="detail-card panel payment-summary-card">
+              <article className="detail-card panel payment-summary-card" ref={paymentSummaryRef}>
                 <h2>결제 정보</h2>
                 <div className="price-lines">
                   <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
                 </div>
-                {(shouldShowReservationErrors || !isReservationActionEnabled) && !submitValidation.isValid && (
-                  <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
+                {shouldShowReservationErrors && reservationSubmitMessages.length > 0 && (
+                  <div className="legal-note" style={{ marginTop: 0, background: '#fff4f4', color: '#9f1239' }}>
+                    <strong style={{ display: 'block', marginBottom: 8 }}>아래 항목 확인 후 예약 확정을 눌러 주세요.</strong>
+                    <ul style={{ margin: 0, paddingLeft: 18 }}>
+                      {reservationSubmitMessages.map((message) => (
+                        <li key={message}>{message}</li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 {reservationSubmitError && (
-                  <p className="muted small-note">{reservationSubmitError}</p>
+                  <div className="legal-note" style={{ marginTop: 0, background: '#fff4f4', color: '#9f1239' }}>{reservationSubmitError}</div>
                 )}
                 <button className="btn btn-dark btn-lg btn-block" onClick={handleReservationSubmit}>예약 확정하기</button>
               </article>
