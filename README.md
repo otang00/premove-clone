@@ -1,19 +1,19 @@
-# premove-clone
+# rentcar00-booking-system
 
-`premove-clone`은 렌터카 검색/상세/예약 진입 흐름을
+`rentcar00-booking-system`은 렌터카 검색/상세/예약 진입 흐름을
 우리 서버와 DB 기준으로 재구성하는 예약 서비스 프로젝트다.
 
 ## 현재 기준 문서
 문서는 아래 순서로 본다.
 
-1. `docs/present/EXECUTION_MASTER_PRESENT.md`
-2. `docs/00_FINAL_GOAL.md`
-3. `docs/04_PARTNER_SITE_REFERENCE.md`
-4. `docs/99_DECISIONS.md`
-5. `docs/references/IMS_API_CALLS.md`
+1. `docs/present/RENTCAR00_DB_EXECUTION_CURRENT.md`
+2. `docs/present/RENAME_EXECUTION_CURRENT.md`
+3. `docs/references/IMS_API_CALLS.md`
 
 ## 문서 정책
-- 현재 살아있는 실행 기준 문서는 `docs/present/EXECUTION_MASTER_PRESENT.md` 1개만 유지한다.
+- 제품/DB 구조 current 는 `docs/present/RENTCAR00_DB_EXECUTION_CURRENT.md` 다.
+- rename 실행 준비 current 는 `docs/present/RENAME_EXECUTION_CURRENT.md` 다.
+- rename phase 진행 중에는 위 2개 current 문서를 병행 유지한다.
 - 단계별 설계/실행 문서는 `docs/archive/spec-history/` 로 이동했다.
 - 과거 작업 지시/빌드 규칙 문서는 `docs/archive/working-notes/` 로 이동했다.
 - 더 오래된 외형 프로토타입 문서는 `docs/archive/legacy-ui-prototype/` 로 유지한다.

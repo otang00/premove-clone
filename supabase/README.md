@@ -1,7 +1,8 @@
 # Supabase setup
 
 ## 현재 구성
-- migration: `supabase/migrations/20260414_create_cars.sql`
+- migration: `supabase/migrations/20260414000000_create_cars.sql`
+- rename migration: `supabase/migrations/20260421195800_rename_reservations_to_ims_sync_reservations.sql`
 - seed: `supabase/seed.sql`
 - generator: `scripts/build-cars-seed.mjs`
 
@@ -23,8 +24,10 @@ npm run build:cars-seed
 
 
 ## Supabase SQL Editor 적용 순서
-1. `supabase/migrations/20260414_create_cars.sql` 실행
-2. `supabase/seed.sql` 실행
+1. `supabase/migrations/20260414000000_create_cars.sql` 실행
+2. IMS sync 관련 migration 들을 순서대로 실행
+3. rename migration `supabase/migrations/20260421195800_rename_reservations_to_ims_sync_reservations.sql` 확인
+4. `supabase/seed.sql` 실행
 
 ## 컬럼 설명
 - `source_car_id`: 원본 차량 id

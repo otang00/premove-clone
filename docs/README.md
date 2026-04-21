@@ -3,14 +3,16 @@
 문서는 아래 구조로 잠근다.
 
 ## 1. present
-지금 당장 실행 기준으로 삼는 문서는 **최대 1개만 유지**한다.
+지금 당장 실행 기준으로 삼는 문서는 기본적으로 **주 current 1개 + 필요 시 작업 current 1개**까지만 유지한다.
 
 현재 active present:
-- `present/EXECUTION_MASTER_PRESENT.md`
+- 주 current: `present/RENTCAR00_DB_EXECUTION_CURRENT.md`
+- 작업 current: `present/RENAME_EXECUTION_CURRENT.md`
 
 원칙:
-- 새 phase를 열 때도 active present 문서는 1개만 유지한다.
-- phase 종료 또는 기준 전환 시 active present 문서는 `past/` 로 내린다.
+- 주 current 는 제품/구조 기준 문서 1개만 유지한다.
+- 대규모 rename, migration, cutover 같은 한시적 작업은 작업 current 1개를 추가로 둘 수 있다.
+- 작업 current 는 해당 phase 종료 시 `past/` 로 내린다.
 - 루트에 phase/current 문서를 다시 흩뿌리지 않는다.
 
 ## 2. past
@@ -42,8 +44,9 @@
 필요 시 phase 안에서 다시 만들되, phase 종료 후 `past/` 또는 `archive/` 로 내린다.
 
 ## 운영 원칙
-- 문서 기준은 항상 `present/EXECUTION_MASTER_PRESENT.md` 부터 본다.
-- active current 문서는 present 1개만 유지한다.
+- 문서 기준은 항상 `present/RENTCAR00_DB_EXECUTION_CURRENT.md` 부터 본다.
+- rename 같은 현재 작업이 열려 있으면 `present/RENAME_EXECUTION_CURRENT.md` 를 다음 기준으로 본다.
+- present 에는 주 current 1개와 작업 current 1개까지만 유지한다.
 - root current 문서는 남기지 않는다.
-- 검증이 끝난 작업 문서는 바로 `past/` 로 내린다.
+- 검증이 끝난 작업 current 문서는 바로 `past/` 로 내린다.
 - 참고 문서만 `references/` 에 남긴다.
