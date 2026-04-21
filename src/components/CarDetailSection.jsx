@@ -266,7 +266,7 @@ export default function CarDetailSection() {
               <article className="detail-card panel">
                 <h2>업체 정보</h2>
                 <div className="info-grid three info-stat-grid">
-                  <div><span>업체명</span><strong>{company.name || company.companyName || '빵빵카(주)'}</strong><small>{company.phone || company.companyTel || '연락처 확인 필요'}</small></div>
+                  <div><span>업체명</span><strong>{company.name || company.companyName || '빵빵카 주식회사'}</strong><small>{company.phone || company.companyTel || '연락처 확인 필요'}</small></div>
                   <div><span>운영시간</span><strong>{formatOperatingHours(company.deliveryTimes)}</strong><small>배차/반차는 운영시간 내 가능합니다</small></div>
                   <div><span>수령 방식</span><strong>{parsedSearchState.pickupOption === 'delivery' ? '딜리버리' : '업체 방문'}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '메인에서 선택한 위치 기준' : '업체 방문 수령/반납'}</small></div>
                 </div>
@@ -330,14 +330,14 @@ export default function CarDetailSection() {
                 <div className="terms-list">
                   <label><input type="checkbox" checked={termsState.allAgreed} onChange={(e) => handleToggleAllTerms(e.target.checked)} /> 전체 동의</label>
                   <label><input type="checkbox" checked={termsState.serviceAgreed} onChange={(e) => handleToggleSingleTerm('serviceAgreed', e.target.checked)} /> 서비스 이용약관</label>
-                  <label><input type="checkbox" checked={termsState.rentalPolicyAgreed} onChange={(e) => handleToggleSingleTerm('rentalPolicyAgreed', e.target.checked)} /> 렌터카 이용 특약사항</label>
+                  <label><input type="checkbox" checked={termsState.rentalPolicyAgreed} onChange={(e) => handleToggleSingleTerm('rentalPolicyAgreed', e.target.checked)} /> 렌터카 이용약관</label>
                   <label><input type="checkbox" checked={termsState.privacyAgreed} onChange={(e) => handleToggleSingleTerm('privacyAgreed', e.target.checked)} /> 개인정보 수집 및 이용 동의</label>
                 </div>
                 {!termsValidation.isValid && (
                   <p className="muted small-note">{Object.values(termsValidation.errors)[0]}</p>
                 )}
                 <div className="legal-note">
-                  아이엠에스모빌리티 주식회사는 통신판매중개자로서 거래 당사자가 아니며, 상품/거래조건 관련 책임은 각 판매자에게 있습니다.
+                  빵빵카 주식회사는 본 서비스와 렌터카 계약 시스템을 직접 제공합니다.
                 </div>
               </article>
             </section>

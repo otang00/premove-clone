@@ -22,7 +22,7 @@ export default function LandingPage() {
   return (
     <div className="page-shell landing-shell">
       <TopNoticeBar {...landingNotice} />
-      <BrandHeader brandName="빵빵카(주)" />
+      <BrandHeader brandName="빵빵카 주식회사" />
 
       <main className="landing-page">
         <HeroShowcase {...landingHero} />

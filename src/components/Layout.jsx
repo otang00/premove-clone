@@ -29,12 +29,12 @@ export function Footer() {
         <div className="footer-links small-links centered-links">
           <Link className="footer-link-button" to="/terms">서비스 이용약관</Link>
           <Link className="footer-link-button" to="/privacy">개인정보 처리방침</Link>
-          <Link className="footer-link-button" to="/special-terms">렌터카 이용 특약사항</Link>
+          <Link className="footer-link-button" to="/special-terms">렌터카 이용약관</Link>
         </div>
         <div className="footer-copy compact-copy centered-copy">
           <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
           <strong>{company.name}</strong>
-          <p>대표: 오태진 | 사업자등록번호: 114-86-25134</p>
+          <p>대표: {company.representative} | 사업자등록번호: {company.businessNumber}</p>
           <p>주소: {company.address}</p>
           <p className="footer-phone">{company.phone}</p>
         </div>
