@@ -120,6 +120,7 @@ export default function CarDetailSection() {
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CARD)
   const [deliveryAddressDetail, setDeliveryAddressDetail] = useState(parsedSearchState.deliveryAddressDetail || '')
   const [deliveryAddressDetailError, setDeliveryAddressDetailError] = useState('')
+  const [isInsuranceExpanded, setIsInsuranceExpanded] = useState(false)
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
@@ -355,32 +356,42 @@ export default function CarDetailSection() {
                     <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
                   ))}
                 </div>
-                <div className="insurance-policy-block">
-                  <h3>차종별 자차 보상한도 / 면책금</h3>
-                  <ul className="policy-bullet-list">
-                    {SELF_DAMAGE_POLICY.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
+                <button
+                  className="btn btn-outline btn-md insurance-toggle-btn"
+                  onClick={() => setIsInsuranceExpanded((current) => !current)}
+                >
+                  {isInsuranceExpanded ? '상세내용 접기' : '보험/유의사항 상세보기'}
+                </button>
+                {isInsuranceExpanded && (
+                  <>
+                    <div className="insurance-policy-block">
+                      <h3>차종별 자차 보상한도 / 면책금</h3>
+                      <ul className="policy-bullet-list">
+                        {SELF_DAMAGE_POLICY.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-                <div className="insurance-policy-block">
-                  <h3>보험 유의사항</h3>
-                  <ul className="policy-bullet-list">
-                    {INSURANCE_NOTES.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
+                    <div className="insurance-policy-block">
+                      <h3>보험 유의사항</h3>
+                      <ul className="policy-bullet-list">
+                        {INSURANCE_NOTES.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
 
-                <div className="insurance-policy-block">
-                  <h3>면책 제한 사유</h3>
-                  <ul className="policy-bullet-list">
-                    {INSURANCE_LIMITATIONS.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
+                    <div className="insurance-policy-block">
+                      <h3>면책 제한 사유</h3>
+                      <ul className="policy-bullet-list">
+                        {INSURANCE_LIMITATIONS.map((item) => (
+                          <li key={item}>{item}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </>
+                )}
               </article>
             </section>
 
