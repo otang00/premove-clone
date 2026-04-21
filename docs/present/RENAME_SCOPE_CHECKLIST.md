@@ -24,9 +24,13 @@
 - [ ] Supabase display name 변경 여부 확인 및 반영
 - [x] Supabase project ref 변경 비대상 여부 최종 확인
 
-## 4. Vercel
+## 4. GitHub / Vercel
+- [x] GitHub 저장소명 `premove-clone -> rentcar00-booking-system` 변경
+- [x] local `origin` URL 새 저장소 기준 정렬
 - [x] Vercel 원격 프로젝트명 `premove-clone -> rentcar00-booking-system` 변경
 - [x] `.vercel/project.json` local metadata 재정렬
+- [x] Vercel Git link repo 를 `rentcar00-booking-system` 으로 교체
+- [x] 새 Vercel alias `rentcar00-booking-system.vercel.app` 추가
 - [x] rename 후 배포 연결 재검증 포인트 고정
 
 ## 5. 문서
@@ -40,13 +44,15 @@
 - [x] 현재 코드 기준 `reservations` 테이블 참조 재검색
 - [x] migration + seed + sync 경로 논리 검토
 
-## 7. 원격 영향 고정 메모
-- GitHub 현재 저장소는 `otang00/premove-clone`, 기본 브랜치는 `master`, 권한은 `ADMIN` 으로 확인했다.
-- GitHub rename 실행 범위는 저장소명 변경과 `origin` URL 갱신까지로 잠그고, 기본 브랜치 rename 은 scope 밖으로 분리한다.
-- Vercel project name 은 새 기준이지만 `link.repo`, deployment `name`, deployment meta, production alias 는 old 이름 축으로 남아 있다.
-- GitHub rename 직후에는 `gh repo view`, `git remote -v`, `vercel api /v9/projects/prj_3TMA5tuzNK70GNbgCAUnTlNQUn2m --raw` 순으로 즉시 확인한다.
-- Vercel alias 변경은 외부 접근 경로 리스크가 커서 GitHub rename 성공 이후 별도 판단 대상으로 둔다.
+## 7. 원격 영향 및 실행 결과 메모
+- GitHub 저장소는 `otang00/rentcar00-booking-system` 으로 rename 완료했다.
+- 기본 브랜치 `master` 는 유지했고, 기본 브랜치 rename 은 scope 밖으로 남겼다.
+- local `origin` 은 `https://github.com/otang00/rentcar00-booking-system.git` 로 맞춰졌다.
+- Vercel Git link 는 자동 갱신되지 않아 `vercel git connect` 로 직접 교체했다.
+- 새 alias `rentcar00-booking-system.vercel.app` 는 추가 완료했다.
+- 기존 alias `premove-clone.vercel.app` 와 기존 deployment metadata old 흔적은 아직 남아 있다.
 - Supabase 는 `project ref` 변경 대상이 아니고, 기능 경로는 이미 정합이 맞는다. 남은 것은 display name `premove-cars` 정리 여부다.
+- 현재 실행 환경에는 `SUPABASE_ACCESS_TOKEN` 이 없어 Supabase Management API 집행은 보류 상태다.
 
 ## 8. 범위 고정 메모
 - 현재 `premove-clone` 잔여 문자열은 active 기준에서는 `docs/present/RENAME_SCOPE_CHECKLIST.md` 2건뿐이었고, 나머지는 `docs/past` / `docs/archive` 기록 문서다.

@@ -81,21 +81,25 @@
   - `supabase/migrations/20260421195800_rename_reservations_to_ims_sync_reservations.sql`
 
 #### GitHub
-- `gh repo view` 기준 현재 원격 저장소는 `otang00/premove-clone`
+- 현재 원격 저장소는 `otang00/rentcar00-booking-system`
 - 기본 브랜치: `master`
 - 현재 권한: `ADMIN`
-- 아직 저장소 rename 은 실행되지 않았다.
+- old 저장소 경로 `otang00/premove-clone` 조회도 새 저장소로 redirect 된다.
+- local `origin` 도 `https://github.com/otang00/rentcar00-booking-system.git` 로 맞춰졌다.
 
 #### Vercel
 - Vercel project name: `rentcar00-booking-system`
 - project id: `prj_3TMA5tuzNK70GNbgCAUnTlNQUn2m`
 - `.vercel/project.json` 의 local metadata 는 새 이름 기준
-- 그러나 Vercel link 는 아직 아래 old 기준에 묶여 있다.
-  - `link.repo = premove-clone`
+- Git link 는 새 저장소로 교체 완료
+  - `link.repo = rentcar00-booking-system`
   - production branch = `master`
+- 새 수동 alias 추가 완료
+  - `rentcar00-booking-system.vercel.app`
+- 다만 기존 배포 이력 메타는 old 기준이 남아 있다.
   - latest deployment `name = premove-clone`
   - deployment meta `githubRepo = premove-clone`
-  - production alias `premove-clone.vercel.app`
+  - 기존 alias `premove-clone.vercel.app`
 
 #### Supabase
 - project ref: `ieswwzsqasuqppacxepl`
@@ -103,7 +107,8 @@
 - region: `ap-northeast-2`
 - 상태: `ACTIVE_HEALTHY`
 - `supabase db push --linked --dry-run` 결과: `Remote database is up to date.`
-- 현재 CLI 기준 display name 변경용 표준 명령은 확인되지 않았다.
+- 현재 실행 환경에서는 `SUPABASE_ACCESS_TOKEN` 이 없어 Management API 경로를 바로 쓸 수 없다.
+- 현재 CLI 기준 display name 변경용 표준 명령도 확인되지 않았다.
 
 ---
 
@@ -175,10 +180,11 @@
 
 ### A. 저장소 이름
 현재 상태:
-- `otang00/premove-clone`
+- 완료, `otang00/rentcar00-booking-system`
 
-필요 작업:
-- 저장소명을 `rentcar00-booking-system` 으로 rename
+실행 결과:
+- GitHub 저장소명을 `rentcar00-booking-system` 으로 rename 완료
+- old 경로 조회 시 새 저장소로 redirect 확인
 
 검증 포인트:
 - `gh repo view --json name,nameWithOwner,url`
@@ -186,10 +192,10 @@
 
 ### B. local origin URL
 현재 상태:
-- `origin = https://github.com/otang00/premove-clone.git`
+- 완료, `origin = https://github.com/otang00/rentcar00-booking-system.git`
 
-필요 작업:
-- GitHub rename 직후 `origin` 을 새 URL 로 갱신
+실행 결과:
+- GitHub rename 이후 local `origin` 이 새 URL 기준으로 정렬됨
 
 검증 포인트:
 - `git remote -v`
@@ -224,12 +230,10 @@
 
 ### A. Git link repo 정합
 현재 상태:
-- project name 은 새 이름
-- link repo 는 old 이름
+- 완료, `link.repo = rentcar00-booking-system`
 
-필요 작업:
-- GitHub repo rename 후 Vercel 이 새 repo 명으로 링크를 따라가는지 확인
-- 자동 갱신이 안 되면 link 정합 재설정 방법 확인
+실행 결과:
+- GitHub rename 후 자동 갱신은 되지 않았고, `vercel git connect https://github.com/otang00/rentcar00-booking-system.git` 로 직접 교체 완료
 
 검증 포인트:
 - `vercel api /v9/projects/prj_3TMA5tuzNK70GNbgCAUnTlNQUn2m --raw`
@@ -238,17 +242,17 @@
 
 ### B. production alias / deployment name 잔존 old name
 현재 상태:
-- `premove-clone.vercel.app`
-- deployment `name = premove-clone`
+- 새 alias 추가 완료: `rentcar00-booking-system.vercel.app`
+- 기존 alias `premove-clone.vercel.app` 도 아직 유지
+- latest deployment `name = premove-clone`
 
-필요 작업:
-- 이 항목을 이번 rename 범위에 포함할지 결정
-- 포함 시 새 alias 전략 필요
-- 제외 시 old alias 유지가 허용되는지 명시
+실행 결과:
+- 기존 production deployment 에 새 alias 를 추가했다.
+- 기존 alias 는 끊지 않고 남겨서 외부 접근 리스크를 낮췄다.
 
 주의:
-- alias 는 외부 접근 경로라서 변경 시 영향이 가장 크다.
-- 프로젝트명 rename 과 alias rename 을 자동 동일시하면 안 된다.
+- alias 추가와 old alias 제거는 별개 작업이다.
+- 기존 배포 메타와 deployment name 은 새 배포 전까지 old 흔적이 남을 수 있다.
 
 ### C. 로컬 metadata 와 원격 상태 차이
 현재 상태:
@@ -292,11 +296,11 @@
 
 ### B. display name
 현재 상태:
-- display name = `premove-cars`
+- 미변경, `premove-cars`
 
 필요 작업:
-- display name 을 새 이름으로 바꿀지 결정
-- CLI 가 직접 지원하지 않으면 콘솔 또는 별도 API 경로 검토
+- 콘솔 또는 Management API 로 display name 변경
+- 현재 실행 환경에는 `SUPABASE_ACCESS_TOKEN` 이 없어 API 집행은 보류
 
 주의:
 - project ref 는 바꾸는 대상이 아니다.
@@ -391,9 +395,9 @@ GitHub 저장소 rename 전에 영향 범위를 완전히 잠근다.
 ---
 
 ## Phase 3 결론
-- GitHub rename 실행 단위는 `저장소명 변경 -> local origin 갱신 -> GitHub redirect 확인 -> Vercel link/meta 확인` 순서로 고정한다.
-- 기본 브랜치 `master` rename 은 이번 단계에 포함하지 않는다.
-- Vercel alias 변경은 GitHub rename 성공 이후 별도 판단 대상으로 분리한다.
+- GitHub rename 실행 단위는 `저장소명 변경 -> local origin 갱신 -> GitHub redirect 확인 -> Vercel link/meta 확인` 순서로 집행 완료했다.
+- 기본 브랜치 `master` rename 은 이번 단계에 포함하지 않았다.
+- Vercel Git link 는 직접 교체 완료했다.
 - Supabase 는 display name 만 후속 검토 대상으로 남기고, project ref 와 DB 기능 경로는 유지한다.
 
 ---
@@ -412,7 +416,7 @@ GitHub 저장소명과 remote URL 을 새 기준으로 맞춘다.
 - Vercel 연동이 끊기지 않았음이 확인됨
 
 ### 현재 상태
-- 미실행
+- 완료
 
 ---
 
@@ -429,7 +433,9 @@ GitHub 저장소명과 remote URL 을 새 기준으로 맞춘다.
 - 표시명 불일치가 설명 가능하거나 해소됨
 
 ### 현재 상태
-- 미실행
+- 부분 완료
+- 완료: Vercel Git link 갱신, 새 Vercel alias 추가
+- 미완: Supabase display name 변경
 
 ---
 
