@@ -180,11 +180,6 @@ export default function SearchBox({ compact = false }) {
     setDeliveryErrors((current) => ({ ...current, dongId: '' }))
   }
 
-  const handleDeliveryAddressDetailChange = (value) => {
-    updateSearchState({ deliveryAddressDetail: value })
-    setDeliveryErrors((current) => ({ ...current, deliveryAddressDetail: '' }))
-  }
-
   const goSearch = () => {
     const nextErrors = {}
 
@@ -226,13 +221,6 @@ export default function SearchBox({ compact = false }) {
                 {searchState.deliveryAddress || '딜리버리 지역을 선택해 주세요.'}
               </div>
               {deliveryErrors.dongId && <p className="muted small-note">{deliveryErrors.dongId}</p>}
-              <input
-                className="field-input delivery-detail-input"
-                value={searchState.deliveryAddressDetail}
-                placeholder="상세주소를 입력해 주세요."
-                onChange={(e) => handleDeliveryAddressDetailChange(e.target.value)}
-              />
-              {deliveryErrors.deliveryAddressDetail && <p className="muted small-note">{deliveryErrors.deliveryAddressDetail}</p>}
               {companyFetchError && <p className="muted small-note">{companyFetchError}</p>}
             </div>
             <div className="search-panel-footer">

@@ -320,3 +320,7 @@
 .reservation-info-grid strong{
   word-break:break-word;
 }
+
+.reservation-detail-input-wrap{
+  margin-top:16px;
+}

@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
-import DetailSearchBox from './DetailSearchBox'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchCarDetail } from '../services/carDetail'
-import { getMockCompany } from '../services/company'
 import {
   DEFAULT_RESERVATION_FORM,
   normalizeBirth,
@@ -112,7 +110,6 @@ export default function CarDetailSection() {
     [parsedSearchState.deliveryDateTime, parsedSearchState.returnDateTime, parsedSearchState.driverAge],
   )
 
-  const [company, setCompany] = useState(() => getMockCompany())
   const [car, setCar] = useState(null)
   const [pricing, setPricing] = useState(null)
   const [insurance, setInsurance] = useState(null)
@@ -139,7 +136,7 @@ export default function CarDetailSection() {
   )
 
   const isDeliveryAddressDetailValid = parsedSearchState.pickupOption !== 'delivery' || Boolean(deliveryAddressDetail.trim())
-  const isReservationActionEnabled = submitValidation.isValid
+  const isReservationActionEnabled = submitValidation.isValid && isDeliveryAddressDetailValid
 
   useEffect(() => {
     let isCancelled = false
@@ -161,13 +158,6 @@ export default function CarDetailSection() {
     fetchCarDetail(carId, parsedSearchState, detailToken)
       .then((payload) => {
         if (isCancelled) return
-        setCompany((current) => ({
-          ...current,
-          ...payload.company,
-          name: payload.company.companyName || current.name,
-          address: payload.company.fullGarageAddress || current.address,
-          phone: payload.company.companyTel || current.phone,
-        }))
         setCar(payload.car)
         setPricing(payload.pricing)
         setInsurance(payload.insurance)
@@ -224,21 +214,12 @@ export default function CarDetailSection() {
   }
 
   const reservationLocationText = parsedSearchState.pickupOption === 'delivery'
-    ? [parsedSearchState.deliveryAddress, deliveryAddressDetail.trim()].filter(Boolean).join(' ')
+    ? (parsedSearchState.deliveryAddress || '배차 위치 확인 필요')
     : '회사 방문 수령'
 
   return (
     <section className="section-bg detail-page">
       <div className="container detail-layout">
-        <DetailSearchBox
-          fixedSearchInfo={fixedSearchInfo}
-          searchState={parsedSearchState}
-          company={company}
-          deliveryAddressDetail={deliveryAddressDetail}
-          deliveryAddressDetailError={deliveryAddressDetailError}
-          onDeliveryAddressDetailChange={handleDeliveryAddressDetailChange}
-        />
-
         {!hasSearchContext && (
           <ContextErrorState
             title="검색 조건 확인 필요"
@@ -281,7 +262,20 @@ export default function CarDetailSection() {
                 <div className="info-grid three info-stat-grid reservation-info-grid">
                   <div><span>대여일시</span><strong>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</strong></div>
                   <div><span>반납일시</span><strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong></div>
-                  <div><span>수령위치</span><strong>{reservationLocationText || '입력 필요'}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '딜리버리 기준' : '회사 방문 수령'}</small></div>
+                  <div><span>배차 위치</span><strong>{reservationLocationText}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '검색에서 선택한 위치' : '회사 방문 수령'}</small></div>
+                </div>
+                <div className="reservation-detail-input-wrap">
+                  <span className="field-label">상세주소</span>
+                  <input
+                    className="field-input"
+                    placeholder="상세주소를 입력해 주세요."
+                    value={deliveryAddressDetail}
+                    onChange={(e) => handleDeliveryAddressDetailChange(e.target.value)}
+                  />
+                  {deliveryAddressDetailError && (
+                    <p className="muted small-note">{deliveryAddressDetailError}</p>
+                  )}
+                  <p className="muted small-note">배차를 위해 동, 호수, 건물명 등 상세주소를 입력해 주세요.</p>
                 </div>
               </article>
 
@@ -395,10 +389,7 @@ export default function CarDetailSection() {
               <div className="price-lines price-lines-compact">
                 <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
               </div>
-              {!isDeliveryAddressDetailValid && (
-                <p className="muted small-note">상세주소를 입력해 주세요.</p>
-              )}
-              {isDeliveryAddressDetailValid && !submitValidation.isValid && (
+              {!submitValidation.isValid && (
                 <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
               )}
               <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>결제 진행하기</button>
