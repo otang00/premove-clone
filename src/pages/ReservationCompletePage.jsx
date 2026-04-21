@@ -62,17 +62,31 @@ export default function ReservationCompletePage() {
 
             {reservation ? (
               <>
-                <div className="info-grid two">
-                  <div><span>예약번호</span><strong>{reservation.reservationNumber}</strong></div>
-                  <div><span>상태</span><strong>{reservation.status === 'cancelled' ? '예약 취소' : '예약 확정'}</strong></div>
-                  <div><span>차량</span><strong>{reservation.pricingSnapshot?.carName || '-'}</strong></div>
-                  <div><span>총 금액</span><strong>{reservation.pricing.finalPrice}</strong></div>
-                  <div><span>대여일시</span><strong>{reservation.display.pickupAt}</strong></div>
-                  <div><span>반납일시</span><strong>{reservation.display.returnAt}</strong></div>
-                  <div><span>배차/수령</span><strong>{reservation.schedule.displayPickupLabel}</strong></div>
-                  <div><span>예약자</span><strong>{reservation.customerName}</strong></div>
-                  <div><span>휴대폰번호</span><strong>{reservation.customerPhone}</strong></div>
-                  <div><span>생년월일</span><strong>{reservation.customerBirth}</strong></div>
+                <div className="reservation-result-card panel-sub">
+                  <div className="reservation-result-card__header">
+                    <div>
+                      <span className="reservation-result-card__eyebrow">예약이 접수되었습니다</span>
+                      <strong className="reservation-result-card__title">{reservation.pricingSnapshot?.carName || '-'}</strong>
+                    </div>
+                    <div className={`reservation-result-card__status ${reservation.status === 'cancelled' ? 'is-cancelled' : 'is-confirmed'}`}>
+                      {reservation.status === 'cancelled' ? '예약 취소' : '예약 확정'}
+                    </div>
+                  </div>
+
+                  <div className="reservation-result-card__price">
+                    <span>총 금액</span>
+                    <strong>{reservation.pricing.finalPrice}</strong>
+                  </div>
+
+                  <div className="reservation-result-list">
+                    <div className="reservation-result-row"><span>예약번호</span><strong>{reservation.reservationNumber}</strong></div>
+                    <div className="reservation-result-row"><span>대여일시</span><strong>{reservation.display.pickupAt}</strong></div>
+                    <div className="reservation-result-row"><span>반납일시</span><strong>{reservation.display.returnAt}</strong></div>
+                    <div className="reservation-result-row"><span>배차/수령</span><strong>{reservation.schedule.displayPickupLabel}</strong></div>
+                    <div className="reservation-result-row"><span>예약자</span><strong>{reservation.customerName}</strong></div>
+                    <div className="reservation-result-row"><span>휴대폰번호</span><strong>{reservation.customerPhone}</strong></div>
+                    <div className="reservation-result-row"><span>생년월일</span><strong>{reservation.customerBirth}</strong></div>
+                  </div>
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>

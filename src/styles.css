@@ -348,3 +348,131 @@
 .payment-summary-card .price-lines{
   margin-top:0;
 }
+
+.reservation-result-card{
+  display:grid;
+  gap:14px;
+  padding:16px;
+  border:1px solid var(--border);
+  border-radius:16px;
+  background:#fff;
+}
+
+.reservation-result-card__header{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:12px;
+}
+
+.reservation-result-card__eyebrow{
+  display:block;
+  font-size:var(--fs-xs);
+  color:#6b7c8f;
+  margin-bottom:6px;
+}
+
+.reservation-result-card__title{
+  display:block;
+  font-size:var(--fs-l);
+  line-height:1.4;
+  color:var(--text);
+}
+
+.reservation-result-card__status{
+  flex:0 0 auto;
+  padding:6px 10px;
+  border-radius:999px;
+  font-size:var(--fs-s);
+  font-weight:700;
+}
+
+.reservation-result-card__status.is-confirmed{
+  background:#e8f7ee;
+  color:#166534;
+}
+
+.reservation-result-card__status.is-cancelled{
+  background:#fff1f2;
+  color:#be123c;
+}
+
+.reservation-result-card__price{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-end;
+  gap:12px;
+  padding:14px 16px;
+  border-radius:14px;
+  background:#f8fbfe;
+}
+
+.reservation-result-card__price span{
+  font-size:var(--fs-s);
+  color:#607485;
+}
+
+.reservation-result-card__price strong{
+  font-size:var(--fs-xl);
+  line-height:1;
+}
+
+.reservation-result-list{
+  display:grid;
+  gap:0;
+}
+
+.reservation-result-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:flex-start;
+  gap:16px;
+  padding:12px 2px;
+  border-bottom:1px solid #eef3f7;
+}
+
+.reservation-result-row:last-child{
+  border-bottom:0;
+  padding-bottom:2px;
+}
+
+.reservation-result-row span{
+  flex:0 0 88px;
+  font-size:var(--fs-s);
+  color:#6b7c8f;
+}
+
+.reservation-result-row strong{
+  flex:1 1 auto;
+  text-align:right;
+  font-size:var(--fs-m);
+  line-height:1.55;
+  word-break:break-word;
+}
+
+@media (max-width: 960px){
+  .reservation-result-card{
+    padding:14px;
+  }
+
+  .reservation-result-card__header{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+  .reservation-result-card__price{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .reservation-result-row{
+    flex-direction:column;
+    gap:6px;
+  }
+
+  .reservation-result-row span,
+  .reservation-result-row strong{
+    flex:auto;
+    text-align:left;
+  }
+}
