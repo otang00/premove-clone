@@ -1,33 +1,102 @@
 'use strict'
 
+const {
+  normalizeCustomerName,
+  normalizeCustomerPhone,
+  normalizeCustomerBirth,
+} = require('./bookingIdentity')
+
 function normalizeReservationCode(value) {
   return String(value || '').trim().toUpperCase()
 }
 
-function normalizePhoneLast4(value) {
-  const digits = String(value || '').replace(/\D/g, '')
-  return digits.slice(-4)
-}
-
 function validateGuestLookupInput(input = {}) {
-  const publicReservationCode = normalizeReservationCode(input.publicReservationCode)
-  const phoneLast4 = normalizePhoneLast4(input.phoneLast4)
+  const customerName = normalizeCustomerName(input.customerName)
+  const customerPhone = normalizeCustomerPhone(input.customerPhone)
+  const customerBirth = normalizeCustomerBirth(input.customerBirth)
   const errors = {}
 
-  if (!publicReservationCode) {
-    errors.publicReservationCode = '예약번호를 입력해 주세요.'
+  if (!customerName) {
+    errors.customerName = '이름을 입력해 주세요.'
   }
 
-  if (!/^\d{4}$/.test(phoneLast4)) {
-    errors.phoneLast4 = '휴대폰번호 뒤 4자리를 확인해 주세요.'
+  if (!/^\d{10,11}$/.test(customerPhone)) {
+    errors.customerPhone = '휴대폰번호를 확인해 주세요.'
+  }
+
+  if (!/^\d{8}$/.test(customerBirth)) {
+    errors.customerBirth = '생년월일 8자리를 입력해 주세요.'
   }
 
   return {
     isValid: Object.keys(errors).length === 0,
     errors,
     normalized: {
-      publicReservationCode,
-      phoneLast4,
+      customerName,
+      customerPhone,
+      customerBirth,
+    },
+  }
+}
+
+function validateGuestBookingCreateInput(input = {}) {
+  const customerName = normalizeCustomerName(input.customerName)
+  const customerPhone = normalizeCustomerPhone(input.customerPhone)
+  const customerBirth = normalizeCustomerBirth(input.customerBirth)
+  const deliveryAddressDetail = String(input.deliveryAddressDetail || '').trim()
+  const errors = {}
+
+  if (!input.carId || Number.isNaN(Number(input.carId))) {
+    errors.carId = '차량 정보가 올바르지 않습니다.'
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(String(input.deliveryDateTime || ''))) {
+    errors.deliveryDateTime = '대여일시를 확인해 주세요.'
+  }
+
+  if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(String(input.returnDateTime || ''))) {
+    errors.returnDateTime = '반납일시를 확인해 주세요.'
+  }
+
+  if (!['pickup', 'delivery'].includes(String(input.pickupOption || ''))) {
+    errors.pickupOption = '수령 방식을 확인해 주세요.'
+  }
+
+  if (String(input.pickupOption || '') === 'delivery' && !String(input.deliveryAddress || '').trim()) {
+    errors.deliveryAddress = '딜리버리 주소를 확인해 주세요.'
+  }
+
+  if (String(input.pickupOption || '') === 'delivery' && !deliveryAddressDetail) {
+    errors.deliveryAddressDetail = '상세주소를 입력해 주세요.'
+  }
+
+  if (!customerName) {
+    errors.customerName = '이름을 입력해 주세요.'
+  }
+
+  if (!/^\d{10,11}$/.test(customerPhone)) {
+    errors.customerPhone = '휴대폰번호를 확인해 주세요.'
+  }
+
+  if (!/^\d{8}$/.test(customerBirth)) {
+    errors.customerBirth = '생년월일 8자리를 입력해 주세요.'
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+    normalized: {
+      carId: Number(input.carId),
+      deliveryDateTime: String(input.deliveryDateTime || '').trim(),
+      returnDateTime: String(input.returnDateTime || '').trim(),
+      pickupOption: String(input.pickupOption || '').trim(),
+      deliveryAddress: String(input.deliveryAddress || '').trim(),
+      deliveryAddressDetail,
+      quotedTotalAmount: Number(input.quotedTotalAmount || 0),
+      paymentMethod: String(input.paymentMethod || '').trim(),
+      customerName,
+      customerPhone,
+      customerBirth,
     },
   }
 }
@@ -37,10 +106,15 @@ function serializeBookingOrder(order = {}) {
     id: order.id || null,
     publicReservationCode: order.public_reservation_code || null,
     customerName: order.customer_name || null,
+    customerPhone: order.customer_phone || null,
     customerPhoneLast4: order.customer_phone_last4 || null,
+    customerBirth: order.customer_birth || order.pricing_snapshot?.customerBirth || null,
     pickupAt: order.pickup_at || null,
     returnAt: order.return_at || null,
     pickupMethod: order.pickup_method || null,
+    pickupLocationSnapshot: order.pickup_location_snapshot || null,
+    returnLocationSnapshot: order.return_location_snapshot || null,
+    pricingSnapshot: order.pricing_snapshot || null,
     quotedTotalAmount: order.quoted_total_amount ?? null,
     bookingStatus: order.booking_status || null,
     paymentStatus: order.payment_status || null,
@@ -107,8 +181,8 @@ function resolveCancelSyncStatus({ order = {}, hasActiveMapping = false } = {}) 
 
 module.exports = {
   normalizeReservationCode,
-  normalizePhoneLast4,
   validateGuestLookupInput,
+  validateGuestBookingCreateInput,
   serializeBookingOrder,
   canGuestCancelBooking,
   resolveCancelSyncStatus,

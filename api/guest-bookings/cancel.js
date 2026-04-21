@@ -27,8 +27,9 @@ module.exports = async function handler(req, res) {
   try {
     const result = await cancelGuestBooking({
       supabaseClient,
-      publicReservationCode: validation.normalized.publicReservationCode,
-      phoneLast4: validation.normalized.phoneLast4,
+      customerName: validation.normalized.customerName,
+      customerPhone: validation.normalized.customerPhone,
+      customerBirth: validation.normalized.customerBirth,
       requestedBy: 'guest',
       reason: payload.reason || '',
     })

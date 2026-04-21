@@ -5,6 +5,7 @@ const { composeReadModel } = require('./transformers/composeReadModel')
 const { mapDeliveryRegionsToCompany } = require('./transformers/mapDeliveryRegionsToCompany')
 const { fetchCandidateCars } = require('./repositories/fetchCandidateCars')
 const { fetchBlockingReservations } = require('./repositories/fetchBlockingReservations')
+const { fetchBlockingBookingOrders } = require('./repositories/fetchBlockingBookingOrders')
 const { fetchPriceRules } = require('./repositories/fetchPriceRules')
 const { fetchDeliveryRegions } = require('./repositories/fetchDeliveryRegions')
 const { normalizeSearchState } = require('../search/searchState')
@@ -28,6 +29,7 @@ async function run({
 
   const fetchCars = repositories.fetchCandidateCars || fetchCandidateCars
   const fetchReservations = repositories.fetchBlockingReservations || fetchBlockingReservations
+  const fetchBookings = repositories.fetchBlockingBookingOrders || fetchBlockingBookingOrders
   const fetchPrices = repositories.fetchPriceRules || fetchPriceRules
   const fetchDelivery = repositories.fetchDeliveryRegions || fetchDeliveryRegions
 
@@ -66,14 +68,22 @@ async function run({
     .filter(Boolean)
   const sourceGroupIds = candidateCars.map((car) => car.source_group_id).filter((value) => value != null)
 
-  const [reservations, groupPolicies] = await Promise.all([
+  const dbCarIds = candidateCars.map((car) => car.id).filter(Boolean)
+
+  const [reservations, bookingOrders, groupPolicies] = await Promise.all([
     fetchReservations({ supabaseClient, carIds, searchWindow }),
+    fetchBookings({
+      supabaseClient,
+      dbCarIds,
+      pickupAt: searchWindow.startIso,
+      returnAt: searchWindow.endIso,
+    }),
     fetchPrices({ supabaseClient, carIds, sourceGroupIds, searchWindow }),
   ])
 
   const readModel = composeReadModel({
     cars: candidateCars,
-    reservations,
+    reservations: [...reservations, ...bookingOrders],
     priceRules: groupPolicies,
     deliveryRegion,
     searchWindow,

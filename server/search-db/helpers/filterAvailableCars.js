@@ -10,6 +10,10 @@ function resolveCarKey(car = {}) {
   return car.source_car_id || car.car_id || car.id || null
 }
 
+function resolveCarKeys(car = {}) {
+  return [car.source_car_id, car.car_id, car.id].filter(Boolean)
+}
+
 function buildReservationIndex(reservations = []) {
   return reservations.reduce((acc, reservation) => {
     const carId = resolveReservationCarKey(reservation)
@@ -47,8 +51,7 @@ function filterAvailableCars({ cars = [], reservations = [], searchWindow, overl
   const reservationIndex = buildReservationIndex(reservations)
 
   return cars.filter((car) => {
-    const carId = resolveCarKey(car)
-    const carReservations = reservationIndex[carId] || []
+    const carReservations = resolveCarKeys(car).flatMap((carId) => reservationIndex[carId] || [])
     return isCarAvailable({
       car,
       reservations: carReservations,

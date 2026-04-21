@@ -16,7 +16,7 @@ import {
   validateReservationSubmission,
   validateTermsState,
 } from '../services/reservationUiState'
-import { createGuestReservation } from '../services/guestReservations'
+import { createGuestBooking } from '../services/guestBookingApi'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
@@ -125,6 +125,8 @@ export default function CarDetailSection() {
   const [isInsuranceExpanded, setIsInsuranceExpanded] = useState(false)
   const [hasReservationSubmitAttempted, setHasReservationSubmitAttempted] = useState(false)
   const [isReservationConfirmOpen, setIsReservationConfirmOpen] = useState(false)
+  const [reservationSubmitError, setReservationSubmitError] = useState('')
+  const [isCreatingReservation, setIsCreatingReservation] = useState(false)
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
@@ -214,6 +216,7 @@ export default function CarDetailSection() {
 
   const handleReservationSubmit = () => {
     setHasReservationSubmitAttempted(true)
+    setReservationSubmitError('')
 
     if (parsedSearchState.pickupOption === 'delivery' && !deliveryAddressDetail.trim()) {
       setDeliveryAddressDetailError('상세주소를 입력해 주세요.')
@@ -226,22 +229,37 @@ export default function CarDetailSection() {
     setIsReservationConfirmOpen(true)
   }
 
-  const handleConfirmReservation = () => {
+  const handleConfirmReservation = async () => {
     if (!car || !pricing || !isReservationActionEnabled) {
       return
     }
 
-    const reservation = createGuestReservation({
-      car,
-      pricing,
-      searchState: parsedSearchState,
-      deliveryAddressDetail: deliveryAddressDetail.trim(),
-      reservationForm: reservationValidation.normalized,
-      paymentMethod,
-    })
+    try {
+      setIsCreatingReservation(true)
+      setReservationSubmitError('')
 
-    setIsReservationConfirmOpen(false)
-    navigate(`/reservation-complete?reservationNumber=${encodeURIComponent(reservation.reservationNumber)}`)
+      const reservation = await createGuestBooking({
+        carId: Number(car.id),
+        deliveryDateTime: parsedSearchState.deliveryDateTime,
+        returnDateTime: parsedSearchState.returnDateTime,
+        pickupOption: parsedSearchState.pickupOption,
+        deliveryAddress: parsedSearchState.deliveryAddress || '',
+        deliveryAddressDetail: deliveryAddressDetail.trim(),
+        quotedTotalAmount: pricing.raw?.finalPrice || 0,
+        paymentMethod,
+        customerName: reservationValidation.normalized.customerName,
+        customerPhone: reservationValidation.normalized.customerPhone,
+        customerBirth: reservationValidation.normalized.customerBirth,
+      })
+
+      setIsReservationConfirmOpen(false)
+      navigate(`/reservation-complete?customerName=${encodeURIComponent(reservation.customerName)}&customerPhone=${encodeURIComponent(reservation.customerPhone)}&customerBirth=${encodeURIComponent(reservation.customerBirth)}`)
+    } catch (error) {
+      setReservationSubmitError(error.message || '예약 생성에 실패했습니다.')
+      setIsReservationConfirmOpen(false)
+    } finally {
+      setIsCreatingReservation(false)
+    }
   }
 
   const reservationLocationText = parsedSearchState.pickupOption === 'delivery'
@@ -391,6 +409,9 @@ export default function CarDetailSection() {
                 {(shouldShowReservationErrors || !isReservationActionEnabled) && !submitValidation.isValid && (
                   <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
                 )}
+                {reservationSubmitError && (
+                  <p className="muted small-note">{reservationSubmitError}</p>
+                )}
                 <button className="btn btn-dark btn-lg btn-block" onClick={handleReservationSubmit}>예약 확정하기</button>
               </article>
 
@@ -458,7 +479,7 @@ export default function CarDetailSection() {
               </div>
               <div className="search-guard-actions">
                 <button className="btn btn-outline btn-md" onClick={() => setIsReservationConfirmOpen(false)}>다시 확인</button>
-                <button className="btn btn-dark btn-md" onClick={handleConfirmReservation}>예약 확정</button>
+                <button className="btn btn-dark btn-md" onClick={handleConfirmReservation} disabled={isCreatingReservation}>{isCreatingReservation ? '예약 생성 중' : '예약 확정'}</button>
               </div>
             </div>
           </div>

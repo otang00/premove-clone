@@ -5,15 +5,16 @@ const { lookupGuestBooking } = require('../../server/booking-core/guestBookingSe
 const { validateGuestLookupInput } = require('../../server/booking-core/guestBookingUtils')
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET')
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST')
     return res.status(405).json({ error: 'method_not_allowed' })
   }
 
-  const validation = validateGuestLookupInput(req.query || {})
+  const payload = typeof req.body === 'object' && req.body !== null ? req.body : {}
+  const validation = validateGuestLookupInput(payload)
   if (!validation.isValid) {
     return res.status(400).json({
-      error: 'invalid_guest_lookup_query',
+      error: 'invalid_guest_lookup_request',
       errors: validation.errors,
     })
   }
@@ -26,8 +27,9 @@ module.exports = async function handler(req, res) {
   try {
     const result = await lookupGuestBooking({
       supabaseClient,
-      publicReservationCode: validation.normalized.publicReservationCode,
-      phoneLast4: validation.normalized.phoneLast4,
+      customerName: validation.normalized.customerName,
+      customerPhone: validation.normalized.customerPhone,
+      customerBirth: validation.normalized.customerBirth,
     })
 
     if (!result) {
