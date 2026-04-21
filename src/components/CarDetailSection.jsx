@@ -265,6 +265,11 @@ export default function CarDetailSection() {
                   <div><span>반납일시</span><strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong></div>
                   <div><span>배차 위치</span><strong>{reservationLocationText}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '검색에서 선택한 위치' : '회사 방문 수령'}</small></div>
                 </div>
+                <div className="reservation-price-card panel-sub">
+                  <span className="reservation-price-label">총 예상 금액</span>
+                  <strong>{pricing.finalPrice}</strong>
+                  <p className="field-note">보험 포함 기준이며, 최종 결제 단계에서 확정됩니다.</p>
+                </div>
                 <div className="reservation-detail-input-wrap">
                   <span className="field-label">상세주소</span>
                   <input
@@ -349,6 +354,17 @@ export default function CarDetailSection() {
                 </div>
               </article>
 
+              <article className="detail-card panel payment-summary-card">
+                <h2>결제 정보</h2>
+                <div className="price-lines">
+                  <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
+                </div>
+                {!submitValidation.isValid && (
+                  <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
+                )}
+                <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>결제 진행하기</button>
+              </article>
+
               <article className="detail-card panel">
                 <h2>보험/유의사항</h2>
                 <div className="info-grid two info-stat-grid insurance-summary-grid">
@@ -394,17 +410,6 @@ export default function CarDetailSection() {
                 )}
               </article>
             </section>
-
-            <aside className="detail-side detail-card panel-sticky sticky-side">
-              <h2>결제 정보</h2>
-              <div className="price-lines price-lines-compact">
-                <div className="total"><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
-              </div>
-              {!submitValidation.isValid && (
-                <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
-              )}
-              <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>결제 진행하기</button>
-            </aside>
           </div>
         )}
       </div>
