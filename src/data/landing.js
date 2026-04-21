@@ -23,11 +23,6 @@ export const landingHero = {
       alt: '빵빵카 메인 배너 1',
     },
     {
-      pcSrc: '/assets/hero/hero-2-pc.png',
-      mobileSrc: '/assets/hero/hero-2-mobile.png',
-      alt: '빵빵카 메인 배너 2',
-    },
-    {
       pcSrc: '/assets/hero/hero-3-pc.png',
       mobileSrc: '/assets/hero/hero-3-mobile.png',
       alt: '빵빵카 메인 배너 3',
