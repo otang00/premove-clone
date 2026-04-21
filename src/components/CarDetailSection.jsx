@@ -45,15 +45,16 @@ function LoadingState() {
   )
 }
 
-const COMMON_INSURANCE_COVERAGE = [
-  { label: '대인', value: '무한' },
-  { label: '대물', value: '2,000만원' },
-  { label: '자손', value: '1,500만원' },
+const INSURANCE_COVERAGE_LIMITS = [
+  { label: '대인 보상한도', value: '무한' },
+  { label: '대물 보상한도', value: '2,000만원' },
+  { label: '자손 보상한도', value: '1,500만원' },
+]
+
+const INSURANCE_DEDUCTIBLES = [
   { label: '대인 면책금', value: '50만원' },
   { label: '대물 면책금', value: '50만원' },
-  { label: '자손 면책금', value: '50만원' },
-  { label: '휴차보상료', value: '1일 대여요금의 50%' },
-  { label: '면책 처리 횟수', value: '1회' },
+  { label: '자차면책금', value: '50만~100만' },
 ]
 
 const SELF_DAMAGE_POLICY = [
@@ -367,10 +368,17 @@ export default function CarDetailSection() {
 
               <article className="detail-card panel">
                 <h2>보험/유의사항</h2>
-                <div className="info-grid two info-stat-grid insurance-summary-grid">
-                  {COMMON_INSURANCE_COVERAGE.map((item) => (
-                    <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
-                  ))}
+                <div className="insurance-summary-layout insurance-summary-grid">
+                  <div className="info-grid info-stat-grid insurance-summary-column">
+                    {INSURANCE_COVERAGE_LIMITS.map((item) => (
+                      <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
+                    ))}
+                  </div>
+                  <div className="info-grid info-stat-grid insurance-summary-column">
+                    {INSURANCE_DEDUCTIBLES.map((item) => (
+                      <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
+                    ))}
+                  </div>
                 </div>
                 <button
                   className="btn btn-outline btn-md insurance-toggle-btn"
@@ -381,7 +389,7 @@ export default function CarDetailSection() {
                 {isInsuranceExpanded && (
                   <>
                     <div className="insurance-policy-block">
-                      <h3>차종별 자차 보상한도 / 면책금</h3>
+                      <h3>차종별 자차 보상한도 / 자차면책금</h3>
                       <ul className="policy-bullet-list">
                         {SELF_DAMAGE_POLICY.map((item) => (
                           <li key={item}>{item}</li>
