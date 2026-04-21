@@ -45,15 +45,14 @@ function LoadingState() {
   )
 }
 
-const INSURANCE_COVERAGE_LIMITS = [
+const INSURANCE_SUMMARY_ITEMS = [
   { label: '대인 보상한도', value: '무한' },
-  { label: '대물 보상한도', value: '2,000만원' },
-  { label: '자손 보상한도', value: '1,500만원' },
-]
-
-const INSURANCE_DEDUCTIBLES = [
   { label: '대인 면책금', value: '50만원' },
+  { label: '대물 보상한도', value: '2,000만원' },
   { label: '대물 면책금', value: '50만원' },
+  { label: '자손 보상한도', value: '1,500만원' },
+  { label: '자손 면책금', value: '50만원' },
+  { label: '휴차료', value: '1일 대여요금의 50%' },
   { label: '자차면책금', value: '50만~100만' },
 ]
 
@@ -368,17 +367,10 @@ export default function CarDetailSection() {
 
               <article className="detail-card panel">
                 <h2>보험/유의사항</h2>
-                <div className="insurance-summary-layout insurance-summary-grid">
-                  <div className="info-grid info-stat-grid insurance-summary-column">
-                    {INSURANCE_COVERAGE_LIMITS.map((item) => (
-                      <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
-                    ))}
-                  </div>
-                  <div className="info-grid info-stat-grid insurance-summary-column">
-                    {INSURANCE_DEDUCTIBLES.map((item) => (
-                      <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
-                    ))}
-                  </div>
+                <div className="info-grid two info-stat-grid insurance-summary-grid">
+                  {INSURANCE_SUMMARY_ITEMS.map((item) => (
+                    <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
+                  ))}
                 </div>
                 <button
                   className="btn btn-outline btn-md insurance-toggle-btn"

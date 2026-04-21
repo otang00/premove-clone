@@ -290,24 +290,10 @@
   .delivery-region-modal .delivery-region-card{
     gap:8px;
   }
-
-  .insurance-summary-layout{
-    grid-template-columns:1fr;
-  }
 }
 
 .insurance-summary-grid{
   margin-bottom:14px;
-}
-
-.insurance-summary-layout{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:12px;
-}
-
-.insurance-summary-column{
-  grid-template-columns:1fr;
 }
 
 .insurance-toggle-btn{
