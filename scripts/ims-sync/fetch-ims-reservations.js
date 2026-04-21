@@ -1,4 +1,7 @@
-const { IMS_API_BASE_URL, getAuthorizationHeader, loginToIms } = require('./lib/ims-auth');
+const { IMS_API_BASE_URL, loginToIms } = require('./lib/ims-auth');
+
+const DEFAULT_SYNC_WINDOW_DAYS = Number(process.env.IMS_SYNC_WINDOW_DAYS || 180);
+const DEFAULT_MAX_RENTAL_DAYS = Number(process.env.IMS_SYNC_MAX_RENTAL_DAYS || 30);
 
 function formatDate(date) {
   return new Date(date).toISOString().slice(0, 10);
@@ -13,7 +16,7 @@ function addDays(date, days) {
 function buildReservationsQuery(params = {}) {
   const today = params.baseDate ? new Date(params.baseDate) : new Date();
   const startDate = params.start ? new Date(params.start) : today;
-  const windowDays = Number.isFinite(Number(params.windowDays)) ? Number(params.windowDays) : Number(process.env.IMS_SYNC_WINDOW_DAYS || 30);
+  const windowDays = Number.isFinite(Number(params.windowDays)) ? Number(params.windowDays) : DEFAULT_SYNC_WINDOW_DAYS;
   const endDate = params.end ? new Date(params.end) : addDays(startDate, windowDays);
 
   const query = new URLSearchParams({
@@ -87,8 +90,76 @@ async function fetchAllReservations(options = {}) {
   };
 }
 
+function dedupeSchedulesById(schedules = []) {
+  const scheduleMap = new Map();
+
+  for (const schedule of schedules) {
+    const key = schedule?.id != null ? String(schedule.id) : null;
+    if (!key) continue;
+    if (!scheduleMap.has(key)) {
+      scheduleMap.set(key, schedule);
+    }
+  }
+
+  return Array.from(scheduleMap.values());
+}
+
+async function fetchReservationSyncBatch(options = {}) {
+  const authHeader = options.authorization || (await loginToIms()).authorization;
+  const futureWindowDays = Number.isFinite(Number(options.futureWindowDays))
+    ? Number(options.futureWindowDays)
+    : DEFAULT_SYNC_WINDOW_DAYS;
+  const maxRentalDays = Number.isFinite(Number(options.maxRentalDays))
+    ? Number(options.maxRentalDays)
+    : DEFAULT_MAX_RENTAL_DAYS;
+  const baseOptions = {
+    ...options,
+    authorization: authHeader,
+  };
+
+  const endAtResult = await fetchAllReservations({
+    ...baseOptions,
+    dateOption: 'end_at',
+    windowDays: futureWindowDays + maxRentalDays,
+  });
+
+  const startAtResult = await fetchAllReservations({
+    ...baseOptions,
+    dateOption: 'start_at',
+    windowDays: futureWindowDays,
+  });
+
+  const schedules = dedupeSchedulesById([
+    ...endAtResult.schedules,
+    ...startAtResult.schedules,
+  ]);
+
+  return {
+    authorization: authHeader,
+    schedules,
+    totalPagesFetched: endAtResult.totalPagesFetched + startAtResult.totalPagesFetched,
+    scopeResults: {
+      endAt: {
+        totalPagesFetched: endAtResult.totalPagesFetched,
+        schedulesCount: endAtResult.schedules.length,
+        query: endAtResult.pages?.[0]?.query || null,
+      },
+      startAt: {
+        totalPagesFetched: startAtResult.totalPagesFetched,
+        schedulesCount: startAtResult.schedules.length,
+        query: startAtResult.pages?.[0]?.query || null,
+      },
+    },
+    dedupedCount: schedules.length,
+  };
+}
+
 module.exports = {
+  DEFAULT_MAX_RENTAL_DAYS,
+  DEFAULT_SYNC_WINDOW_DAYS,
   buildReservationsQuery,
   fetchReservationsPage,
   fetchAllReservations,
+  fetchReservationSyncBatch,
+  dedupeSchedulesById,
 };
