@@ -7,10 +7,12 @@ import {
   parseSearchQuery,
 } from '../utils/searchQuery'
 import {
+  MAX_SEARCH_RETURN_DAYS,
   buildDateTimeValue,
   formatDateKey,
   getEarliestPickupDateTime,
   getEarliestReturnDateTime,
+  getLatestPickupDateTime,
   getLatestReturnDateTime,
   getPickupTimeOptions,
   getReturnTimeOptions,
@@ -116,6 +118,8 @@ export default function SearchBox({ compact = false }) {
 
   const earliestPickupDate = useMemo(() => getEarliestPickupDateTime(), [])
   const earliestPickupDateKey = useMemo(() => formatDateKey(earliestPickupDate), [earliestPickupDate])
+  const latestPickupDate = useMemo(() => getLatestPickupDateTime(), [])
+  const latestPickupDateKey = useMemo(() => formatDateKey(latestPickupDate), [latestPickupDate])
   const returnMinDateKey = useMemo(() => {
     const pickupAt = parseDateTimeString(searchState.deliveryDateTime)
     if (!pickupAt) return ''
@@ -124,7 +128,13 @@ export default function SearchBox({ compact = false }) {
   const returnMaxDateKey = useMemo(() => {
     const pickupAt = parseDateTimeString(searchState.deliveryDateTime)
     if (!pickupAt) return ''
-    return formatDateKey(getLatestReturnDateTime(pickupAt))
+
+    const latestRentalReturnAt = getLatestReturnDateTime(pickupAt)
+    const latestSearchReturnAt = new Date()
+    latestSearchReturnAt.setDate(latestSearchReturnAt.getDate() + MAX_SEARCH_RETURN_DAYS)
+    latestSearchReturnAt.setHours(21, 0, 0, 0)
+
+    return formatDateKey(latestRentalReturnAt < latestSearchReturnAt ? latestRentalReturnAt : latestSearchReturnAt)
   }, [searchState.deliveryDateTime])
 
   const deliverySchedule = useMemo(
@@ -249,6 +259,7 @@ export default function SearchBox({ compact = false }) {
                     type="date"
                     value={deliverySchedule.date}
                     min={earliestPickupDateKey}
+                    max={latestPickupDateKey}
                     onChange={(e) => updateDeliverySchedule({ date: e.target.value })}
                   />
                   <select
@@ -284,7 +295,7 @@ export default function SearchBox({ compact = false }) {
               </div>
             </div>
             <div className="search-panel-footer">
-              <p className="schedule-note">예약은 현재 시각 기준 3시간 후부터 가능 / 운영 시간은 09:00~21:00 / 대여 기간은 최대 30일입니다.</p>
+              <p className="schedule-note">예약은 현재 시각 기준 3시간 후부터 가능 / 운영 시간은 09:00~21:00 / 대여 기간은 최대 30일 / 반납일은 오늘 기준 60일 이내만 가능합니다.</p>
             </div>
           </article>
 

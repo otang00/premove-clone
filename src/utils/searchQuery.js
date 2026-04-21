@@ -5,6 +5,7 @@ import {
   getDefaultSearchState,
 } from '../constants/search'
 import {
+  MAX_SEARCH_RETURN_DAYS,
   parseDateTimeString,
   sanitizeSearchDateTimes,
 } from './reservationSchedule'
@@ -124,6 +125,16 @@ export function validateSearchState(searchState) {
 
   if (pickupAt && returnAt && returnAt <= pickupAt) {
     errors.returnDateTime = 'returnDateTime must be after deliveryDateTime'
+  }
+
+  if (returnAt) {
+    const latestAllowedReturnAt = new Date()
+    latestAllowedReturnAt.setDate(latestAllowedReturnAt.getDate() + MAX_SEARCH_RETURN_DAYS)
+    latestAllowedReturnAt.setHours(23, 59, 59, 999)
+
+    if (returnAt > latestAllowedReturnAt) {
+      errors.returnDateTime = `반납일은 오늘 기준 ${MAX_SEARCH_RETURN_DAYS}일 이내만 선택할 수 있습니다.`
+    }
   }
 
   return {

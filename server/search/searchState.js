@@ -1,5 +1,7 @@
 'use strict'
 
+const MAX_SEARCH_RETURN_DAYS = 60
+
 const DEFAULT_SEARCH_STATE = {
   deliveryDateTime: '2026-04-02 10:00',
   returnDateTime: '2026-04-03 10:00',
@@ -63,6 +65,14 @@ function buildSearchErrors(normalized) {
     errors.returnDateTime = 'returnDateTime must be after deliveryDateTime'
   }
 
+  const latestAllowedReturnAt = new Date()
+  latestAllowedReturnAt.setDate(latestAllowedReturnAt.getDate() + MAX_SEARCH_RETURN_DAYS)
+  latestAllowedReturnAt.setHours(23, 59, 59, 999)
+
+  if (returnAt > latestAllowedReturnAt) {
+    errors.returnDateTime = `returnDateTime must be within ${MAX_SEARCH_RETURN_DAYS} days from today`
+  }
+
   if (normalized.pickupOption === 'delivery' && normalized.dongId == null) {
     errors.dongId = 'dongId is required for delivery search'
   }
@@ -98,6 +108,7 @@ function validateDetailSearch({ carId, searchState } = {}) {
 
 module.exports = {
   DEFAULT_SEARCH_STATE,
+  MAX_SEARCH_RETURN_DAYS,
   normalizeSearchState,
   validateSearchState,
   validateDetailSearch,
