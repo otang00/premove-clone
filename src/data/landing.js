@@ -18,18 +18,18 @@ export const landingHeaderMenu = [
 export const landingHero = {
   slides: [
     {
-      pcSrc: 'https://file.cafe24cos.com/banner-admin-live/upload/rentcar00/7217f1ea-19e4-43a6-eab4-88d35dafb734.png',
-      mobileSrc: 'https://file.cafe24cos.com/banner-admin-live/upload/rentcar00/2f004089-ee51-423b-a7d7-3b033aa89e1f.png',
+      pcSrc: '/assets/hero/hero-1-pc.png',
+      mobileSrc: '/assets/hero/hero-1-mobile.png',
       alt: '빵빵카 메인 배너 1',
     },
     {
-      pcSrc: 'https://file.cafe24cos.com/banner-admin-live/upload/rentcar00/231fadb3-48f7-4a5f-a5b4-bdef938540b6.png',
-      mobileSrc: 'https://file.cafe24cos.com/banner-admin-live/upload/rentcar00/6075463c-6c5f-4506-d0a9-05745986dc36.png',
+      pcSrc: '/assets/hero/hero-2-pc.png',
+      mobileSrc: '/assets/hero/hero-2-mobile.png',
       alt: '빵빵카 메인 배너 2',
     },
     {
-      pcSrc: 'https://file.cafe24cos.com/banner-admin-live/upload/rentcar00/6fa790ff-9602-4721-a6f8-d3402de8daf4.png',
-      mobileSrc: 'https://file.cafe24cos.com/banner-admin-live/upload/rentcar00/75c16682-d12a-48b4-89c1-e6d37ce189f2.png',
+      pcSrc: '/assets/hero/hero-3-pc.png',
+      mobileSrc: '/assets/hero/hero-3-mobile.png',
       alt: '빵빵카 메인 배너 3',
     },
   ],

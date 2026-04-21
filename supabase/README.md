@@ -21,6 +21,23 @@
 npm run build:cars-seed
 ```
 
+## 차량 이미지 미러링
+외부 이미지 URL 의존을 줄이기 위해 차량 이미지는 Supabase Storage 버킷 `car-images` 로 미러링할 수 있다.
+
+```bash
+npm run mirror:car-images
+```
+
+기본 동작:
+- `public.cars.image_url` 의 외부 URL을 내려받아 Storage `car-images/cars/<source_car_id>/<car_number>.<ext>` 로 업로드
+- 업로드 후 `public.cars.image_url` 을 Supabase Storage public URL 로 교체
+- 원본 URL과 미러링 정보는 `metadata.image_mirror` 에 기록
+
+선택 옵션:
+- `CAR_IMAGE_MIRROR_DRY_RUN=true` : 업로드/DB 갱신 없이 경로만 검증
+- `CAR_IMAGE_MIRROR_LIMIT=10` : 일부만 처리
+- `CAR_IMAGE_MIRROR_FORCE=true` : 이미 Storage URL 인 항목도 재업로드
+
 ## Supabase SQL Editor 적용 순서
 1. `supabase/migrations/20260414_create_cars.sql` 실행
 2. `supabase/seed.sql` 실행
