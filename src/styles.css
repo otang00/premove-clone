@@ -450,6 +450,20 @@
   word-break:break-word;
 }
 
+.reservation-confirm-modal{
+  width:min(460px,100%);
+}
+
+.reservation-confirm-card{
+  padding:14px;
+  background:#fcfdff;
+}
+
+.reservation-confirm-card .reservation-result-card__status{
+  background:#eef4ff;
+  color:#1d4ed8;
+}
+
 @media (max-width: 960px){
   .reservation-result-card{
     padding:14px;

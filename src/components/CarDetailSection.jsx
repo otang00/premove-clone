@@ -498,18 +498,31 @@ export default function CarDetailSection() {
         )}
         {isReservationConfirmOpen && car && pricing && (
           <div className="delivery-modal-backdrop" onClick={() => setIsReservationConfirmOpen(false)}>
-            <div className="search-guard-modal" onClick={(event) => event.stopPropagation()}>
+            <div className="search-guard-modal reservation-confirm-modal" onClick={(event) => event.stopPropagation()}>
               <strong>예약을 확정하시겠습니까?</strong>
               <p className="field-note">입력한 예약자 정보와 예약 조건을 확인한 뒤 확정해 주세요.</p>
-              <div className="info-grid two">
-                <div><span>예약자명</span><strong>{reservationValidation.normalized.customerName}</strong></div>
-                <div><span>휴대폰번호</span><strong>{reservationValidation.normalized.customerPhone}</strong></div>
-                <div><span>생년월일</span><strong>{reservationValidation.normalized.customerBirth}</strong></div>
-                <div><span>차량</span><strong>{car.name}</strong></div>
-                <div><span>대여일시</span><strong>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</strong></div>
-                <div><span>반납일시</span><strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong></div>
-                <div><span>배차/수령</span><strong>{reservationLocationText}</strong></div>
-                <div><span>총 예상 금액</span><strong>{pricing.finalPrice}</strong></div>
+              <div className="reservation-result-card reservation-confirm-card">
+                <div className="reservation-result-card__header">
+                  <div>
+                    <span className="reservation-result-card__eyebrow">예약 확인</span>
+                    <strong className="reservation-result-card__title">{car.name}</strong>
+                  </div>
+                  <div className="reservation-result-card__status is-confirmed">확정 전 확인</div>
+                </div>
+
+                <div className="reservation-result-card__price">
+                  <span>총 예상 금액</span>
+                  <strong>{pricing.finalPrice}</strong>
+                </div>
+
+                <div className="reservation-result-list">
+                  <div className="reservation-result-row"><span>예약자명</span><strong>{reservationValidation.normalized.customerName}</strong></div>
+                  <div className="reservation-result-row"><span>휴대폰번호</span><strong>{reservationValidation.normalized.customerPhone}</strong></div>
+                  <div className="reservation-result-row"><span>생년월일</span><strong>{reservationValidation.normalized.customerBirth}</strong></div>
+                  <div className="reservation-result-row"><span>대여일시</span><strong>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</strong></div>
+                  <div className="reservation-result-row"><span>반납일시</span><strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong></div>
+                  <div className="reservation-result-row"><span>배차/수령</span><strong>{reservationLocationText}</strong></div>
+                </div>
               </div>
               <div className="search-guard-actions">
                 <button className="btn btn-outline btn-md" onClick={() => setIsReservationConfirmOpen(false)}>다시 확인</button>
