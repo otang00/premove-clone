@@ -362,7 +362,7 @@ export default function CarDetailSection() {
 
               <article className="detail-card panel">
                 <h2>운전자 정보</h2>
-                <div className="form-grid">
+                <div className="stack-form stack-form-centered">
                   <div>
                     <input
                       className="field-input"

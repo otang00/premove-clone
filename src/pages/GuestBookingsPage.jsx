@@ -75,7 +75,7 @@ export default function GuestBookingsPage() {
               <p className="small-note" style={{ marginTop: 8 }}>이름, 휴대폰번호, 생년월일로 예약 상태를 확인하고 취소할 수 있습니다.</p>
             </div>
 
-            <div className="form-grid">
+            <div className="stack-form stack-form-centered">
               <div>
                 <input
                   className="field-input"

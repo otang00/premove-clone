@@ -464,6 +464,23 @@
   color:#1d4ed8;
 }
 
+.stack-form{
+  display:grid;
+  gap:10px;
+}
+
+.stack-form-centered{
+  width:min(100%, 420px);
+  margin:0 auto;
+}
+
+.stack-form .field-input,
+.stack-form .field-select{
+  width:100%;
+  min-height:var(--btn-h-lg);
+  padding:0 var(--btn-px-lg);
+}
+
 @media (max-width: 960px){
   .reservation-result-card{
     padding:14px;
