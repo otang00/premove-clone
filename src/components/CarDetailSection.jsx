@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import DetailSearchBox from './DetailSearchBox'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
@@ -45,12 +45,6 @@ function LoadingState() {
       <p className="muted small-note">상세 데이터를 불러오는 중입니다.</p>
     </article>
   )
-}
-
-const TAB_KEYS = {
-  RESERVATION: 'reservation',
-  INSURANCE: 'insurance',
-  PAYMENT: 'payment',
 }
 
 const COMMON_INSURANCE_COVERAGE = [
@@ -129,11 +123,6 @@ export default function CarDetailSection() {
   const [paymentMethod, setPaymentMethod] = useState(PAYMENT_METHODS.CARD)
   const [deliveryAddressDetail, setDeliveryAddressDetail] = useState(parsedSearchState.deliveryAddressDetail || '')
   const [deliveryAddressDetailError, setDeliveryAddressDetailError] = useState('')
-  const [activeTab, setActiveTab] = useState(TAB_KEYS.RESERVATION)
-  const reservationSectionRef = useRef(null)
-  const insuranceSectionRef = useRef(null)
-  const paymentSectionRef = useRef(null)
-
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
@@ -234,16 +223,9 @@ export default function CarDetailSection() {
     }
   }
 
-  const sectionRefs = {
-    [TAB_KEYS.RESERVATION]: reservationSectionRef,
-    [TAB_KEYS.INSURANCE]: insuranceSectionRef,
-    [TAB_KEYS.PAYMENT]: paymentSectionRef,
-  }
-
-  const handleTabClick = (tabKey) => {
-    setActiveTab(tabKey)
-    sectionRefs[tabKey]?.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }
+  const reservationLocationText = parsedSearchState.pickupOption === 'delivery'
+    ? [parsedSearchState.deliveryAddress, deliveryAddressDetail.trim()].filter(Boolean).join(' ')
+    : '회사 방문 수령'
 
   return (
     <section className="section-bg detail-page">
@@ -290,57 +272,20 @@ export default function CarDetailSection() {
                 <div>
                   <h1>{car.name}</h1>
                   <div className="meta-row"><span>{car.yearLabel}</span><span>{car.fuelType}</span><span>{car.seats}</span></div>
-                  <div className="date-strip">
-                    <span>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</span>
-                    <strong>1일</strong>
-                    <span>{formatDisplay(fixedSearchInfo.returnDateTime)}</span>
-                  </div>
                   <p className="feature-line">{car.features.join(', ')}</p>
                 </div>
               </article>
 
-              <div className="tab-row">
-                <button className={`btn btn-tab btn-md ${activeTab === TAB_KEYS.RESERVATION ? 'is-active' : ''}`} onClick={() => handleTabClick(TAB_KEYS.RESERVATION)}>예약 정보</button>
-                <button className={`btn btn-tab btn-md ${activeTab === TAB_KEYS.INSURANCE ? 'is-active' : ''}`} onClick={() => handleTabClick(TAB_KEYS.INSURANCE)}>보험/유의사항</button>
-                <button className={`btn btn-tab btn-md ${activeTab === TAB_KEYS.PAYMENT ? 'is-active' : ''}`} onClick={() => handleTabClick(TAB_KEYS.PAYMENT)}>결제 정보</button>
-              </div>
-
-              <article className="detail-card panel" ref={insuranceSectionRef}>
-                <h2>보험 정보</h2>
-                <div className="info-grid two info-stat-grid insurance-summary-grid">
-                  {COMMON_INSURANCE_COVERAGE.map((item) => (
-                    <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
-                  ))}
-                </div>
-                <div className="insurance-policy-block">
-                  <h3>차종별 자차 보상한도 / 면책금</h3>
-                  <ul className="policy-bullet-list">
-                    {SELF_DAMAGE_POLICY.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="insurance-policy-block">
-                  <h3>보험 유의사항</h3>
-                  <ul className="policy-bullet-list">
-                    {INSURANCE_NOTES.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                </div>
-
-                <div className="insurance-policy-block">
-                  <h3>면책 제한 사유</h3>
-                  <ul className="policy-bullet-list">
-                    {INSURANCE_LIMITATIONS.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
+              <article className="detail-card panel">
+                <h2>예약 정보</h2>
+                <div className="info-grid three info-stat-grid reservation-info-grid">
+                  <div><span>대여일시</span><strong>{formatDisplay(fixedSearchInfo.deliveryDateTime)}</strong></div>
+                  <div><span>반납일시</span><strong>{formatDisplay(fixedSearchInfo.returnDateTime)}</strong></div>
+                  <div><span>수령위치</span><strong>{reservationLocationText || '입력 필요'}</strong><small>{parsedSearchState.pickupOption === 'delivery' ? '딜리버리 기준' : '회사 방문 수령'}</small></div>
                 </div>
               </article>
 
-              <article className="detail-card panel" ref={reservationSectionRef}>
+              <article className="detail-card panel">
                 <h2>운전자 정보</h2>
                 <div className="form-grid">
                   <div>
@@ -383,7 +328,7 @@ export default function CarDetailSection() {
                 <p className="muted small-note">차량 또는 계약서 기준 만 {car.rentAge}세 이상 예약 가능하며, 면허 취득 1년 이상이어야 합니다. 현장에서 면허와 예약자 본인 확인이 되지 않으면 배차가 불가할 수 있습니다.</p>
               </article>
 
-              <article className="detail-card panel" ref={paymentSectionRef}>
+              <article className="detail-card panel">
                 <h2>결제 방식 선택</h2>
                 <div className="info-grid three payment-method-grid">
                   <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>결제 방식 1</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
@@ -406,6 +351,41 @@ export default function CarDetailSection() {
                 )}
                 <div className="legal-note">
                   빵빵카 주식회사는 본 서비스와 렌터카 계약 시스템을 직접 제공합니다. 결제가 정상적으로 완료된 예약에 한해 예약이 확정되며, 운전자 자격 미충족, 본인 확인 실패, 면허 확인 실패, 결제 확인 실패, 차량 상태 이상, 배차 불가 등 회사가 고지한 사유가 있으면 예약이 거절되거나 취소될 수 있습니다.
+                </div>
+              </article>
+
+              <article className="detail-card panel">
+                <h2>보험/유의사항</h2>
+                <div className="info-grid two info-stat-grid insurance-summary-grid">
+                  {COMMON_INSURANCE_COVERAGE.map((item) => (
+                    <div key={item.label}><span>{item.label}</span><strong>{item.value}</strong></div>
+                  ))}
+                </div>
+                <div className="insurance-policy-block">
+                  <h3>차종별 자차 보상한도 / 면책금</h3>
+                  <ul className="policy-bullet-list">
+                    {SELF_DAMAGE_POLICY.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="insurance-policy-block">
+                  <h3>보험 유의사항</h3>
+                  <ul className="policy-bullet-list">
+                    {INSURANCE_NOTES.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+
+                <div className="insurance-policy-block">
+                  <h3>면책 제한 사유</h3>
+                  <ul className="policy-bullet-list">
+                    {INSURANCE_LIMITATIONS.map((item) => (
+                      <li key={item}>{item}</li>
+                    ))}
+                  </ul>
                 </div>
               </article>
             </section>

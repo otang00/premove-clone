@@ -316,3 +316,7 @@
   font-size:var(--fs-s);
   line-height:1.6;
 }
+
+.reservation-info-grid strong{
+  word-break:break-word;
+}
