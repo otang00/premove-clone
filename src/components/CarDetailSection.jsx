@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useLocation, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchCarDetail } from '../services/carDetail'
 import {
@@ -16,6 +16,7 @@ import {
   validateReservationSubmission,
   validateTermsState,
 } from '../services/reservationUiState'
+import { createGuestReservation } from '../services/guestReservations'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
@@ -91,6 +92,7 @@ const INSURANCE_LIMITATIONS = [
 export default function CarDetailSection() {
   const { carId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const detailToken = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -212,6 +214,21 @@ export default function CarDetailSection() {
       setDeliveryAddressDetailError('상세주소를 입력해 주세요.')
       return
     }
+
+    if (!car || !pricing || !isReservationActionEnabled) {
+      return
+    }
+
+    const reservation = createGuestReservation({
+      car,
+      pricing,
+      searchState: parsedSearchState,
+      deliveryAddressDetail: deliveryAddressDetail.trim(),
+      reservationForm: reservationValidation.normalized,
+      paymentMethod,
+    })
+
+    navigate(`/reservation-complete?reservationNumber=${encodeURIComponent(reservation.reservationNumber)}`)
   }
 
   const reservationLocationText = parsedSearchState.pickupOption === 'delivery'
@@ -362,7 +379,7 @@ export default function CarDetailSection() {
                 {!submitValidation.isValid && (
                   <p className="muted small-note">{Object.values(submitValidation.errors)[0]}</p>
                 )}
-                <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>결제 진행하기</button>
+                <button className="btn btn-dark btn-lg btn-block" disabled={!isReservationActionEnabled} onClick={handleReservationSubmit}>예약 확정하기</button>
               </article>
 
               <article className="detail-card panel">
