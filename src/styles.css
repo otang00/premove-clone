@@ -291,3 +291,28 @@
     gap:8px;
   }
 }
+
+.insurance-summary-grid{
+  margin-bottom:14px;
+}
+
+.insurance-policy-block{
+  margin-top:16px;
+  padding-top:16px;
+  border-top:1px solid var(--border);
+}
+
+.insurance-policy-block h3{
+  margin:0 0 10px;
+  font-size:var(--fs-m);
+}
+
+.policy-bullet-list{
+  margin:0;
+  padding-left:18px;
+  display:grid;
+  gap:8px;
+  color:#4f6174;
+  font-size:var(--fs-s);
+  line-height:1.6;
+}
