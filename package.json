@@ -7,7 +7,6 @@
     "build": "vite build",
     "preview": "vite preview",
     "build:cars-seed": "node scripts/build-cars-seed.mjs",
-    "mirror:car-images": "node scripts/mirror-car-images.js",
     "ims:sync": "node scripts/ims-sync/run-ims-reservation-sync.js",
     "ims:sync:dry": "IMS_SYNC_DRY_RUN=true node scripts/ims-sync/run-ims-reservation-sync.js"
   },

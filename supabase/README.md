@@ -21,8 +21,6 @@
 npm run build:cars-seed
 ```
 
-## 차량 이미지 미러링
-차량 이미지는 1회 미러링 후 `public.cars.image_url` 을 Supabase Storage public URL 로 유지한다.
 
 ## Supabase SQL Editor 적용 순서
 1. `supabase/migrations/20260414_create_cars.sql` 실행

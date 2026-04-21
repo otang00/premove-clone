@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+// `public.cars.image_url` 의 현재 값을 원문 주소로 보고 내려받아 Supabase Storage 로 미러링한다.
+// 추가 차량 반영 뒤 다시 필요할 때만 수동 실행한다. 자세한 사용법은 docs/references/CAR_IMAGE_MIRROR_SCRIPT.md 참고.
 const path = require('path');
 const { getSupabaseAdmin, hasSupabaseConfig, resolveSupabaseUrl } = require('./ims-sync/lib/supabase-admin');
 
