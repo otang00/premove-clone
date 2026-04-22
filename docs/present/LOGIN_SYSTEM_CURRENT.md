@@ -28,7 +28,7 @@
 - 프론트는 **Vite + React SPA + React Router** 구조다.
 - 엔트리는 `src/main.jsx` 이고 `BrowserRouter` 를 사용한다.
 - 라우팅은 `src/App.jsx` 에서 클라이언트 라우팅으로 처리한다.
-- `/login`, `/signup` 은 아직 `PlaceholderPage` 상태다.
+- `/login` 은 Auth 준비용 skeleton 페이지가 연결되어 있고, `/signup` 은 아직 `PlaceholderPage` 상태다.
 - 서버는 Next.js route handler 가 아니라 루트 `api/*.js` 함수 구조다.
 - 서버 Supabase 접근은 현재 `server/supabase/createServerClient.js` 에서 `@supabase/supabase-js` 로 직접 생성한다.
 
