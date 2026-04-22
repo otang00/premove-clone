@@ -39,6 +39,13 @@ module.exports = async function handler(req, res) {
       })
     }
 
+    if (result.blockedReason === 'member_booking_only') {
+      return res.status(403).json({
+        error: 'member_booking_only',
+        message: result.message || '이 예약은 회원 예약입니다. 로그인 후 예약내역에서 확인해 주세요.',
+      })
+    }
+
     return res.status(200).json(result)
   } catch (error) {
     return res.status(500).json({

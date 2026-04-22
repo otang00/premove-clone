@@ -57,7 +57,7 @@ async function generateUniqueReservationCode({ supabaseClient, now = new Date() 
   throw new Error('reservation_code_generation_failed')
 }
 
-async function fetchBookingOrderByGuestLookup({
+async function findBookingOrderByGuestLookup({
   supabaseClient,
   customerName,
   customerPhone,
@@ -85,7 +85,7 @@ async function fetchBookingOrderByGuestLookup({
 
   const matchedOrders = Array.isArray(orders) ? orders : []
   if (matchedOrders.length === 0) {
-    return null
+    return { order: null, blockedReason: null }
   }
 
   const bookingOrderIds = matchedOrders.map((order) => order.id).filter(Boolean)
@@ -107,10 +107,25 @@ async function fetchBookingOrderByGuestLookup({
     return acc
   }, {})
 
-  return matchedOrders.find((order) => {
+  const matchedOrder = matchedOrders.find((order) => {
     const keys = keyIndex[order.id] || {}
     return keys.customer_phone === phoneHash && keys.customer_birth === birthHash
   }) || null
+
+  if (!matchedOrder) {
+    return { order: null, blockedReason: null }
+  }
+
+  if (matchedOrder.user_id) {
+    return { order: null, blockedReason: 'member_booking_only' }
+  }
+
+  return { order: matchedOrder, blockedReason: null }
+}
+
+async function fetchBookingOrderByGuestLookup(params = {}) {
+  const result = await findBookingOrderByGuestLookup(params)
+  return result.order || null
 }
 
 async function createGuestBooking({
@@ -310,13 +325,21 @@ async function lookupGuestBooking({
   customerPhone,
   customerBirth,
 } = {}) {
-  const order = await fetchBookingOrderByGuestLookup({
+  const lookupResult = await findBookingOrderByGuestLookup({
     supabaseClient,
     customerName,
     customerPhone,
     customerBirth,
   })
 
+  if (lookupResult.blockedReason === 'member_booking_only') {
+    return {
+      blockedReason: 'member_booking_only',
+      message: '이 예약은 회원 예약입니다. 로그인 후 예약내역에서 확인해 주세요.',
+    }
+  }
+
+  const order = lookupResult.order
   if (!order) {
     return null
   }
@@ -460,13 +483,23 @@ async function cancelGuestBooking({
     throw new Error('supabase client is required')
   }
 
-  const order = await fetchBookingOrderByGuestLookup({
+  const lookupResult = await findBookingOrderByGuestLookup({
     supabaseClient,
     customerName,
     customerPhone,
     customerBirth,
   })
 
+  if (lookupResult.blockedReason === 'member_booking_only') {
+    return {
+      ok: false,
+      code: 'member_booking_only',
+      status: 403,
+      message: '이 예약은 회원 예약입니다. 로그인 후 예약내역에서 취소해 주세요.',
+    }
+  }
+
+  const order = lookupResult.order
   if (!order) {
     return {
       ok: false,
@@ -525,6 +558,7 @@ async function cancelMemberBooking({
 
 module.exports = {
   fetchCarBySourceCarId,
+  findBookingOrderByGuestLookup,
   fetchBookingOrderByGuestLookup,
   fetchBookingOrderByMemberReservationCode,
   fetchActiveReservationMapping,
