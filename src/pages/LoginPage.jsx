@@ -115,11 +115,8 @@ export default function LoginPage() {
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <Link className="btn btn-outline btn-md" to={`/signup?redirectTo=${encodeURIComponent(redirectTo)}`}>회원가입</Link>
+              <Link className="btn btn-outline btn-md" to={`/forgot-password?redirectTo=${encodeURIComponent(redirectTo)}`}>비밀번호 재설정</Link>
               <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
-            </div>
-
-            <div className="legal-note" style={{ marginTop: 0 }}>
-              비밀번호 재설정은 다음 phase 에서 붙입니다.
             </div>
           </article>
         </div>

@@ -1,8 +1,16 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
 
 export function Header() {
+  const navigate = useNavigate()
   const company = getMockCompany()
+  const { isAuthenticated, profile, user, signOut } = useAuth()
+
+  async function handleSignOut() {
+    await signOut()
+    navigate('/', { replace: true })
+  }
 
   return (
     <header className="header">
@@ -14,6 +22,17 @@ export function Header() {
         <nav className="nav small header-nav-right">
           <Link to="/reservations">예약내역</Link>
           <Link to="/faq">FAQ</Link>
+          {isAuthenticated ? (
+            <>
+              <span>{profile?.name || user?.email || '회원'}</span>
+              <button className="footer-link-button" type="button" onClick={handleSignOut}>로그아웃</button>
+            </>
+          ) : (
+            <>
+              <Link to="/login">로그인</Link>
+              <Link to="/signup">회원가입</Link>
+            </>
+          )}
         </nav>
       </div>
     </header>
