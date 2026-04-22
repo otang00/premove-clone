@@ -1,14 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { cancelAdminBooking, confirmAdminBooking, fetchAdminBookingConfirm } from '../services/adminBookingConfirmApi'
 import { isAdminEmail } from '../utils/adminAccess'
 
 export default function AdminBookingConfirmPage() {
+  const navigate = useNavigate()
+  const location = useLocation()
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
-  const { session, user, profile } = useAuth()
+  const { loading, isAuthenticated, session, user, profile } = useAuth()
   const [booking, setBooking] = useState(null)
   const [fetching, setFetching] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -16,9 +18,23 @@ export default function AdminBookingConfirmPage() {
   const [resultMessage, setResultMessage] = useState('')
   const adminEmail = user?.email || profile?.email || ''
   const hasAdminHint = useMemo(() => isAdminEmail(adminEmail), [adminEmail])
+  const redirectTo = `${location.pathname}${location.search}`
+
+  useEffect(() => {
+    if (loading) return
+    if (!isAuthenticated) {
+      navigate(`/login?redirectTo=${encodeURIComponent(redirectTo)}`, { replace: true })
+    }
+  }, [loading, isAuthenticated, navigate, redirectTo])
 
   useEffect(() => {
     let ignore = false
+
+    if (loading) {
+      return () => {
+        ignore = true
+      }
+    }
 
     if (!token) {
       setError('확정 토큰이 없습니다.')
@@ -28,7 +44,24 @@ export default function AdminBookingConfirmPage() {
       }
     }
 
-    fetchAdminBookingConfirm(token)
+    if (!isAuthenticated) {
+      setFetching(false)
+      return () => {
+        ignore = true
+      }
+    }
+
+    if (!hasAdminHint) {
+      setBooking(null)
+      setError('관리자만 접근할 수 있습니다.')
+      setFetching(false)
+      return () => {
+        ignore = true
+      }
+    }
+
+    setFetching(true)
+    fetchAdminBookingConfirm(session, token)
       .then((result) => {
         if (ignore) return
         setBooking(result.booking)
@@ -46,17 +79,17 @@ export default function AdminBookingConfirmPage() {
     return () => {
       ignore = true
     }
-  }, [token])
+  }, [loading, token, isAuthenticated, hasAdminHint, session])
 
   async function handleConfirm() {
-    if (!token || !booking || submitting) return
+    if (!token || !booking || submitting || !session?.access_token || !hasAdminHint) return
 
     const confirmed = window.confirm('이 예약을 확정하시겠습니까?')
     if (!confirmed) return
 
     setSubmitting(true)
     try {
-      const result = await confirmAdminBooking(token)
+      const result = await confirmAdminBooking(session, token)
       setBooking(result.booking)
       setResultMessage(result.alreadyProcessed ? '이미 처리된 예약입니다.' : '예약이 확정되었습니다.')
       setError('')
@@ -94,7 +127,7 @@ export default function AdminBookingConfirmPage() {
             <div>
               <h1 style={{ margin: 0 }}>예약 확인</h1>
               <p className="small-note" style={{ marginTop: 8 }}>
-                {fetching ? '예약 정보를 확인하는 중입니다.' : '결제 확인 후 예약을 확정해 주세요.'}
+                {loading ? '로그인 상태를 확인하는 중입니다.' : fetching ? '예약 정보를 확인하는 중입니다.' : '관리자 로그인 후 예약을 확인하고 확정해 주세요.'}
               </p>
             </div>
 

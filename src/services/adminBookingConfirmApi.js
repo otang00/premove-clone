@@ -1,9 +1,13 @@
 import { parseApiResponse } from '../utils/apiResponse'
 import { toBookingViewModel } from './bookingViewModel'
 
-export async function fetchAdminBookingConfirm(token) {
+export async function fetchAdminBookingConfirm(session, token) {
+  const accessToken = session?.access_token
   const response = await fetch(`/api/admin/booking-confirm?token=${encodeURIComponent(token)}`, {
     method: 'GET',
+    headers: {
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
   })
 
   const result = await parseApiResponse(response, '예약 확인 정보를 불러오지 못했습니다.')
@@ -12,11 +16,13 @@ export async function fetchAdminBookingConfirm(token) {
   }
 }
 
-export async function confirmAdminBooking(token) {
+export async function confirmAdminBooking(session, token) {
+  const accessToken = session?.access_token
   const response = await fetch('/api/admin/booking-confirm', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify({ token }),
   })
