@@ -411,16 +411,6 @@ export default function CarDetailSection() {
               </article>
 
               <article className="detail-card panel">
-                <h2>결제 방식 선택</h2>
-                <div className="info-grid three payment-method-grid">
-                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.CARD ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.CARD)}><strong>결제 방식 1</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
-                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.KAKAO_PAY ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.KAKAO_PAY)}><strong>결제 방식 2</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
-                  <button className={`btn-select payment-method-card ${paymentMethod === PAYMENT_METHODS.GENERAL ? 'is-active' : ''}`} onClick={() => setPaymentMethod(PAYMENT_METHODS.GENERAL)}><strong>결제 방식 3</strong><span>결제 단계에서 제공되는 방식으로 진행</span></button>
-                </div>
-                <p className="muted small-note">세부 결제수단은 운영 정책에 따라 결제 단계에서 안내됩니다.</p>
-              </article>
-
-              <article className="detail-card panel">
                 <h2>이용 약관 동의</h2>
                 <div className="terms-list">
                   <label><input type="checkbox" checked={termsState.allAgreed} onChange={(e) => handleToggleAllTerms(e.target.checked)} /> 전체 동의</label>
