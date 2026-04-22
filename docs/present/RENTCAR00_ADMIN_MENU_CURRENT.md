@@ -99,12 +99,101 @@
 5. 카드형/테이블형 UI 선택
 6. 권한 도입 순서
 
+## 10-1. 이번 문서에서 잠그는 권장 기준
+1. 경로
+   - 관리자 목록: `/admin/bookings`
+   - API: `GET /api/admin/bookings`
+2. 기본 탭
+   - `확정대기`
+3. 상태 그룹
+   - pending: `confirmation_pending`
+   - active: `confirmation_pending`, `confirmed_pending_sync`, `confirmed`, `in_use`
+   - cancelled: `cancelled`
+4. 기본 정렬
+   - `pickup_at asc`, tie-breaker `created_at desc`
+5. 검색 규칙
+   - 차량번호: contains
+   - 예약번호: exact 우선
+   - 고객명: contains
+6. 1차 UI 형식
+   - 모바일 대응을 위해 카드형 우선, 데스크톱에서도 동일 컴포넌트 재사용 권장
+7. 1차 액션
+   - 상세 보기
+   - 확정대기 건 확정
+   - 수정/삭제/환불/배차 처리 제외
+
 ## 11. 권장 실행 순서
 1. 살아있는 예약 정의 잠금
 2. 관리자 목록 API contract 잠금
 3. UI 구조 잠금
 4. 회귀 검증 시나리오 잠금
 5. 그 다음 구현 착수
+
+## 11-1. 구체적 실행안
+### phase 1. 조회 기준 잠금
+- 산출물
+  - 상태 그룹 상수
+  - 검색 필드 규칙
+  - 차량번호 우선순위 규칙
+- 종료 조건
+  - 목록/상세/메일의 상태 기준이 문서상 일치
+
+### phase 2. API 설계
+- 산출물
+  - `GET /api/admin/bookings` request/response contract
+  - pagination 기본값
+  - empty/error response 규칙
+- 종료 조건
+  - member/guest/admin 각 API 책임이 분리됨
+
+### phase 3. UI 설계
+- 산출물
+  - `/admin/bookings` 와이어 기준
+  - 탭, 검색, 액션 배치안
+  - 모바일 표시 우선순위
+- 종료 조건
+  - 차량번호, 상태, 대여일시가 첫 화면에서 보임
+
+### phase 4. 연결 설계
+- 산출물
+  - 목록 → 상세/확정 연결 규칙
+  - 기존 `/admin/booking-confirm` 재사용 범위
+- 종료 조건
+  - 메일 링크 흐름과 관리자 메뉴 흐름이 충돌하지 않음
+
+### phase 5. 권한 설계
+- 산출물
+  - 1차 링크 기반 유지 범위
+  - 2차 `otang00` admin role 도입 포인트
+- 종료 조건
+  - 추후 권한 추가 시 경로/컴포넌트 재작업 최소화
+
+### phase 6. 구현 전 회귀 검증 계획
+- 산출물
+  - 예약 생성, 확정, 취소, 조회 기준 시나리오
+- 종료 조건
+  - 기존 회원/비회원/메일 흐름에 영향 포인트가 전부 목록화됨
+
+## 11-2. API 응답 최소 필드
+- `id`
+- `reservationNumber`
+- `carNumber`
+- `carName`
+- `customerName`
+- `pickupAt`
+- `returnAt`
+- `bookingStatus`
+- `paymentStatus`
+- `createdAt`
+- `canConfirm`
+- `detailPath`
+
+## 11-3. 연결상 주의점
+1. `bookingViewModel` 의 상태 라벨 규칙을 관리자 메뉴도 재사용해야 한다.
+2. 차량번호는 `pricing_snapshot.carNumber` 우선 사용이 안전하다.
+3. 오래된 예약에 차량번호가 비어 있으면 fallback 규칙이 필요하다.
+4. `confirmed_pending_sync` 는 운영상 살아있는 예약에서 빠지면 안 된다.
+5. 관리자 목록은 member API 를 확장하지 말고 별도 API 로 유지해야 한다.
 
 ## 12. 구현 전 검증 포인트
 - 메일 링크 기반 확정이 관리자 메뉴 도입 후에도 그대로 동작하는가
