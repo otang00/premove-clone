@@ -50,7 +50,7 @@ module.exports = async function handler(req, res) {
 
     const result = await cancelBookingOrder({
       supabaseClient,
-      order: lookup.booking,
+      order: lookup.rawBooking,
       requestedBy: 'admin_web',
       eventType: 'admin_cancelled',
       reason,

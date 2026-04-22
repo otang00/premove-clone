@@ -47,6 +47,7 @@ async function fetchBookingOrderByConfirmationToken({ supabaseClient, token } = 
   return {
     ok: true,
     status: 200,
+    rawBooking: data,
     booking: serializeBookingOrder(data),
     tokenPayload: tokenCheck.payload,
   }
