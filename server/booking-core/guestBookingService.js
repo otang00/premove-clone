@@ -256,6 +256,34 @@ async function createGuestBooking({
   }
 }
 
+async function fetchBookingOrderByMemberReservationCode({
+  supabaseClient,
+  authUserId,
+  reservationCode,
+} = {}) {
+  if (!supabaseClient) {
+    throw new Error('supabase client is required')
+  }
+
+  if (!authUserId || !reservationCode) {
+    return null
+  }
+
+  const { data, error } = await supabaseClient
+    .from('booking_orders')
+    .select('*')
+    .eq('user_id', authUserId)
+    .eq('public_reservation_code', String(reservationCode || '').trim().toUpperCase())
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data || null
+}
+
 async function fetchActiveReservationMapping({ supabaseClient, bookingOrderId } = {}) {
   if (!supabaseClient || !bookingOrderId) {
     return null
@@ -312,12 +340,11 @@ async function lookupGuestBooking({
   }
 }
 
-async function cancelGuestBooking({
+async function cancelBookingOrder({
   supabaseClient,
-  customerName,
-  customerPhone,
-  customerBirth,
+  order,
   requestedBy = 'guest',
+  eventType = 'guest_cancelled',
   reason = '',
   now = new Date(),
 } = {}) {
@@ -325,19 +352,12 @@ async function cancelGuestBooking({
     throw new Error('supabase client is required')
   }
 
-  const order = await fetchBookingOrderByGuestLookup({
-    supabaseClient,
-    customerName,
-    customerPhone,
-    customerBirth,
-  })
-
-  if (!order) {
+  if (!order?.id) {
     return {
       ok: false,
       code: 'booking_not_found',
       status: 404,
-      message: '일치하는 예약을 찾을 수 없습니다.',
+      message: '예약 정보를 찾을 수 없습니다.',
     }
   }
 
@@ -396,7 +416,7 @@ async function cancelGuestBooking({
     .from('reservation_status_events')
     .insert({
       booking_order_id: order.id,
-      event_type: 'guest_cancelled',
+      event_type: eventType,
       event_payload: {
         requestedBy,
         reason: String(reason || '').trim() || null,
@@ -427,11 +447,90 @@ async function cancelGuestBooking({
   }
 }
 
+async function cancelGuestBooking({
+  supabaseClient,
+  customerName,
+  customerPhone,
+  customerBirth,
+  requestedBy = 'guest',
+  reason = '',
+  now = new Date(),
+} = {}) {
+  if (!supabaseClient) {
+    throw new Error('supabase client is required')
+  }
+
+  const order = await fetchBookingOrderByGuestLookup({
+    supabaseClient,
+    customerName,
+    customerPhone,
+    customerBirth,
+  })
+
+  if (!order) {
+    return {
+      ok: false,
+      code: 'booking_not_found',
+      status: 404,
+      message: '일치하는 예약을 찾을 수 없습니다.',
+    }
+  }
+
+  return cancelBookingOrder({
+    supabaseClient,
+    order,
+    requestedBy,
+    eventType: 'guest_cancelled',
+    reason,
+    now,
+  })
+}
+
+async function cancelMemberBooking({
+  supabaseClient,
+  authUserId,
+  reservationCode,
+  requestedBy = 'member',
+  reason = '',
+  now = new Date(),
+} = {}) {
+  if (!supabaseClient) {
+    throw new Error('supabase client is required')
+  }
+
+  const order = await fetchBookingOrderByMemberReservationCode({
+    supabaseClient,
+    authUserId,
+    reservationCode,
+  })
+
+  if (!order) {
+    return {
+      ok: false,
+      code: 'booking_not_found',
+      status: 404,
+      message: '예약 정보를 찾지 못했습니다.',
+    }
+  }
+
+  return cancelBookingOrder({
+    supabaseClient,
+    order,
+    requestedBy,
+    eventType: 'member_cancelled',
+    reason,
+    now,
+  })
+}
+
 module.exports = {
   fetchCarBySourceCarId,
   fetchBookingOrderByGuestLookup,
+  fetchBookingOrderByMemberReservationCode,
   fetchActiveReservationMapping,
   createGuestBooking,
   lookupGuestBooking,
+  cancelBookingOrder,
   cancelGuestBooking,
+  cancelMemberBooking,
 }

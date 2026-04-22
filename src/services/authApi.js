@@ -39,3 +39,16 @@ export async function fetchMemberBookingDetail(session, reservationCode) {
 
   return parseApiResponse(response, '회원 예약 정보를 불러오지 못했습니다.')
 }
+
+export async function cancelMemberBooking(session, reservationCode, payload = {}) {
+  const response = await fetch(`/api/member/bookings/${encodeURIComponent(reservationCode)}/cancel`, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...getAuthorizationHeaders(session),
+    },
+    body: JSON.stringify(payload),
+  })
+
+  return parseApiResponse(response, '회원 예약취소에 실패했습니다.')
+}

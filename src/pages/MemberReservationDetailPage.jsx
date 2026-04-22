@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
-import { getMemberBookingDetail } from '../services/memberBookingApi'
+import { cancelMemberBooking, getMemberBookingDetail } from '../services/memberBookingApi'
 
 export default function MemberReservationDetailPage() {
   const navigate = useNavigate()
@@ -10,7 +10,9 @@ export default function MemberReservationDetailPage() {
   const { loading, isAuthenticated, session } = useAuth()
   const [booking, setBooking] = useState(null)
   const [fetching, setFetching] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -33,6 +35,7 @@ export default function MemberReservationDetailPage() {
         if (isCancelled) return
         setBooking(result.booking || null)
         setError('')
+        setSuccessMessage('')
       })
       .catch((fetchError) => {
         if (isCancelled) return
@@ -49,6 +52,26 @@ export default function MemberReservationDetailPage() {
     }
   }, [reservationCode, session])
 
+  async function handleCancel() {
+    if (!booking || booking.status === 'cancelled' || !session?.access_token) return
+
+    const confirmed = window.confirm('이 예약을 취소하시겠습니까?')
+    if (!confirmed) return
+
+    try {
+      setSubmitting(true)
+      const result = await cancelMemberBooking(session, booking.reservationNumber)
+      setBooking(result.booking || null)
+      setError('')
+      setSuccessMessage('예약이 취소되었습니다.')
+    } catch (cancelError) {
+      setError(cancelError.message || '회원 예약취소에 실패했습니다.')
+      setSuccessMessage('')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
   return (
     <PageShell>
       <section className="section-bg">
@@ -63,6 +86,7 @@ export default function MemberReservationDetailPage() {
 
             {fetching ? <p className="field-note" style={{ margin: 0 }}>예약 정보를 불러오는 중입니다.</p> : null}
             {error ? <p className="field-note" style={{ color: '#be123c', margin: 0 }}>{error}</p> : null}
+            {successMessage ? <p className="field-note" style={{ color: '#166534', margin: 0 }}>{successMessage}</p> : null}
 
             {booking ? (
               <div className="reservation-result-card panel-sub">
@@ -94,6 +118,11 @@ export default function MemberReservationDetailPage() {
             ) : null}
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              {booking && booking.status !== 'cancelled' ? (
+                <button className="btn btn-dark btn-md" type="button" onClick={handleCancel} disabled={submitting || fetching}>
+                  {submitting ? '처리 중' : '예약 취소'}
+                </button>
+              ) : null}
               <Link className="btn btn-outline btn-md" to="/reservations">예약내역</Link>
               <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
             </div>
