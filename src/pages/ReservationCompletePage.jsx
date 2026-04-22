@@ -54,9 +54,9 @@ export default function ReservationCompletePage() {
         <div className="container detail-layout" style={{ paddingTop: 24, paddingBottom: 24 }}>
           <article className="detail-card panel" style={{ display: 'grid', gap: 16 }}>
             <div>
-              <h1 style={{ margin: 0 }}>예약 확정</h1>
+              <h1 style={{ margin: 0 }}>예약 접수</h1>
               <p className="small-note" style={{ marginTop: 8 }}>
-                {reservation ? '예약이 정상적으로 저장되었습니다.' : loadError || '예약 정보를 찾지 못했습니다.'}
+                {reservation ? '예약이 정상적으로 저장되었습니다. 관리자 확인 후 확정됩니다.' : loadError || '예약 정보를 찾지 못했습니다.'}
               </p>
             </div>
 
@@ -68,8 +68,8 @@ export default function ReservationCompletePage() {
                       <span className="reservation-result-card__eyebrow">예약이 접수되었습니다</span>
                       <strong className="reservation-result-card__title">{reservation.pricingSnapshot?.carName || '-'}</strong>
                     </div>
-                    <div className={`reservation-result-card__status ${reservation.status === 'cancelled' ? 'is-cancelled' : 'is-confirmed'}`}>
-                      {reservation.status === 'cancelled' ? '예약 취소' : '예약 확정'}
+                    <div className={`reservation-result-card__status ${reservation.statusTone === 'cancelled' ? 'is-cancelled' : reservation.statusTone === 'pending' ? 'is-pending' : 'is-confirmed'}`}>
+                      {reservation.statusLabel}
                     </div>
                   </div>
 

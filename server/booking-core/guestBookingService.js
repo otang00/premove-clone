@@ -4,6 +4,7 @@ const {
   serializeBookingOrder,
   canGuestCancelBooking,
   resolveCancelSyncStatus,
+  resolveCancelledPaymentStatus,
 } = require('./guestBookingUtils')
 const {
   normalizeCustomerPhone,
@@ -209,9 +210,9 @@ async function createGuestBooking({
     },
     payment_provider: 'surrogate_web',
     payment_reference_id: paymentReferenceId,
-    booking_status: 'confirmed_pending_sync',
-    payment_status: 'paid',
-    sync_status: 'pending',
+    booking_status: 'confirmation_pending',
+    payment_status: 'pending',
+    sync_status: 'not_required',
     manual_review_required: false,
   }
 
@@ -259,9 +260,9 @@ async function createGuestBooking({
         bookingChannel: 'website',
         paymentProvider: 'surrogate_web',
         paymentReferenceId,
-        bookingStatus: 'confirmed_pending_sync',
-        paymentStatus: 'paid',
-        syncStatus: 'pending',
+        bookingStatus: 'confirmation_pending',
+        paymentStatus: 'pending',
+        syncStatus: 'not_required',
       },
     })
 
@@ -408,13 +409,14 @@ async function cancelBookingOrder({
     order,
     hasActiveMapping: Boolean(activeMapping),
   })
+  const nextPaymentStatus = resolveCancelledPaymentStatus(order)
   const cancelledAt = now.toISOString()
 
   const { data: updatedOrder, error: updateError } = await supabaseClient
     .from('booking_orders')
     .update({
       booking_status: 'cancelled',
-      payment_status: 'refund_pending',
+      payment_status: nextPaymentStatus,
       sync_status: nextSyncStatus,
       cancelled_at: cancelledAt,
     })
@@ -451,6 +453,7 @@ async function cancelBookingOrder({
         previousBookingStatus: order.booking_status || null,
         previousPaymentStatus: order.payment_status || null,
         previousSyncStatus: order.sync_status || null,
+        nextPaymentStatus,
         nextSyncStatus,
         hasActiveMapping: Boolean(activeMapping),
       },

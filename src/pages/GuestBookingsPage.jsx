@@ -48,7 +48,7 @@ export default function GuestBookingsPage() {
   }
 
   const handleCancel = async () => {
-    if (!result || result.status === 'cancelled') return
+    if (!result?.canCancel) return
 
     const confirmed = window.confirm('이 예약을 취소하시겠습니까?')
     if (!confirmed) return
@@ -119,8 +119,8 @@ export default function GuestBookingsPage() {
                       <span className="reservation-result-card__eyebrow">예약 조회 결과</span>
                       <strong className="reservation-result-card__title">{result.pricingSnapshot?.carName || '-'}</strong>
                     </div>
-                    <div className={`reservation-result-card__status ${result.status === 'cancelled' ? 'is-cancelled' : 'is-confirmed'}`}>
-                      {result.status === 'cancelled' ? '예약 취소' : '예약 확정'}
+                    <div className={`reservation-result-card__status ${result.statusTone === 'cancelled' ? 'is-cancelled' : result.statusTone === 'pending' ? 'is-pending' : 'is-confirmed'}`}>
+                      {result.statusLabel}
                     </div>
                   </div>
 
@@ -142,11 +142,11 @@ export default function GuestBookingsPage() {
 
                 {result.status === 'cancelled' ? (
                   <div className="legal-note" style={{ marginTop: 0 }}>이 예약은 이미 취소되었습니다.</div>
-                ) : (
+                ) : result.canCancel ? (
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     <button className="btn btn-outline btn-md" onClick={handleCancel} disabled={isSubmitting}>{isSubmitting ? '처리 중' : '예약 취소'}</button>
                   </div>
-                )}
+                ) : null}
               </div>
             )}
           </article>

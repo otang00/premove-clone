@@ -443,7 +443,7 @@ export default function CarDetailSection() {
                 </div>
                 {shouldShowReservationErrors && reservationSubmitMessages.length > 0 && (
                   <div className="legal-note" style={{ marginTop: 0, background: '#fff4f4', color: '#9f1239' }}>
-                    <strong style={{ display: 'block', marginBottom: 8 }}>아래 항목 확인 후 예약 확정을 눌러 주세요.</strong>
+                    <strong style={{ display: 'block', marginBottom: 8 }}>아래 항목 확인 후 예약 접수를 눌러 주세요.</strong>
                     <ul style={{ margin: 0, paddingLeft: 18 }}>
                       {reservationSubmitMessages.map((message) => (
                         <li key={message}>{message}</li>
@@ -454,7 +454,7 @@ export default function CarDetailSection() {
                 {reservationSubmitError && (
                   <div className="legal-note" style={{ marginTop: 0, background: '#fff4f4', color: '#9f1239' }}>{reservationSubmitError}</div>
                 )}
-                <button className="btn btn-dark btn-lg btn-block" onClick={handleReservationSubmit}>예약 확정하기</button>
+                <button className="btn btn-dark btn-lg btn-block" onClick={handleReservationSubmit}>예약 접수하기</button>
               </article>
 
               <article className="detail-card panel">
@@ -507,15 +507,15 @@ export default function CarDetailSection() {
         {isReservationConfirmOpen && car && pricing && (
           <div className="delivery-modal-backdrop" onClick={() => setIsReservationConfirmOpen(false)}>
             <div className="search-guard-modal reservation-confirm-modal" onClick={(event) => event.stopPropagation()}>
-              <strong>예약을 확정하시겠습니까?</strong>
-              <p className="field-note">입력한 예약자 정보와 예약 조건을 확인한 뒤 확정해 주세요.</p>
+              <strong>예약을 접수하시겠습니까?</strong>
+              <p className="field-note">입력한 예약자 정보와 예약 조건을 확인한 뒤 접수해 주세요. 접수 후 관리자 확인을 거쳐 확정됩니다.</p>
               <div className="reservation-result-card reservation-confirm-card">
                 <div className="reservation-result-card__header">
                   <div>
                     <span className="reservation-result-card__eyebrow">예약 확인</span>
                     <strong className="reservation-result-card__title">{car.name}</strong>
                   </div>
-                  <div className="reservation-result-card__status is-confirmed">확정 전 확인</div>
+                  <div className="reservation-result-card__status is-pending">접수 전 확인</div>
                 </div>
 
                 <div className="reservation-result-card__price">
@@ -534,7 +534,7 @@ export default function CarDetailSection() {
               </div>
               <div className="search-guard-actions">
                 <button className="btn btn-outline btn-md" onClick={() => setIsReservationConfirmOpen(false)}>다시 확인</button>
-                <button className="btn btn-dark btn-md" onClick={handleConfirmReservation} disabled={isCreatingReservation}>{isCreatingReservation ? '예약 생성 중' : '예약 확정'}</button>
+                <button className="btn btn-dark btn-md" onClick={handleConfirmReservation} disabled={isCreatingReservation}>{isCreatingReservation ? '예약 생성 중' : '예약 접수'}</button>
               </div>
             </div>
           </div>

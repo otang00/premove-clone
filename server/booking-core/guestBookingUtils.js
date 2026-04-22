@@ -136,7 +136,7 @@ function canGuestCancelBooking(order = {}, now = new Date()) {
   const paymentStatus = String(order.payment_status || '')
   const pickupAt = order.pickup_at ? new Date(order.pickup_at) : null
 
-  if (!['confirmed_pending_sync', 'confirmed'].includes(bookingStatus)) {
+  if (!['confirmation_pending', 'confirmed_pending_sync', 'confirmed'].includes(bookingStatus)) {
     return {
       ok: false,
       reason: 'cancel_not_allowed_status',
@@ -144,7 +144,7 @@ function canGuestCancelBooking(order = {}, now = new Date()) {
     }
   }
 
-  if (paymentStatus !== 'paid') {
+  if (!['pending', 'paid'].includes(paymentStatus)) {
     return {
       ok: false,
       reason: 'cancel_not_allowed_payment_status',
@@ -183,6 +183,16 @@ function resolveCancelSyncStatus({ order = {}, hasActiveMapping = false } = {}) 
   return 'not_required'
 }
 
+function resolveCancelledPaymentStatus(order = {}) {
+  const paymentStatus = String(order.payment_status || '')
+
+  if (paymentStatus === 'paid') {
+    return 'refund_pending'
+  }
+
+  return 'cancelled'
+}
+
 module.exports = {
   normalizeReservationCode,
   validateGuestLookupInput,
@@ -190,4 +200,5 @@ module.exports = {
   serializeBookingOrder,
   canGuestCancelBooking,
   resolveCancelSyncStatus,
+  resolveCancelledPaymentStatus,
 }

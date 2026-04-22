@@ -392,6 +392,11 @@
   color:#166534;
 }
 
+.reservation-result-card__status.is-pending{
+  background:#fff7ed;
+  color:#c2410c;
+}
+
 .reservation-result-card__status.is-cancelled{
   background:#fff1f2;
   color:#be123c;

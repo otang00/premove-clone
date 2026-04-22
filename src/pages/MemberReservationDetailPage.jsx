@@ -53,7 +53,7 @@ export default function MemberReservationDetailPage() {
   }, [reservationCode, session])
 
   async function handleCancel() {
-    if (!booking || booking.status === 'cancelled' || !session?.access_token) return
+    if (!booking?.canCancel || !session?.access_token) return
 
     const confirmed = window.confirm('이 예약을 취소하시겠습니까?')
     if (!confirmed) return
@@ -95,8 +95,8 @@ export default function MemberReservationDetailPage() {
                     <span className="reservation-result-card__eyebrow">회원 예약 상세</span>
                     <strong className="reservation-result-card__title">{booking.pricingSnapshot?.carName || booking.reservationNumber || '-'}</strong>
                   </div>
-                  <div className={`reservation-result-card__status ${booking.status === 'cancelled' ? 'is-cancelled' : 'is-confirmed'}`}>
-                    {booking.status === 'cancelled' ? '예약 취소' : '예약 확정'}
+                  <div className={`reservation-result-card__status ${booking.statusTone === 'cancelled' ? 'is-cancelled' : booking.statusTone === 'pending' ? 'is-pending' : 'is-confirmed'}`}>
+                    {booking.statusLabel}
                   </div>
                 </div>
 
@@ -118,7 +118,7 @@ export default function MemberReservationDetailPage() {
             ) : null}
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              {booking && booking.status !== 'cancelled' ? (
+              {booking?.canCancel ? (
                 <button className="btn btn-dark btn-md" type="button" onClick={handleCancel} disabled={submitting || fetching}>
                   {submitting ? '처리 중' : '예약 취소'}
                 </button>

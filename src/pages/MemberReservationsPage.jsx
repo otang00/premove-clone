@@ -88,8 +88,8 @@ export default function MemberReservationsPage() {
                         <span className="reservation-result-card__eyebrow">회원 예약</span>
                         <strong className="reservation-result-card__title">{booking.pricingSnapshot?.carName || booking.reservationNumber || '-'}</strong>
                       </div>
-                      <div className={`reservation-result-card__status ${booking.status === 'cancelled' ? 'is-cancelled' : 'is-confirmed'}`}>
-                        {booking.status === 'cancelled' ? '예약 취소' : '예약 확정'}
+                      <div className={`reservation-result-card__status ${booking.statusTone === 'cancelled' ? 'is-cancelled' : booking.statusTone === 'pending' ? 'is-pending' : 'is-confirmed'}`}>
+                        {booking.statusLabel}
                       </div>
                     </div>
 
