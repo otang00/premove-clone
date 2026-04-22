@@ -40,9 +40,15 @@ export default function AdminBookingsPage() {
   }, [loading, isAuthenticated, navigate])
 
   useEffect(() => {
+    if (!loading && isAuthenticated && !hasAdminHint) {
+      navigate('/', { replace: true })
+    }
+  }, [loading, isAuthenticated, hasAdminHint, navigate])
+
+  useEffect(() => {
     let ignore = false
 
-    if (!session?.access_token) {
+    if (!session?.access_token || !hasAdminHint) {
       setFetching(false)
       return () => {
         ignore = true
@@ -71,7 +77,7 @@ export default function AdminBookingsPage() {
     return () => {
       ignore = true
     }
-  }, [session, tab, qField, q])
+  }, [session, tab, qField, q, hasAdminHint])
 
   function updateParams(next) {
     const nextParams = new URLSearchParams(searchParams)
@@ -86,6 +92,19 @@ export default function AdminBookingsPage() {
     <PageShell>
       <section className="section-bg">
         <div className="container detail-layout" style={{ paddingTop: 24, paddingBottom: 24 }}>
+          {!loading && isAuthenticated && !hasAdminHint ? (
+            <article className="detail-card panel" style={{ display: 'grid', gap: 16 }}>
+              <div>
+                <h1 style={{ margin: 0 }}>접근 제한</h1>
+                <p className="small-note" style={{ marginTop: 8 }}>관리자 계정만 접근할 수 있습니다.</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
+              </div>
+            </article>
+          ) : null}
+
+          {!loading && isAuthenticated && !hasAdminHint ? null : (
           <article className="detail-card panel" style={{ display: 'grid', gap: 16 }}>
             <div>
               <h1 style={{ margin: 0 }}>예약관리</h1>
@@ -193,6 +212,7 @@ export default function AdminBookingsPage() {
               <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
             </div>
           </article>
+          )}
         </div>
       </section>
     </PageShell>
