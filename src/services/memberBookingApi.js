@@ -1,4 +1,4 @@
-import { fetchMemberBookings } from './authApi'
+import { fetchMemberBookingDetail, fetchMemberBookings } from './authApi'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = String(dateText || '').split(' ')
@@ -27,7 +27,7 @@ function getPickupLabel(snapshot, pickupMethod) {
   return [snapshot.deliveryAddress, snapshot.deliveryAddressDetail].filter(Boolean).join(' ')
 }
 
-function toBookingViewModel(booking) {
+export function toBookingViewModel(booking) {
   return {
     ...booking,
     reservationNumber: booking.publicReservationCode,
@@ -56,5 +56,12 @@ export async function getMemberBookings(session) {
   return {
     profile: result.profile || null,
     bookings: Array.isArray(result.bookings) ? result.bookings.map(toBookingViewModel) : [],
+  }
+}
+
+export async function getMemberBookingDetail(session, reservationCode) {
+  const result = await fetchMemberBookingDetail(session, reservationCode)
+  return {
+    booking: toBookingViewModel(result.booking),
   }
 }

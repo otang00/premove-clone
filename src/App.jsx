@@ -10,6 +10,7 @@ import SignupPage from './pages/SignupPage'
 import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import MemberReservationsPage from './pages/MemberReservationsPage'
+import MemberReservationDetailPage from './pages/MemberReservationDetailPage'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
       <Route path="/cars" element={<CarsPage />} />
       <Route path="/cars/:carId" element={<LandingPage />} />
       <Route path="/reservations" element={<MemberReservationsPage />} />
+      <Route path="/reservations/:reservationCode" element={<MemberReservationDetailPage />} />
       <Route path="/guest-bookings" element={<GuestBookingsPage />} />
       <Route path="/reservation-complete" element={<ReservationCompletePage />} />
       <Route path="/login" element={<LoginPage />} />

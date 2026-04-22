@@ -104,6 +104,12 @@ export default function MemberReservationsPage() {
                       <div className="reservation-result-row"><span>반납일시</span><strong>{booking.display.returnAt}</strong></div>
                       <div className="reservation-result-row"><span>배차/수령</span><strong>{booking.schedule.displayPickupLabel}</strong></div>
                     </div>
+
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <Link className="btn btn-outline btn-md" to={`/reservations/${encodeURIComponent(booking.reservationNumber)}`}>
+                        예약상세 보기
+                      </Link>
+                    </div>
                   </div>
                 ))}
               </div>
