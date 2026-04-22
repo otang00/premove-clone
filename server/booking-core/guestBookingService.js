@@ -200,6 +200,10 @@ async function createGuestBooking({
     pricing_snapshot: {
       carName: car.display_name || car.name || '',
       quotedTotalAmount: bookingInput.quotedTotalAmount,
+      rentalAmount: bookingInput.rentalAmount,
+      insuranceAmount: bookingInput.insuranceAmount,
+      deliveryAmount: bookingInput.deliveryAmount,
+      finalAmount: bookingInput.finalAmount,
       paymentMethod: bookingInput.paymentMethod || null,
       customerBirth,
     },
