@@ -96,6 +96,7 @@ export default function AdminBookingConfirmPage() {
 
                 <div className="reservation-result-list">
                   <div className="reservation-result-row"><span>예약번호</span><strong>{booking.reservationNumber}</strong></div>
+                  <div className="reservation-result-row"><span>차량번호</span><strong>{booking.carNumber || '-'}</strong></div>
                   <div className="reservation-result-row"><span>예약자</span><strong>{booking.customerName}</strong></div>
                   <div className="reservation-result-row"><span>휴대폰번호</span><strong>{booking.customerPhone}</strong></div>
                   <div className="reservation-result-row"><span>생년월일</span><strong>{booking.customerBirth}</strong></div>

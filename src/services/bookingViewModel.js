@@ -89,6 +89,7 @@ export function toBookingViewModel(booking) {
   return {
     ...booking,
     reservationNumber: booking.publicReservationCode,
+    carNumber: booking.pricingSnapshot?.carNumber || '',
     ...presentation,
     pricing: {
       finalPrice: `${Number(booking.quotedTotalAmount || 0).toLocaleString('ko-KR')}원`,

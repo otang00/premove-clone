@@ -12,6 +12,7 @@ import ResetPasswordPage from './pages/ResetPasswordPage'
 import MemberReservationsPage from './pages/MemberReservationsPage'
 import MemberReservationDetailPage from './pages/MemberReservationDetailPage'
 import AdminBookingConfirmPage from './pages/AdminBookingConfirmPage'
+import AdminBookingsPage from './pages/AdminBookingsPage'
 
 export default function App() {
   return (
@@ -29,6 +30,7 @@ export default function App() {
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/admin/booking-confirm" element={<AdminBookingConfirmPage />} />
+      <Route path="/admin/bookings" element={<AdminBookingsPage />} />
       <Route path="/faq" element={<PlaceholderPage title="FAQ" />} />
       <Route path="/terms" element={<LegalPage kind="terms" />} />
       <Route path="/privacy" element={<LegalPage kind="privacy" />} />

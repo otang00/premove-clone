@@ -1,11 +1,13 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
+import { isAdminEmail } from '../utils/adminAccess'
 
 export function Header() {
   const navigate = useNavigate()
   const company = getMockCompany()
   const { isAuthenticated, profile, user, signOut } = useAuth()
+  const canAccessAdmin = isAdminEmail(user?.email || profile?.email)
 
   async function handleSignOut() {
     await signOut()
@@ -24,6 +26,7 @@ export function Header() {
           <Link to="/faq">FAQ</Link>
           {isAuthenticated ? (
             <>
+              {canAccessAdmin ? <Link to="/admin/bookings">예약관리</Link> : null}
               <span>{profile?.name || user?.email || '회원'}</span>
               <button className="footer-link-button" type="button" onClick={handleSignOut}>로그아웃</button>
             </>
