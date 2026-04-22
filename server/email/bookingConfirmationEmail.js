@@ -51,6 +51,7 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
   const confirmUrl = `${origin}/admin/booking-confirm?token=${encodeURIComponent(token)}`
   const detailUrl = `${confirmUrl}&view=detail`
   const carName = booking.pricingSnapshot?.carName || '-'
+  const carNumber = booking.pricingSnapshot?.carNumber || '-'
   const customerPhone = booking.customerPhone || booking.customerPhoneLast4 || '-'
   const paymentMethod = booking.pricingSnapshot?.paymentMethod || '확인 필요'
   const totalAmount = `${Number(booking.quotedTotalAmount || 0).toLocaleString('ko-KR')}원`
@@ -67,6 +68,7 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
     `연락처: ${customerPhone}`,
     `생년월일: ${booking.customerBirth || '-'}`,
     `차량명: ${carName}`,
+    `차량 번호: ${carNumber}`,
     `대여일시: ${formatLocalDateTime(booking.pickupAt)}`,
     `반납일시: ${formatLocalDateTime(booking.returnAt)}`,
     `배차/수령: ${booking.pickupLocationSnapshot?.pickupOption === 'delivery'
@@ -110,6 +112,7 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
               ['연락처', customerPhone],
               ['생년월일', booking.customerBirth || '-'],
               ['차량명', carName],
+              ['차량 번호', carNumber],
               ['대여일시', formatLocalDateTime(booking.pickupAt)],
               ['반납일시', formatLocalDateTime(booking.returnAt)],
               ['배차/수령', booking.pickupLocationSnapshot?.pickupOption === 'delivery'

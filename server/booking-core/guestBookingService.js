@@ -200,6 +200,7 @@ async function createGuestBooking({
     quoted_total_amount: bookingInput.quotedTotalAmount,
     pricing_snapshot: {
       carName: car.display_name || car.name || '',
+      carNumber: car.car_number || '',
       quotedTotalAmount: bookingInput.quotedTotalAmount,
       rentalAmount: bookingInput.rentalAmount,
       insuranceAmount: bookingInput.insuranceAmount,
