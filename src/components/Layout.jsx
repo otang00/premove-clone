@@ -3,11 +3,14 @@ import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
 import { isAdminEmail } from '../utils/adminAccess'
 
-export function Header() {
+export function Header({ variant = 'default', brandName, showGuestBookingAction = false } = {}) {
   const navigate = useNavigate()
   const company = getMockCompany()
   const { isAuthenticated, profile, user, signOut } = useAuth()
   const canAccessAdmin = isAdminEmail(user?.email || profile?.email)
+  const resolvedBrandName = brandName || company.name
+  const displayIdentity = profile?.name || user?.email || '회원'
+  const isLanding = variant === 'landing'
 
   async function handleSignOut() {
     await signOut()
@@ -15,27 +18,42 @@ export function Header() {
   }
 
   return (
-    <header className="header">
-      <div className="container header-inner slim header-three-col">
-        <Link className="logo logo-image" to="/" aria-label={company.name}>
-          <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo header-logo" />
+    <header className={`header app-header ${isLanding ? 'is-landing' : 'is-default'}`}>
+      <div className="container app-header__inner">
+        <Link className="app-header__brand" to="/" aria-label={resolvedBrandName}>
+          {isLanding ? (
+            <img src="/bbang-wordmark.png" alt={resolvedBrandName} className="app-header__wordmark" />
+          ) : (
+            <>
+              <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="app-header__logo" />
+              <span className="app-header__title">{resolvedBrandName}</span>
+            </>
+          )}
         </Link>
-        <Link className="header-title" to="/">{company.name}</Link>
-        <nav className="nav small header-nav-right">
-          <Link to="/reservations">예약내역</Link>
-          <Link to="/faq">FAQ</Link>
+
+        <nav className="app-header__nav" aria-label="주요 메뉴">
+          <div className="app-header__menu">
+            <Link className="app-header__link" to="/reservations">예약내역</Link>
+            {showGuestBookingAction && !isAuthenticated ? (
+              <Link className="app-header__button is-soft" to="/guest-bookings">비회원 예약조회</Link>
+            ) : null}
+          </div>
+
+          <div className="app-header__menu app-header__menu--auth">
+            <Link className="app-header__link" to="/faq">FAQ</Link>
           {isAuthenticated ? (
             <>
-              {canAccessAdmin ? <Link to="/admin/bookings">예약관리</Link> : null}
-              <span>{profile?.name || user?.email || '회원'}</span>
-              <button className="footer-link-button" type="button" onClick={handleSignOut}>로그아웃</button>
+              {canAccessAdmin ? <Link className="app-header__button is-soft" to="/admin/bookings">예약관리</Link> : null}
+              <span className="app-header__identity" title={displayIdentity}>{displayIdentity}</span>
+              <button className="app-header__button" type="button" onClick={handleSignOut}>로그아웃</button>
             </>
           ) : (
             <>
-              <Link to="/login">로그인</Link>
-              <Link to="/signup">회원가입</Link>
+              <Link className="app-header__link" to="/login">로그인</Link>
+              <Link className="app-header__button" to="/signup">회원가입</Link>
             </>
           )}
+          </div>
         </nav>
       </div>
     </header>

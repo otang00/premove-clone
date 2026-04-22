@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import { useLocation, useParams } from 'react-router-dom'
-import { Footer } from '../components/Layout'
-import BrandHeader from '../components/BrandHeader'
+import { Footer, Header } from '../components/Layout'
 import CarDetailSection from '../components/CarDetailSection'
 import ContactInfoStrip from '../components/ContactInfoStrip'
 import HeroShowcase from '../components/HeroShowcase'
@@ -20,7 +19,7 @@ export default function LandingPage() {
 
   return (
     <div className="page-shell landing-shell">
-      <BrandHeader brandName="빵빵카 주식회사" />
+      <Header variant="landing" brandName="빵빵카 주식회사" showGuestBookingAction />
 
       <main className="landing-page">
         <HeroShowcase {...landingHero} />
