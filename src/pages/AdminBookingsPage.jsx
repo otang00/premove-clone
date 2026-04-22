@@ -194,11 +194,11 @@ export default function AdminBookingsPage() {
 
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                         <Link className="btn btn-outline btn-md" to={item.detailPath || '/admin/booking-confirm'}>
-                          상세 보기
+                          상세 확인
                         </Link>
                         {item.canConfirm ? (
                           <Link className="btn btn-dark btn-md" to={item.detailPath || '/admin/booking-confirm'}>
-                            예약 확정
+                            상세에서 확정
                           </Link>
                         ) : null}
                       </div>

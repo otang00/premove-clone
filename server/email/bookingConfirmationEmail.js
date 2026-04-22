@@ -57,7 +57,7 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
   const totalAmount = `${Number(booking.quotedTotalAmount || 0).toLocaleString('ko-KR')}원`
 
   const subject = `[00렌트카] 예약 확정 대기 ${booking.publicReservationCode}`
-  const previewText = '신규 예약이 접수되었습니다. 결제 확인 후 예약을 확정해 주세요.'
+  const previewText = '신규 예약이 접수되었습니다. 관리자 로그인 후 결제 확인 뒤 예약을 확정해 주세요.'
 
   const text = [
     '예약 확정 대기 알림',
@@ -78,9 +78,10 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
     `결제수단: ${paymentMethod}`,
     '',
     '아직 고객 예약은 확정 대기 상태입니다.',
-    '결제 확인 후 아래 링크에서 예약을 확정해 주세요.',
-    `예약확정: ${confirmUrl}`,
-    `관리자 상세 보기: ${detailUrl}`,
+    '아래 링크는 관리자 로그인 후 사용할 수 있습니다.',
+    '로그인 후 상세 페이지에서 결제 확인 뒤 예약을 확정해 주세요.',
+    `관리자 상세 확인: ${detailUrl}`,
+    `관리자 로그인 후 확정 링크: ${confirmUrl}`,
   ].join('\n')
 
   const html = `
@@ -90,7 +91,7 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
         <div style="margin-bottom:20px;">
           <div style="font-size:12px;font-weight:700;color:#c2410c;background:#fff7ed;display:inline-block;padding:6px 10px;border-radius:999px;">확정 대기</div>
           <h1 style="margin:14px 0 8px;font-size:24px;line-height:1.3;">예약 확정 대기 알림</h1>
-          <p style="margin:0;color:#475569;line-height:1.6;">신규 예약이 접수되었습니다. 결제 확인 후 예약을 확정해 주세요.</p>
+          <p style="margin:0;color:#475569;line-height:1.6;">신규 예약이 접수되었습니다. 관리자 로그인 후 결제 확인 뒤 예약을 확정해 주세요.</p>
         </div>
 
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:20px;">
@@ -130,12 +131,12 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
         </table>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;">
-          <a href="${confirmUrl}" style="background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;display:inline-block;">예약확정</a>
-          <a href="${detailUrl}" style="background:#ffffff;color:#111827;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;display:inline-block;border:1px solid #d1d5db;">관리자 상세 보기</a>
+          <a href="${detailUrl}" style="background:#111827;color:#ffffff;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;display:inline-block;">관리자 상세 확인</a>
+          <a href="${confirmUrl}" style="background:#ffffff;color:#111827;text-decoration:none;padding:12px 18px;border-radius:10px;font-weight:700;display:inline-block;border:1px solid #d1d5db;">관리자 로그인 후 확정</a>
         </div>
 
         <p style="margin:0 0 8px;color:#475569;line-height:1.6;">아직 고객 예약은 확정 대기 상태입니다.</p>
-        <p style="margin:0;color:#475569;line-height:1.6;">이미 처리된 예약이면 현재 상태를 다시 보여주고 중복 확정은 막습니다.</p>
+        <p style="margin:0;color:#475569;line-height:1.6;">이미 처리된 예약이면 현재 상태를 다시 보여주고 중복 확정은 막습니다. 관리자 로그인 세션이 없으면 상세 확인과 확정이 제한됩니다.</p>
       </div>
     </div>
   `
