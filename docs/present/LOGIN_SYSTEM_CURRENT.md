@@ -110,8 +110,9 @@
 
 현재 권장:
 - 1차는 `profiles` 를 도입한다.
-- 예약 연결은 `booking_orders.user_id nullable` 추가 또는 별도 연결 테이블 도입 중 하나를 Phase 1 에서 확정한다.
-- 연결 규칙이 복잡해지면 별도 연결 테이블로 확장한다.
+- 예약 연결은 1차 구현에서 `booking_orders.user_id nullable` 로 고정한다.
+- 비회원 예약은 `user_id = null` 로 유지한다.
+- 연결 규칙이 복잡해지면 이후 별도 연결 테이블로 확장한다.
 
 ---
 
@@ -306,6 +307,96 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 
 ---
 
+## 5.1 실제 실행 준비 기준
+
+### 현재 준비 완료 상태
+- Supabase client 뼈대 준비 완료
+- AuthContext 및 `useAuth` 준비 완료
+- `/login` 뼈대 페이지 준비 완료
+- `.env.example` 추가 완료
+- 준비 상태 기준 커밋 완료
+
+### 실제 구현 시작 순서
+1. Phase 3, 로그인/회원가입 UI 실제 동작 부착
+2. Phase 4, 비밀번호 재설정 경로 부착
+3. Phase 5, 헤더 로그인 상태 반영
+4. Phase 6, 보호 API 구현
+5. 회원 예약내역 페이지 연결
+
+### phase별 실제 실행 방식
+
+#### Phase 3 실행 방식
+- 범위 고정
+  - `/login`, `/signup` 만 실제 동작으로 전환
+  - 이메일 + 비밀번호 로그인, 회원가입만 먼저 구현
+- 수정
+  - `src/pages/LoginPage.jsx` 에 입력 상태와 submit 처리 추가
+  - `src/pages/SignupPage.jsx` 신규 생성
+  - `src/lib/supabaseClient.js` 사용해 `signInWithPassword`, `signUp` 연결
+  - 성공 시 `/reservations` 또는 직전 의도 경로로 이동
+- 검증
+  - 회원가입 성공
+  - 로그인 성공
+  - 실패 메시지 노출
+- commit
+  - `feat(auth): add email password sign in and sign up`
+
+#### Phase 4 실행 방식
+- 범위 고정
+  - 비밀번호 재설정 링크 발송과 재설정 완료 경로만 구현
+- 수정
+  - 비밀번호 재설정 요청 페이지 또는 `/login` 내 보조 흐름 추가
+  - 재설정 완료용 페이지와 라우트 추가
+  - Supabase `resetPasswordForEmail`, `updateUser` 연결
+- 검증
+  - 재설정 링크 발송 성공
+  - 새 비밀번호 저장 후 재로그인 성공
+- commit
+  - `feat(auth): add password reset flow`
+
+#### Phase 5 실행 방식
+- 범위 고정
+  - 헤더 상태 분기와 로그아웃만 우선 반영
+- 수정
+  - `src/components/BrandHeader.jsx`
+  - `src/components/Layout.jsx`
+  - 로그인 시 `로그인/회원가입` 대신 `예약내역/로그아웃` 노출
+- 검증
+  - 로그인 직후 헤더 반영
+  - 로그아웃 직후 헤더 반영
+- commit
+  - `feat(auth): reflect auth state in header`
+
+#### Phase 6 실행 방식
+- 범위 고정
+  - `/api/auth/me`
+  - `/api/member/bookings`
+  - 공통 토큰 검증 helper
+- 수정
+  - `server/auth/getAccessTokenFromRequest.js`
+  - `server/auth/getUserFromAccessToken.js`
+  - `api/auth/me.js`
+  - `api/member/bookings.js`
+- 검증
+  - 토큰 없음 401
+  - 잘못된 토큰 401
+  - 올바른 토큰 200
+  - 로그인 사용자 본인 예약만 반환
+- commit
+  - `feat(auth): add protected member api`
+
+#### 회원 예약내역 연결 실행 방식
+- 범위 고정
+  - `booking_orders.user_id nullable` 기준으로 회원 예약 조회만 우선 연결
+- 수정
+  - `/reservations` 페이지를 placeholder 에서 실제 회원 예약내역 페이지로 교체
+  - 로그인 상태 예약 생성 경로에서 `user_id` 저장 준비
+- 검증
+  - 비회원 조회 페이지 영향 없음
+  - 로그인 사용자는 본인 예약만 조회
+- commit
+  - `feat(member): add reservations page for authenticated user`
+
 ## 6. 구현 세부 기준
 
 ### 6.1 세션 처리
@@ -328,9 +419,9 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
   - `updated_at`
 
 ### 6.3 예약 연결
-- 로그인 상태 예약 생성 시 예약과 회원 계정 연결이 가능해야 한다.
-- 비회원 예약은 연결 없이 유지한다.
-- `booking_orders.user_id nullable` 추가 또는 별도 연결 테이블 도입 중 하나를 Phase 1 에서 확정한다.
+- 로그인 상태 예약 생성 시 `booking_orders.user_id` 에 회원 id 를 저장한다.
+- 비회원 예약은 `user_id = null` 로 유지한다.
+- 1차 구현은 `booking_orders.user_id nullable` 기준으로 진행한다.
 - 사후 연결 시에만 기존 비회원 예약을 귀속 처리한다.
 
 ### 6.4 데이터 접근 원칙
@@ -399,6 +490,7 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 - 기본 로그인은 **이메일 + 비밀번호** 로 간다.
 - 비밀번호 분실은 **재설정 링크**로 처리한다.
 - 매직링크는 현재 범위에서 제외하고 후순위로 둔다.
+- 예약-회원 연결은 **`booking_orders.user_id nullable`** 로 간다.
 - 실행 순서는 아래로 잠근다.
   1. Auth 골격
   2. 로그인/회원가입 UI

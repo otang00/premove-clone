@@ -228,8 +228,8 @@
 - 보관: 고객정보, 결제상태, 우리 서비스 상태, 조회 노출 기준
 - 로그인 연동 기준:
   - 예약 원장은 계속 `booking_orders` 다.
-  - 회원 연결은 `booking_orders.user_id nullable` 추가 또는 별도 연결 테이블 도입 중 하나를 Phase 1 에서 확정한다.
-  - 로그인 회원 예약만 `user_id` 연결 가능하고 비회원 예약은 연결 없이 유지한다.
+  - 1차 구현은 `booking_orders.user_id nullable` 기준으로 진행한다.
+  - 로그인 회원 예약만 `user_id` 연결 가능하고 비회원 예약은 `user_id = null` 로 유지한다.
   - 기존 비회원 예약의 회원 귀속은 사후 연결 정책으로만 처리한다.
 
 #### B-2. member-owned
@@ -256,17 +256,16 @@
 ### 먼저 결정할 것
 1. 현재 `reservations` 를 유지할지, `ims_sync_reservations` 로 명확히 분리할지
 2. 자체 예약 원장 테이블명을 `booking_orders` 로 할지
-3. `booking_orders` 와 회원 계정을 어떤 방식으로 연결할지 (`user_id nullable` 또는 별도 연결 테이블)
-4. `profiles` 최소 컬럼과 생성 시점
-5. public 예약번호 규칙
-6. 비회원 조회키 규칙
-7. tombstone / archival 규칙
-8. 테스트데이터 분리 방식
+3. `profiles` 최소 컬럼과 생성 시점
+4. public 예약번호 규칙
+5. 비회원 조회키 규칙
+6. tombstone / archival 규칙
+7. 테스트데이터 분리 방식
 
 ### 권장 실행 순서
 1. 운영/테스트 데이터 분리
 2. sync-owned / local-owned 역할 분리
-3. `profiles` 및 회원 연결 방식 잠금
+3. `profiles` 기준 잠금
 4. mapping 테이블 도입
 5. 비회원 조회용 공개 예약번호와 조회키 도입
 6. 상태 이벤트 로그 도입
@@ -293,11 +292,10 @@
 ### 구현 전 선행 검증 질문
 1. 우리 자체 예약 생성 시점은 결제 전인가 결제 완료 후인가
 2. IMS 생성 시점은 결제 승인 직후인가 운영 확정 후인가
-3. 회원 연결은 `booking_orders.user_id nullable` 인가 별도 연결 테이블인가
-4. `profiles` 는 최초 로그인 성공 시 upsert 인가 별도 onboarding 생성인가
-5. `public_reservation_code` 를 사람이 읽는 예약번호로 쓸지 여부
-6. 비회원 조회 인증을 `예약번호 + 휴대폰` 조합으로 갈지, 토큰 방식 병행할지
-7. 취소/환불 주도권을 우리 시스템이 가질지 IMS가 가질지
+3. `profiles` 는 최초 로그인 성공 시 upsert 인가 별도 onboarding 생성인가
+4. `public_reservation_code` 를 사람이 읽는 예약번호로 쓸지 여부
+5. 비회원 조회 인증을 `예약번호 + 휴대폰` 조합으로 갈지, 토큰 방식 병행할지
+6. 취소/환불 주도권을 우리 시스템이 가질지 IMS가 가질지
 
 ### 다음 문서 작업의 종료 조건
 - DB 구조 설계안에서 테이블 책임이 겹치지 않음
@@ -318,10 +316,9 @@
 1. `sync-owned` 테이블 책임 확정
 2. `local-owned` 예약 원장 책임 확정
 3. 회원용 `profiles` 책임과 생성 시점 확정
-4. 예약-회원 연결 방식 확정
-5. 조회 인증용 키 저장 구조 확정
-6. 상태 이벤트 이력 구조 확정
-7. IMS 및 외부 시스템 매핑 구조 확정
+4. 조회 인증용 키 저장 구조 확정
+5. 상태 이벤트 이력 구조 확정
+6. IMS 및 외부 시스템 매핑 구조 확정
 
 ### Phase 1 산출물
 - 테이블별 역할 정의
@@ -334,17 +331,16 @@
 
 ### Phase 1에서 잠글 최소 질문
 1. `booking_orders` 생성 시점은 결제 전인지 결제 승인 직후인지
-2. 예약-회원 연결은 `booking_orders.user_id nullable` 로 갈지 별도 연결 테이블로 갈지
-3. `profiles` 는 최초 로그인 성공 시 upsert 할지 별도 onboarding 시점에 만들지
-4. `public_reservation_code` 를 주문 생성 즉시 발급할지 결제 성공 후 발급할지
-5. 비회원 조회 기본 인증을 `예약번호 + 휴대폰 뒤4자리` 로 시작할지
-6. IMS 전송 실패 시 local 상태를 어떻게 보류할지
-7. `shadow-seed` 를 별도 테이블로 뺄지 별도 환경으로 격리할지
+2. `profiles` 는 최초 로그인 성공 시 upsert 할지 별도 onboarding 시점에 만들지
+3. `public_reservation_code` 를 주문 생성 즉시 발급할지 결제 성공 후 발급할지
+4. 비회원 조회 기본 인증을 `예약번호 + 휴대폰 뒤4자리` 로 시작할지
+5. IMS 전송 실패 시 local 상태를 어떻게 보류할지
+6. `shadow-seed` 를 별도 테이블로 뺄지 별도 환경으로 격리할지
 
 ### Phase 1 완료 기준
 - 예약 원장 테이블 1개가 source of truth 로 명확히 잠김
 - `reservations` 또는 `ims_sync_reservations` 가 sync cache 성격으로 분리됨
 - 회원용 `profiles` 테이블 책임과 생성 시점이 잠김
-- 예약-회원 연결 방식이 잠김
+- `booking_orders.user_id nullable` 기준이 잠김
 - 비회원 예약조회에 필요한 최소 키 구조가 정의됨
 - 결제 성공, 취소, 환불, IMS 반영 실패 시 상태 분기 규칙이 초안 수준으로라도 고정됨
