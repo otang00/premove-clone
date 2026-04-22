@@ -17,21 +17,23 @@ export function Header({ brandName, showGuestBookingAction = true } = {}) {
     <header className="header app-header">
       <div className="container app-header__inner">
         <Link className="app-header__brand" to="/" aria-label={resolvedBrandName}>
-          <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="app-header__logo" />
-          <span className="app-header__title">{resolvedBrandName}</span>
+          <img src="/bbang-wordmark.png" alt={resolvedBrandName} className="app-header__wordmark" />
         </Link>
 
         <nav className="app-header__nav" aria-label="주요 메뉴">
           <div className="app-header__menu app-header__menu--auth">
           {isAuthenticated ? (
             <>
+              {showGuestBookingAction ? (
+                <Link className="app-header__button is-soft" to="/guest-bookings">비회원 예약조회</Link>
+              ) : null}
               <button className="app-header__button" type="button" onClick={handleSignOut}>로그아웃</button>
             </>
           ) : (
             <>
-              <Link className="app-header__link" to="/login">로그인</Link>
+              <Link className="app-header__button is-soft" to="/login">로그인</Link>
               {showGuestBookingAction ? (
-                <Link className="app-header__button is-soft" to="/guest-bookings">비회원 예약조회</Link>
+                <Link className="app-header__button" to="/guest-bookings">비회원 예약조회</Link>
               ) : null}
             </>
           )}
