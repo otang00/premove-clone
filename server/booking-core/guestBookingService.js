@@ -107,20 +107,21 @@ async function findBookingOrderByGuestLookup({
     return acc
   }, {})
 
-  const matchedOrder = matchedOrders.find((order) => {
+  const exactMatches = matchedOrders.filter((order) => {
     const keys = keyIndex[order.id] || {}
     return keys.customer_phone === phoneHash && keys.customer_birth === birthHash
-  }) || null
+  })
 
-  if (!matchedOrder) {
+  if (exactMatches.length === 0) {
     return { order: null, blockedReason: null }
   }
 
-  if (matchedOrder.user_id) {
-    return { order: null, blockedReason: 'member_booking_only' }
+  const guestOrder = exactMatches.find((order) => !order.user_id) || null
+  if (guestOrder) {
+    return { order: guestOrder, blockedReason: null }
   }
 
-  return { order: matchedOrder, blockedReason: null }
+  return { order: null, blockedReason: 'member_booking_only' }
 }
 
 async function fetchBookingOrderByGuestLookup(params = {}) {
