@@ -1,12 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
+import { isAdminEmail } from '../utils/adminAccess'
 
 export function Header({ brandName, showGuestBookingAction = true } = {}) {
   const navigate = useNavigate()
   const company = getMockCompany()
-  const { isAuthenticated, signOut } = useAuth()
+  const { isAuthenticated, signOut, user, profile } = useAuth()
   const resolvedBrandName = brandName || company.name
+  const accountEmail = user?.email || profile?.email || ''
+  const isAdmin = isAuthenticated && isAdminEmail(accountEmail)
 
   async function handleSignOut() {
     await signOut()
@@ -24,9 +27,9 @@ export function Header({ brandName, showGuestBookingAction = true } = {}) {
           <div className="app-header__menu app-header__menu--auth">
           {isAuthenticated ? (
             <>
-              {showGuestBookingAction ? (
-                <Link className="app-header__button is-soft" to="/guest-bookings">비회원 예약조회</Link>
-              ) : null}
+              <Link className="app-header__button is-soft" to={isAdmin ? '/admin/bookings' : '/reservations'}>
+                {isAdmin ? '관리자 예약목록' : '예약목록'}
+              </Link>
               <button className="app-header__button" type="button" onClick={handleSignOut}>로그아웃</button>
             </>
           ) : (
