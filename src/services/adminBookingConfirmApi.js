@@ -1,0 +1,30 @@
+import { parseApiResponse } from '../utils/apiResponse'
+import { toBookingViewModel } from './bookingViewModel'
+
+export async function fetchAdminBookingConfirm(token) {
+  const response = await fetch(`/api/admin/booking-confirm?token=${encodeURIComponent(token)}`, {
+    method: 'GET',
+  })
+
+  const result = await parseApiResponse(response, '예약 확인 정보를 불러오지 못했습니다.')
+  return {
+    booking: toBookingViewModel(result.booking),
+  }
+}
+
+export async function confirmAdminBooking(token) {
+  const response = await fetch('/api/admin/booking-confirm', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ token }),
+  })
+
+  const result = await parseApiResponse(response, '예약 확정에 실패했습니다.')
+  return {
+    booking: toBookingViewModel(result.booking),
+    alreadyProcessed: Boolean(result.alreadyProcessed),
+    message: result.message || '',
+  }
+}
