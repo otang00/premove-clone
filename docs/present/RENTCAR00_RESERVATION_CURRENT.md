@@ -286,6 +286,13 @@
 - 즉, 회원 연결은 `booking_orders.user_id` 로 추가하고, guest lookup 축은 `booking_lookup_keys` 기반을 유지한다.
 - 기존 비회원 예약을 회원 계정으로 귀속시키는 작업은 별도 후속 phase 로 남긴다.
 
+### 다음 실구현 phase
+1. 예약 생성 API 에 로그인 access token 전달
+2. 서버에서 token 사용자 확인 후 `booking_orders.user_id` 저장
+3. 회원 예약 생성 직후 `/reservations` 노출 검증
+4. 비회원 예약 생성/조회/취소 회귀 검증
+5. 비회원 예약 사후 귀속 규칙 설계 잠금
+
 ---
 
 ## 9. 지금부터의 직접 실행 범위

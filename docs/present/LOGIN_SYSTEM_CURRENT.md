@@ -349,6 +349,9 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 3. Phase 5, 헤더 로그인 상태 반영
 4. Phase 6, 보호 API 구현
 5. 회원 예약내역 페이지 연결
+6. Phase 7, 예약 생성 시 회원 `user_id` 연결
+7. Phase 8, 회원/비회원 예약 흐름 회귀 검증
+8. Phase 9, 비회원 예약 사후 연결 설계 잠금
 
 ### phase별 실제 실행 방식
 
@@ -424,6 +427,52 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 - commit
   - `feat(member): add reservations page for authenticated user`
 
+#### Phase 7 실행 방식
+- 범위 고정
+  - 현재 예약 생성 흐름에 로그인 회원 연결만 추가
+  - 비회원 생성 및 비회원 조회 구조는 유지
+- 수정
+  - `src/components/CarDetailSection.jsx`
+  - `src/services/guestBookingApi.js`
+  - `api/guest-bookings/create.js`
+  - `server/booking-core/guestBookingService.js`
+  - 필요 시 공통 auth helper 재사용
+- 구현 기준
+  - 로그인 세션이 있으면 access token 을 예약 생성 API 로 전달
+  - 서버는 token 사용자 확인 후 `booking_orders.user_id` 저장
+  - token 이 없으면 기존 비회원 생성 흐름 그대로 유지
+- 검증
+  - 로그인 상태 예약 생성 시 `/reservations` 에 즉시 노출
+  - 비회원 예약 생성 시 `user_id = null` 유지
+  - 비회원 예약완료/조회/취소 흐름 비영향
+- commit
+  - `feat(member): connect booking creation to authenticated user`
+
+#### Phase 8 실행 방식
+- 범위 고정
+  - 회원/비회원 흐름 회귀 검증과 필요한 작은 보정만 수행
+- 수정
+  - 검증 중 발견되는 최소 범위 보정 파일만 수정
+- 검증
+  - 회원 예약 생성 → 회원 예약내역 확인
+  - 비회원 예약 생성 → 예약완료 페이지 확인
+  - 비회원 조회 및 취소 확인
+  - 비로그인 `/reservations` 접근 시 로그인 유도 확인
+- commit
+  - `fix(auth): stabilize member and guest booking flows`
+
+#### Phase 9 실행 방식
+- 범위 고정
+  - 기존 비회원 예약을 회원 계정으로 귀속시키는 규칙만 설계
+  - 실제 연결 기능 구현은 제외
+- 수정
+  - `docs/present/LOGIN_SYSTEM_CURRENT.md`
+  - 필요 시 예약 구조 문서
+- 검증
+  - 연결 기준, 인증 기준, 운영 예외 기준을 문장으로 설명 가능
+- commit
+  - `docs(member): lock guest booking link-back rules`
+
 ## 6. 구현 세부 기준
 
 ### 6.1 세션 처리
@@ -498,6 +547,22 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 - `/reservations` 실제 회원 페이지 진입 가능
 - 비회원 예약 조회 흐름 비영향
 - 예약 데이터 노출 범위 과다 없음
+
+## Phase 7 검증
+- 로그인 상태 예약 생성 시 `booking_orders.user_id` 저장
+- 회원 예약 생성 직후 `/reservations` 에 노출
+- 비회원 예약 생성 시 `user_id = null` 유지
+- 기존 guest lookup 흐름 비영향
+
+## Phase 8 검증
+- 회원 예약 생성/조회 흐름 정상
+- 비회원 예약 생성/조회/취소 흐름 정상
+- 인증 경계 혼선 없음
+- 회원 예약이 비회원 조회에 과다 노출되지 않음
+
+## Phase 9 검증
+- 비회원 예약 사후 귀속 기준이 문서상 잠김
+- 자동 연결과 수동 연결 기준이 분리 설명 가능
 
 ---
 
