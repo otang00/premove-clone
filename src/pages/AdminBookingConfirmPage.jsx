@@ -1,16 +1,21 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
-import { confirmAdminBooking, fetchAdminBookingConfirm } from '../services/adminBookingConfirmApi'
+import { useAuth } from '../hooks/useAuth'
+import { cancelAdminBooking, confirmAdminBooking, fetchAdminBookingConfirm } from '../services/adminBookingConfirmApi'
+import { isAdminEmail } from '../utils/adminAccess'
 
 export default function AdminBookingConfirmPage() {
   const [searchParams] = useSearchParams()
   const token = searchParams.get('token') || ''
+  const { session, user, profile } = useAuth()
   const [booking, setBooking] = useState(null)
   const [fetching, setFetching] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [resultMessage, setResultMessage] = useState('')
+  const adminEmail = user?.email || profile?.email || ''
+  const hasAdminHint = useMemo(() => isAdminEmail(adminEmail), [adminEmail])
 
   useEffect(() => {
     let ignore = false
@@ -57,6 +62,25 @@ export default function AdminBookingConfirmPage() {
       setError('')
     } catch (confirmError) {
       setError(confirmError.message || '예약 확정에 실패했습니다.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleCancel() {
+    if (!token || !booking?.canCancel || submitting || !session?.access_token || !hasAdminHint) return
+
+    const confirmed = window.confirm('이 예약을 취소하시겠습니까?')
+    if (!confirmed) return
+
+    setSubmitting(true)
+    try {
+      const result = await cancelAdminBooking(session, token)
+      setBooking(result.booking)
+      setResultMessage('예약이 취소되었습니다.')
+      setError('')
+    } catch (cancelError) {
+      setError(cancelError.message || '예약 취소에 실패했습니다.')
     } finally {
       setSubmitting(false)
     }
@@ -114,6 +138,12 @@ export default function AdminBookingConfirmPage() {
                   {submitting ? '처리 중' : '예약 확정'}
                 </button>
               ) : null}
+              {hasAdminHint && booking?.canCancel ? (
+                <button className="btn btn-outline btn-md" type="button" onClick={handleCancel} disabled={submitting || fetching}>
+                  {submitting ? '처리 중' : '예약 취소'}
+                </button>
+              ) : null}
+              <Link className="btn btn-outline btn-md" to="/admin/bookings">관리자 예약목록</Link>
               <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
             </div>
           </article>

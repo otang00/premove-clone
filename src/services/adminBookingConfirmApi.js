@@ -28,3 +28,24 @@ export async function confirmAdminBooking(token) {
     message: result.message || '',
   }
 }
+
+export async function cancelAdminBooking(session, token, payload = {}) {
+  const accessToken = session?.access_token
+  const response = await fetch('/api/admin/booking-cancel', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify({
+      token,
+      reason: payload.reason || '',
+    }),
+  })
+
+  const result = await parseApiResponse(response, '예약 취소에 실패했습니다.')
+  return {
+    booking: toBookingViewModel(result.booking),
+    mapping: result.mapping || null,
+  }
+}
