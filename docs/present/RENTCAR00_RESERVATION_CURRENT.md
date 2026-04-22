@@ -238,6 +238,8 @@
 - 기준키: `id = auth.users.id`
 - 최소 역할: 이름, 연락처, 동의 상태, 생성/수정 시각 보관
 - 원칙: 인증 원본은 Supabase Auth 이고 서비스용 표시 데이터만 `profiles` 에 둔다.
+- 현재 상태: 테이블 추가 완료
+- 현재 최소 컬럼: `id`, `email`, `name`, `phone`, `marketing_agree`, `created_at`, `updated_at`
 
 #### C. lookup/security
 - `booking_lookup_keys`
@@ -277,6 +279,12 @@
 지금 가장 먼저 할 일은 로그인이나 조회 UI가 아니라,
 **IMS sync read model 과 우리 예약 원장을 분리하는 DB 구조 잠금**이다.
 이게 끝나야 비회원 예약, 결제, 조회, 로그인 기능이 안 꼬인다.
+
+### 다음 진행 준비 메모
+- 다음 실제 연결 작업은 예약 생성 시 로그인 세션이 있으면 `booking_orders.user_id` 를 저장하는 것이다.
+- 이때도 비회원 예약 생성과 비회원 예약조회 구조는 그대로 유지한다.
+- 즉, 회원 연결은 `booking_orders.user_id` 로 추가하고, guest lookup 축은 `booking_lookup_keys` 기반을 유지한다.
+- 기존 비회원 예약을 회원 계정으로 귀속시키는 작업은 별도 후속 phase 로 남긴다.
 
 ---
 
@@ -343,4 +351,5 @@
 - 회원용 `profiles` 테이블 책임과 생성 시점이 잠김
 - `booking_orders.user_id nullable` 기준이 잠김
 - 비회원 예약조회에 필요한 최소 키 구조가 정의됨
+- 회원 연결 이후에도 비회원 예약조회 구조가 유지됨
 - 결제 성공, 취소, 환불, IMS 반영 실패 시 상태 분기 규칙이 초안 수준으로라도 고정됨

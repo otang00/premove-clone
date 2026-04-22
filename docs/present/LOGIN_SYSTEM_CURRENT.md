@@ -330,6 +330,19 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 - 비밀번호 재설정 경로가 없으면 로그인 실패 사용자가 복구되지 않는다.
 - 헤더 로그인 상태 반영이 없으면 세션과 UI 가 어긋난다.
 
+### 현재 반영 완료된 구조 메모
+- `profiles` 테이블은 추가 완료되었고 기준키는 `profiles.id = auth.users.id` 다.
+- 최소 컬럼은 `id`, `email`, `name`, `phone`, `marketing_agree`, `created_at`, `updated_at` 다.
+- `booking_orders.user_id` nullable 컬럼도 추가 완료되었다.
+- 현재 회원 예약내역 API 와 `profiles` upsert 는 이 구조를 기준으로 동작한다.
+
+### 다음 작업 확인사항
+- 예약 생성 시 로그인 세션이 있으면 `booking_orders.user_id` 저장을 실제로 연결해야 한다.
+- 비회원 예약 생성 시에는 계속 `booking_orders.user_id = null` 로 유지해야 한다.
+- 비회원 예약조회는 기존 `booking_lookup_keys + 이름/휴대폰/생년월일` 구조를 유지한다.
+- 회원 예약조회 추가가 비회원 예약조회 API 와 화면 흐름을 깨지 않는지 다시 검증한다.
+- 비회원 예약을 나중에 회원 계정으로 귀속시키는 사후 연결 정책은 별도 phase 로 유지한다.
+
 ### 실제 구현 시작 순서
 1. Phase 3, 로그인/회원가입 UI 실제 동작 부착
 2. Phase 4, 비밀번호 재설정 경로 부착
@@ -436,6 +449,7 @@ placeholder 인 `/login`, `/signup` 을 실제 동작 페이지로 바꾼다.
 - 로그인 상태 예약 생성 시 `booking_orders.user_id` 에 회원 id 를 저장한다.
 - 비회원 예약은 `user_id = null` 로 유지한다.
 - 1차 구현은 `booking_orders.user_id nullable` 기준으로 진행한다.
+- 회원 예약조회 추가와 무관하게 비회원 예약조회는 기존 guest lookup 구조를 그대로 유지한다.
 - 사후 연결 시에만 기존 비회원 예약을 귀속 처리한다.
 
 ### 6.4 데이터 접근 원칙
