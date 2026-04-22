@@ -116,7 +116,6 @@ export default function MemberReservationsPage() {
             ) : null}
 
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Link className="btn btn-outline btn-md" to="/guest-bookings">비회원 예약조회</Link>
               <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
             </div>
           </article>

@@ -30,7 +30,7 @@ export async function fetchMemberBookings(session) {
 }
 
 export async function fetchMemberBookingDetail(session, reservationCode) {
-  const response = await fetch(`/api/member/bookings/${encodeURIComponent(reservationCode)}`, {
+  const response = await fetch(`/api/member/bookings?reservationCode=${encodeURIComponent(reservationCode)}`, {
     method: 'GET',
     headers: {
       ...getAuthorizationHeaders(session),
@@ -41,7 +41,7 @@ export async function fetchMemberBookingDetail(session, reservationCode) {
 }
 
 export async function cancelMemberBooking(session, reservationCode, payload = {}) {
-  const response = await fetch(`/api/member/bookings/${encodeURIComponent(reservationCode)}/cancel`, {
+  const response = await fetch(`/api/member/bookings?reservationCode=${encodeURIComponent(reservationCode)}&action=cancel`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

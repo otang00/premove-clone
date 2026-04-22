@@ -5,10 +5,11 @@ const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenF
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { ensureProfileForUser, serializeProfile } = require('../../server/auth/ensureProfileForUser')
 const { serializeBookingOrder } = require('../../server/booking-core/guestBookingUtils')
+const { cancelMemberBooking, fetchBookingOrderByMemberReservationCode } = require('../../server/booking-core/guestBookingService')
 
 module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET')
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST')
     return res.status(405).json({ error: 'method_not_allowed' })
   }
 
@@ -22,10 +23,57 @@ module.exports = async function handler(req, res) {
     return res.status(401).json({ error: 'missing_access_token', message: '로그인이 필요합니다.' })
   }
 
+  const reservationCode = String(req.query?.reservationCode || '').trim().toUpperCase()
+  const action = String(req.query?.action || '').trim().toLowerCase()
+  const payload = typeof req.body === 'object' && req.body !== null ? req.body : {}
+
   try {
     const authUser = await getUserFromAccessToken({ supabaseClient, accessToken })
     if (!authUser) {
       return res.status(401).json({ error: 'invalid_access_token', message: '로그인이 필요합니다.' })
+    }
+
+    if (req.method === 'POST' && action === 'cancel') {
+      if (!reservationCode) {
+        return res.status(400).json({ error: 'missing_reservation_code', message: '예약번호가 필요합니다.' })
+      }
+
+      const result = await cancelMemberBooking({
+        supabaseClient,
+        authUserId: authUser.id,
+        reservationCode,
+        requestedBy: 'member_web',
+        reason: payload.reason || '',
+      })
+
+      if (!result.ok) {
+        return res.status(result.status || 400).json({
+          error: result.code || 'member_cancel_failed',
+          message: result.message || '예약취소에 실패했습니다.',
+          booking: result.booking || null,
+        })
+      }
+
+      return res.status(200).json({
+        booking: result.booking,
+        mapping: result.mapping || null,
+      })
+    }
+
+    if (req.method === 'GET' && reservationCode) {
+      const booking = await fetchBookingOrderByMemberReservationCode({
+        supabaseClient,
+        authUserId: authUser.id,
+        reservationCode,
+      })
+
+      if (!booking) {
+        return res.status(404).json({ error: 'booking_not_found', message: '예약 정보를 찾지 못했습니다.' })
+      }
+
+      return res.status(200).json({
+        booking: serializeBookingOrder(booking),
+      })
     }
 
     const profile = await ensureProfileForUser({ supabaseClient, authUser })
