@@ -53,11 +53,13 @@ function toBookingViewModel(booking) {
   }
 }
 
-export async function createGuestBooking(payload) {
+export async function createGuestBooking(payload, options = {}) {
+  const accessToken = options.session?.access_token
   const response = await fetch('/api/guest-bookings/create', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
     },
     body: JSON.stringify(payload),
   })

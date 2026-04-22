@@ -17,6 +17,7 @@ import {
   validateTermsState,
 } from '../services/reservationUiState'
 import { createGuestBooking } from '../services/guestBookingApi'
+import { useAuth } from '../hooks/useAuth'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
@@ -93,6 +94,7 @@ export default function CarDetailSection() {
   const { carId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
+  const { session } = useAuth()
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const detailToken = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -275,6 +277,8 @@ export default function CarDetailSection() {
         customerName: reservationValidation.normalized.customerName,
         customerPhone: reservationValidation.normalized.customerPhone,
         customerBirth: reservationValidation.normalized.customerBirth,
+      }, {
+        session,
       })
 
       setIsReservationConfirmOpen(false)

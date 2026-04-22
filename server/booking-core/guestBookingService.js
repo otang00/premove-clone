@@ -117,6 +117,7 @@ async function createGuestBooking({
   supabaseClient,
   bookingInput,
   requestedBy = 'guest',
+  authUserId = null,
   now = new Date(),
 } = {}) {
   if (!supabaseClient) {
@@ -164,6 +165,7 @@ async function createGuestBooking({
     customer_name: bookingInput.customerName,
     customer_phone: customerPhone,
     customer_phone_last4: phoneLast4,
+    user_id: authUserId,
     car_id: car.id,
     pickup_at: pickupAtIso,
     return_at: returnAtIso,
@@ -233,6 +235,7 @@ async function createGuestBooking({
       event_type: 'booking_created',
       event_payload: {
         requestedBy,
+        authUserId,
         bookingChannel: 'website',
         paymentProvider: 'surrogate_web',
         paymentReferenceId,

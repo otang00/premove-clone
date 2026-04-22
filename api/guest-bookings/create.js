@@ -3,6 +3,8 @@
 const { createServerClient } = require('../../server/supabase/createServerClient')
 const { createGuestBooking } = require('../../server/booking-core/guestBookingService')
 const { validateGuestBookingCreateInput } = require('../../server/booking-core/guestBookingUtils')
+const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
+const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -25,10 +27,16 @@ module.exports = async function handler(req, res) {
   }
 
   try {
+    const accessToken = getAccessTokenFromRequest(req)
+    const authUser = accessToken
+      ? await getUserFromAccessToken({ supabaseClient, accessToken })
+      : null
+
     const result = await createGuestBooking({
       supabaseClient,
       bookingInput: validation.normalized,
-      requestedBy: 'guest_web',
+      requestedBy: authUser ? 'member_web' : 'guest_web',
+      authUserId: authUser?.id || null,
     })
 
     if (!result.ok) {
