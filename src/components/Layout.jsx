@@ -1,15 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
-import { isAdminEmail } from '../utils/adminAccess'
 
-export function Header({ variant = 'default', brandName, showGuestBookingAction = false } = {}) {
+export function Header({ variant = 'default', brandName, showGuestBookingAction = true } = {}) {
   const navigate = useNavigate()
   const company = getMockCompany()
-  const { isAuthenticated, profile, user, signOut } = useAuth()
-  const canAccessAdmin = isAdminEmail(user?.email || profile?.email)
+  const { isAuthenticated, signOut } = useAuth()
   const resolvedBrandName = brandName || company.name
-  const displayIdentity = profile?.name || user?.email || '회원'
   const isLanding = variant === 'landing'
 
   async function handleSignOut() {
@@ -32,25 +29,17 @@ export function Header({ variant = 'default', brandName, showGuestBookingAction 
         </Link>
 
         <nav className="app-header__nav" aria-label="주요 메뉴">
-          <div className="app-header__menu">
-            <Link className="app-header__link" to="/reservations">예약내역</Link>
-            {showGuestBookingAction && !isAuthenticated ? (
-              <Link className="app-header__button is-soft" to="/guest-bookings">비회원 예약조회</Link>
-            ) : null}
-          </div>
-
           <div className="app-header__menu app-header__menu--auth">
-            <Link className="app-header__link" to="/faq">FAQ</Link>
           {isAuthenticated ? (
             <>
-              {canAccessAdmin ? <Link className="app-header__button is-soft" to="/admin/bookings">예약관리</Link> : null}
-              <span className="app-header__identity" title={displayIdentity}>{displayIdentity}</span>
               <button className="app-header__button" type="button" onClick={handleSignOut}>로그아웃</button>
             </>
           ) : (
             <>
               <Link className="app-header__link" to="/login">로그인</Link>
-              <Link className="app-header__button" to="/signup">회원가입</Link>
+              {showGuestBookingAction ? (
+                <Link className="app-header__button is-soft" to="/guest-bookings">비회원 예약조회</Link>
+              ) : null}
             </>
           )}
           </div>

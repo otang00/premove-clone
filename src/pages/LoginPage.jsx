@@ -68,6 +68,9 @@ export default function LoginPage() {
               <p className="small-note" style={{ marginTop: 8 }}>
                 이메일과 비밀번호로 로그인합니다. 로그인 후에는 예약내역 페이지로 이동합니다.
               </p>
+              <p className="field-note" style={{ marginTop: 8 }}>
+                계정이 없으면 아래 회원가입 버튼으로 바로 가입할 수 있습니다.
+              </p>
             </div>
 
             <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
