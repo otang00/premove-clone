@@ -48,12 +48,17 @@ module.exports = async function handler(req, res) {
       })
     }
 
+    const pickupAt = lookup.rawBooking?.pickup_at ? new Date(lookup.rawBooking.pickup_at) : null
+    const started = pickupAt && !Number.isNaN(pickupAt.getTime()) ? pickupAt <= new Date() : false
+
     const result = await cancelBookingOrder({
       supabaseClient,
       order: lookup.rawBooking,
       requestedBy: 'admin_web',
-      eventType: 'admin_cancelled',
+      eventType: started ? 'admin_cancelled_after_start' : 'admin_cancelled',
       reason,
+      allowStartedCancel: true,
+      allowedBookingStatuses: ['confirmation_pending', 'confirmed_pending_sync', 'confirmed', 'in_use'],
     })
 
     if (!result.ok) {

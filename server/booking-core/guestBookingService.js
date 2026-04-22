@@ -376,6 +376,8 @@ async function cancelBookingOrder({
   requestedBy = 'guest',
   eventType = 'guest_cancelled',
   reason = '',
+  allowStartedCancel = false,
+  allowedBookingStatuses,
   now = new Date(),
 } = {}) {
   if (!supabaseClient) {
@@ -391,7 +393,10 @@ async function cancelBookingOrder({
     }
   }
 
-  const cancelCheck = canGuestCancelBooking(order, now)
+  const cancelCheck = canGuestCancelBooking(order, now, {
+    allowStartedBooking: allowStartedCancel,
+    allowedBookingStatuses,
+  })
   if (!cancelCheck.ok) {
     return {
       ok: false,
@@ -454,6 +459,7 @@ async function cancelBookingOrder({
         previousBookingStatus: order.booking_status || null,
         previousPaymentStatus: order.payment_status || null,
         previousSyncStatus: order.sync_status || null,
+        allowStartedCancel: Boolean(allowStartedCancel),
         nextPaymentStatus,
         nextSyncStatus,
         hasActiveMapping: Boolean(activeMapping),

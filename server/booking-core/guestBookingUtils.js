@@ -131,12 +131,16 @@ function serializeBookingOrder(order = {}) {
   }
 }
 
-function canGuestCancelBooking(order = {}, now = new Date()) {
+function canGuestCancelBooking(order = {}, now = new Date(), options = {}) {
+  const {
+    allowStartedBooking = false,
+    allowedBookingStatuses = ['confirmation_pending', 'confirmed_pending_sync', 'confirmed'],
+  } = options
   const bookingStatus = String(order.booking_status || '')
   const paymentStatus = String(order.payment_status || '')
   const pickupAt = order.pickup_at ? new Date(order.pickup_at) : null
 
-  if (!['confirmation_pending', 'confirmed_pending_sync', 'confirmed'].includes(bookingStatus)) {
+  if (!allowedBookingStatuses.includes(bookingStatus)) {
     return {
       ok: false,
       reason: 'cancel_not_allowed_status',
@@ -160,7 +164,7 @@ function canGuestCancelBooking(order = {}, now = new Date()) {
     }
   }
 
-  if (pickupAt <= now) {
+  if (!allowStartedBooking && pickupAt <= now) {
     return {
       ok: false,
       reason: 'cancel_started_booking',

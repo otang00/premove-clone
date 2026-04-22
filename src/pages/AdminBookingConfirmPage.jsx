@@ -19,6 +19,7 @@ export default function AdminBookingConfirmPage() {
   const adminEmail = user?.email || profile?.email || ''
   const hasAdminHint = useMemo(() => isAdminEmail(adminEmail), [adminEmail])
   const redirectTo = `${location.pathname}${location.search}`
+  const canAdminCancel = hasAdminHint && ['confirmation_pending', 'confirmed_pending_sync', 'confirmed', 'in_use'].includes(String(booking?.bookingStatus || ''))
 
   useEffect(() => {
     if (loading) return
@@ -101,7 +102,7 @@ export default function AdminBookingConfirmPage() {
   }
 
   async function handleCancel() {
-    if (!token || !booking?.canCancel || submitting || !session?.access_token || !hasAdminHint) return
+    if (!token || !canAdminCancel || submitting || !session?.access_token || !hasAdminHint) return
 
     const confirmed = window.confirm('이 예약을 취소하시겠습니까?')
     if (!confirmed) return
@@ -171,7 +172,7 @@ export default function AdminBookingConfirmPage() {
                   {submitting ? '처리 중' : '예약 확정'}
                 </button>
               ) : null}
-              {hasAdminHint && booking?.canCancel ? (
+              {canAdminCancel ? (
                 <button className="btn btn-outline btn-md" type="button" onClick={handleCancel} disabled={submitting || fetching}>
                   {submitting ? '처리 중' : '예약 취소'}
                 </button>
