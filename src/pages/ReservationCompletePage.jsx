@@ -89,27 +89,13 @@ export default function ReservationCompletePage() {
                   </div>
                 </div>
 
-                <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
-                  <strong>비회원 예약조회 안내</strong>
-                  <p className="field-note" style={{ margin: 0 }}>
-                    이름, 휴대폰번호, 생년월일로 조회할 수 있습니다. 필요하면 조회 화면에서 예약 취소도 가능합니다.
-                  </p>
-                </div>
-
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <Link
-                    className="btn btn-dark btn-md"
-                    to={`/guest-bookings?customerName=${encodeURIComponent(reservation.customerName)}&customerPhone=${encodeURIComponent(reservation.customerPhone)}&customerBirth=${encodeURIComponent(reservation.customerBirth)}`}
-                  >
-                    비회원 예약조회로 이동
-                  </Link>
-                  <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
+                  <Link className="btn btn-dark btn-md" to="/">메인으로</Link>
                 </div>
               </>
             ) : (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <Link className="btn btn-dark btn-md" to="/guest-bookings">비회원 예약조회</Link>
-                <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
+                <Link className="btn btn-dark btn-md" to="/">메인으로</Link>
               </div>
             )}
           </article>
