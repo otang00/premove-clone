@@ -5,6 +5,7 @@ import PlaceholderPage from './pages/PlaceholderPage'
 import LegalPage from './pages/LegalPage'
 import GuestBookingsPage from './pages/GuestBookingsPage'
 import ReservationCompletePage from './pages/ReservationCompletePage'
+import LoginPage from './pages/LoginPage'
 
 export default function App() {
   return (
@@ -16,7 +17,7 @@ export default function App() {
       <Route path="/reservations" element={<PlaceholderPage title="예약내역" />} />
       <Route path="/guest-bookings" element={<GuestBookingsPage />} />
       <Route path="/reservation-complete" element={<ReservationCompletePage />} />
-      <Route path="/login" element={<PlaceholderPage title="로그인" />} />
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<PlaceholderPage title="회원가입" />} />
       <Route path="/faq" element={<PlaceholderPage title="FAQ" />} />
       <Route path="/terms" element={<LegalPage kind="terms" />} />
