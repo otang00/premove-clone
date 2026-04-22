@@ -113,13 +113,6 @@
   flex:0 0 auto;
 }
 
-.app-header__wordmark{
-  display:block;
-  width:auto;
-  height:42px;
-  max-width:min(340px,calc(100vw - 48px));
-  object-fit:contain;
-}
 
 .app-header__title{
   min-width:0;
@@ -200,9 +193,6 @@
   text-overflow:ellipsis;
 }
 
-.app-header.is-landing .app-header__inner{
-  min-height:78px;
-}
 
 @media (max-width: 960px){
   .app-header__inner{
@@ -241,10 +231,6 @@
     height:44px;
   }
 
-  .app-header__wordmark{
-    height:34px;
-    max-width:min(280px,calc(100vw - 32px));
-  }
 
   .app-header__title{
     font-size:16px;

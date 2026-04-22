@@ -2,12 +2,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
 
-export function Header({ variant = 'default', brandName, showGuestBookingAction = true } = {}) {
+export function Header({ brandName, showGuestBookingAction = true } = {}) {
   const navigate = useNavigate()
   const company = getMockCompany()
   const { isAuthenticated, signOut } = useAuth()
   const resolvedBrandName = brandName || company.name
-  const isLanding = variant === 'landing'
 
   async function handleSignOut() {
     await signOut()
@@ -15,17 +14,11 @@ export function Header({ variant = 'default', brandName, showGuestBookingAction 
   }
 
   return (
-    <header className={`header app-header ${isLanding ? 'is-landing' : 'is-default'}`}>
+    <header className="header app-header">
       <div className="container app-header__inner">
         <Link className="app-header__brand" to="/" aria-label={resolvedBrandName}>
-          {isLanding ? (
-            <img src="/bbang-wordmark.png" alt={resolvedBrandName} className="app-header__wordmark" />
-          ) : (
-            <>
-              <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="app-header__logo" />
-              <span className="app-header__title">{resolvedBrandName}</span>
-            </>
-          )}
+          <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="app-header__logo" />
+          <span className="app-header__title">{resolvedBrandName}</span>
         </Link>
 
         <nav className="app-header__nav" aria-label="주요 메뉴">

@@ -19,7 +19,7 @@ export default function LandingPage() {
 
   return (
     <div className="page-shell landing-shell">
-      <Header variant="landing" brandName="빵빵카 주식회사" showGuestBookingAction />
+      <Header brandName="빵빵카 주식회사" showGuestBookingAction />
 
       <main className="landing-page">
         <HeroShowcase {...landingHero} />
