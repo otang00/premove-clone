@@ -3,6 +3,7 @@ import { kakaoSdkConfig } from '../data/landing'
 
 const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
 const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&autoload=false`
+const KAKAO_MAP_CONTAINER_ID = 'landing-kakao-map'
 
 function loadScriptOnce(src, test) {
   return new Promise((resolve, reject) => {
@@ -70,7 +71,7 @@ export default function ContactInfoStrip({ items }) {
     if (modalState?.type !== 'map') return
 
     let cancelled = false
-    const mapContainerId = 'landing-kakao-static-map'
+    let resizeTimer = null
 
     async function renderMap() {
       try {
@@ -80,7 +81,8 @@ export default function ContactInfoStrip({ items }) {
 
         window.kakao.maps.load(() => {
           if (cancelled) return
-          const container = document.getElementById(mapContainerId)
+
+          const container = document.getElementById(KAKAO_MAP_CONTAINER_ID)
           if (!container) return
 
           const coords = modalState.item.mapCoords
@@ -91,14 +93,24 @@ export default function ContactInfoStrip({ items }) {
 
           container.innerHTML = ''
           const position = new window.kakao.maps.Coords(Number(coords.x), Number(coords.y)).toLatLng()
-          new window.kakao.maps.StaticMap(container, {
+          const map = new window.kakao.maps.Map(container, {
             center: position,
             level: 3,
-            marker: {
-              position,
-              text: '빵빵카',
-            },
           })
+
+          new window.kakao.maps.Marker({
+            map,
+            position,
+            title: '빵빵카',
+          })
+
+          const relayout = () => {
+            map.relayout()
+            map.setCenter(position)
+          }
+
+          requestAnimationFrame(relayout)
+          resizeTimer = window.setTimeout(relayout, 180)
         })
       } catch (error) {
         console.error(error)
@@ -111,6 +123,9 @@ export default function ContactInfoStrip({ items }) {
     renderMap()
     return () => {
       cancelled = true
+      if (resizeTimer) {
+        window.clearTimeout(resizeTimer)
+      }
     }
   }, [modalState])
 
@@ -169,7 +184,7 @@ export default function ContactInfoStrip({ items }) {
             {modalState?.type === 'map' ? (
               <>
                 <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
-                <div id="landing-kakao-static-map" style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb', border: '1px solid #dfe7ef' }} />
+                <div id={KAKAO_MAP_CONTAINER_ID} className="landing-kakao-map" />
                 {mapError ? <p className="field-note" style={{ margin: 0 }}>{mapError}</p> : null}
                 <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>
                   <a className="btn btn-outline btn-md" href={modalState.item.href} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
