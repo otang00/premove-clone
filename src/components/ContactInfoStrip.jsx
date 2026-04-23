@@ -1,11 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { kakaoSdkConfig } from '../data/landing'
 
 const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
-const ROUGHMAP_TIMESTAMP = '1776919951083'
-const ROUGHMAP_KEY = '2aqu8keznbw6'
-const ROUGHMAP_CONTAINER_ID = `daumRoughmapContainer${ROUGHMAP_TIMESTAMP}`
-const DAUM_ROUGHMAP_LANDER_SRC = 'https://t1.kakaocdn.net/kakaomapweb/roughmap/place/prod/207038f2_1774248312945/roughmapLander.js'
+const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&libraries=services&autoload=false`
 
 function loadScriptOnce(src, test) {
   return new Promise((resolve, reject) => {
@@ -48,56 +45,9 @@ async function openKakaoChat(channelPublicId, fallbackHref) {
   }
 }
 
-function RoughMapEmbed() {
-  const renderedRef = useRef(false)
-
-  useEffect(() => {
-    let cancelled = false
-
-    async function renderMap() {
-      try {
-        await loadScriptOnce(DAUM_ROUGHMAP_LANDER_SRC, () => Boolean(window.daum?.roughmap?.Lander))
-        if (cancelled || renderedRef.current) return
-
-        const container = document.getElementById(ROUGHMAP_CONTAINER_ID)
-        if (!container) return
-
-        container.innerHTML = ''
-        new window.daum.roughmap.Lander({
-          timestamp: ROUGHMAP_TIMESTAMP,
-          key: ROUGHMAP_KEY,
-          mapWidth: '640',
-          mapHeight: '360',
-        }).render()
-        renderedRef.current = true
-      } catch (error) {
-        console.error(error)
-      }
-    }
-
-    renderMap()
-
-    return () => {
-      cancelled = true
-      renderedRef.current = false
-      const container = document.getElementById(ROUGHMAP_CONTAINER_ID)
-      if (container) {
-        container.innerHTML = ''
-      }
-    }
-  }, [])
-
-  return (
-    <div
-      id={ROUGHMAP_CONTAINER_ID}
-      className="root_daum_roughmap root_daum_roughmap_landing"
-      style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb', border: '1px solid #dfe7ef' }}
-    />
-  )
-}
-
 export default function ContactInfoStrip({ items }) {
   const [modalState, setModalState] = useState(null)
+  const [mapError, setMapError] = useState('')
 
   const activeModal = useMemo(() => {
     if (!modalState) return null
@@ -114,6 +64,58 @@ export default function ContactInfoStrip({ items }) {
       }
     }
     return null
+  }, [modalState])
+
+  useEffect(() => {
+    if (modalState?.type !== 'map') return
+
+    let cancelled = false
+    const mapContainerId = 'landing-kakao-map'
+
+    async function renderMap() {
+      try {
+        setMapError('')
+        await loadScriptOnce(KAKAO_MAP_SDK_SRC, () => Boolean(window.kakao?.maps))
+        if (cancelled) return
+
+        window.kakao.maps.load(() => {
+          if (cancelled) return
+          const container = document.getElementById(mapContainerId)
+          if (!container) return
+
+          const map = new window.kakao.maps.Map(container, {
+            center: new window.kakao.maps.LatLng(37.5046, 127.0047),
+            level: 4,
+          })
+
+          const geocoder = new window.kakao.maps.services.Geocoder()
+          geocoder.addressSearch(modalState.item.mapAddress || modalState.item.value, (result, status) => {
+            if (cancelled) return
+            if (status !== window.kakao.maps.services.Status.OK || !result?.[0]) {
+              setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
+              return
+            }
+
+            const position = new window.kakao.maps.LatLng(Number(result[0].y), Number(result[0].x))
+            map.setCenter(position)
+            new window.kakao.maps.Marker({ map, position })
+            window.kakao.maps.event.trigger(map, 'resize')
+            map.relayout()
+            map.setCenter(position)
+          })
+        })
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) {
+          setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
+        }
+      }
+    }
+
+    renderMap()
+    return () => {
+      cancelled = true
+    }
   }, [modalState])
 
   function handleItemClick(item) {
@@ -135,6 +137,7 @@ export default function ContactInfoStrip({ items }) {
 
   function closeModal() {
     setModalState(null)
+    setMapError('')
   }
 
   return (
@@ -170,8 +173,10 @@ export default function ContactInfoStrip({ items }) {
             {modalState?.type === 'map' ? (
               <>
                 <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
-                <RoughMapEmbed />
-                <div className="search-guard-actions" style={{ justifyContent: 'flex-end' }}>
+                <div id="landing-kakao-map" style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb' }} />
+                {mapError ? <p className="field-note" style={{ margin: 0 }}>{mapError}</p> : null}
+                <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>
+                  <a className="btn btn-outline btn-md" href={modalState.item.href} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
                   <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
                 </div>
               </>
