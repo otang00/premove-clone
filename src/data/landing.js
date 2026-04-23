@@ -47,15 +47,9 @@ export const landingContactItems = [
   {
     label: '방문 주소',
     value: company.address,
-    note: '지도로 위치 확인',
+    note: '카카오맵으로 바로 열기',
     actionType: 'map',
-    mapEmbed: {
-      timestamp: '1776906143974',
-      key: 'mjougca2xo4',
-      mapWidth: '640',
-      mapHeight: '360',
-    },
-    href: `https://map.kakao.com/?q=${encodeURIComponent(company.address)}`,
+    href: 'https://kko.to/nsu8bdQELb',
   },
   {
     label: '운영시간',
