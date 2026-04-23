@@ -48,7 +48,7 @@ export const landingContactItems = [
     value: landingNotice.kakaoId,
     note: '카카오톡 1:1 채팅 연결',
     actionType: 'kakao',
-    href: 'https://pf.kakao.com/_SZcVn/friend',
+    href: 'https://pf.kakao.com/_SZcVn/chat',
     channelPublicId: kakaoSdkConfig.channelPublicId,
   },
   {

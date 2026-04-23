@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { kakaoSdkConfig } from '../data/landing'
 
 const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
-const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&libraries=services&autoload=false`
+const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&autoload=false`
 
 function loadScriptOnce(src, test) {
   return new Promise((resolve, reject) => {
@@ -70,7 +70,7 @@ export default function ContactInfoStrip({ items }) {
     if (modalState?.type !== 'map') return
 
     let cancelled = false
-    const mapContainerId = 'landing-kakao-map'
+    const mapContainerId = 'landing-kakao-static-map'
 
     async function renderMap() {
       try {
@@ -83,32 +83,21 @@ export default function ContactInfoStrip({ items }) {
           const container = document.getElementById(mapContainerId)
           if (!container) return
 
-          const map = new window.kakao.maps.Map(container, {
-            center: new window.kakao.maps.LatLng(37.5046, 127.0047),
-            level: 4,
-          })
-
           const coords = modalState.item.mapCoords
-          if (coords?.x && coords?.y) {
-            const position = new window.kakao.maps.Coords(Number(coords.x), Number(coords.y)).toLatLng()
-            map.relayout()
-            map.setCenter(position)
-            new window.kakao.maps.Marker({ map, position })
+          if (!coords?.x || !coords?.y) {
+            setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
             return
           }
 
-          const geocoder = new window.kakao.maps.services.Geocoder()
-          geocoder.addressSearch(modalState.item.mapAddress || modalState.item.value, (result, status) => {
-            if (cancelled) return
-            if (status !== window.kakao.maps.services.Status.OK || !result?.[0]) {
-              setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
-              return
-            }
-
-            const position = new window.kakao.maps.LatLng(Number(result[0].y), Number(result[0].x))
-            map.relayout()
-            map.setCenter(position)
-            new window.kakao.maps.Marker({ map, position })
+          container.innerHTML = ''
+          const position = new window.kakao.maps.Coords(Number(coords.x), Number(coords.y)).toLatLng()
+          new window.kakao.maps.StaticMap(container, {
+            center: position,
+            level: 3,
+            marker: {
+              position,
+              text: '빵빵카',
+            },
           })
         })
       } catch (error) {
@@ -180,7 +169,7 @@ export default function ContactInfoStrip({ items }) {
             {modalState?.type === 'map' ? (
               <>
                 <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
-                <div id="landing-kakao-map" style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb' }} />
+                <div id="landing-kakao-static-map" style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb', border: '1px solid #dfe7ef' }} />
                 {mapError ? <p className="field-note" style={{ margin: 0 }}>{mapError}</p> : null}
                 <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>
                   <a className="btn btn-outline btn-md" href={modalState.item.href} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
