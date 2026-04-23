@@ -1,8 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { kakaoSdkConfig } from '../data/landing'
 
 const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
-const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&libraries=services&autoload=false`
 
 function loadScriptOnce(src, test) {
   return new Promise((resolve, reject) => {
@@ -45,9 +44,13 @@ async function openKakaoChat(channelPublicId, fallbackHref) {
   }
 }
 
+function buildKakaoMapEmbedUrl(address) {
+  const query = encodeURIComponent(address || '')
+  return `https://map.kakao.com/?q=${query}`
+}
+
 export default function ContactInfoStrip({ items }) {
   const [modalState, setModalState] = useState(null)
-  const [mapError, setMapError] = useState('')
 
   const activeModal = useMemo(() => {
     if (!modalState) return null
@@ -64,58 +67,6 @@ export default function ContactInfoStrip({ items }) {
       }
     }
     return null
-  }, [modalState])
-
-  useEffect(() => {
-    if (modalState?.type !== 'map') return
-
-    let cancelled = false
-    const mapContainerId = 'landing-kakao-map'
-
-    async function renderMap() {
-      try {
-        setMapError('')
-        await loadScriptOnce(KAKAO_MAP_SDK_SRC, () => Boolean(window.kakao?.maps))
-        if (cancelled) return
-
-        window.kakao.maps.load(() => {
-          if (cancelled) return
-          const container = document.getElementById(mapContainerId)
-          if (!container) return
-
-          const map = new window.kakao.maps.Map(container, {
-            center: new window.kakao.maps.LatLng(37.5046, 127.0047),
-            level: 4,
-          })
-
-          const geocoder = new window.kakao.maps.services.Geocoder()
-          geocoder.addressSearch(modalState.item.mapAddress || modalState.item.value, (result, status) => {
-            if (cancelled) return
-            if (status !== window.kakao.maps.services.Status.OK || !result?.[0]) {
-              setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
-              return
-            }
-
-            const position = new window.kakao.maps.LatLng(Number(result[0].y), Number(result[0].x))
-            map.setCenter(position)
-            new window.kakao.maps.Marker({ map, position })
-            window.kakao.maps.event.trigger(map, 'resize')
-            map.relayout()
-            map.setCenter(position)
-          })
-        })
-      } catch (error) {
-        console.error(error)
-        if (!cancelled) {
-          setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
-        }
-      }
-    }
-
-    renderMap()
-    return () => {
-      cancelled = true
-    }
   }, [modalState])
 
   function handleItemClick(item) {
@@ -137,7 +88,6 @@ export default function ContactInfoStrip({ items }) {
 
   function closeModal() {
     setModalState(null)
-    setMapError('')
   }
 
   return (
@@ -173,10 +123,17 @@ export default function ContactInfoStrip({ items }) {
             {modalState?.type === 'map' ? (
               <>
                 <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
-                <div id="landing-kakao-map" style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb' }} />
-                {mapError ? <p className="field-note" style={{ margin: 0 }}>{mapError}</p> : null}
+                <div style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb', border: '1px solid #dfe7ef' }}>
+                  <iframe
+                    title="카카오맵 위치"
+                    src={buildKakaoMapEmbedUrl(modalState.item.mapAddress || modalState.item.value)}
+                    style={{ width: '100%', height: 360, border: 0, display: 'block' }}
+                    loading="lazy"
+                    referrerPolicy="strict-origin-when-cross-origin"
+                  />
+                </div>
                 <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>
-                  <a className="btn btn-outline btn-md" href={modalState.item.href} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
+                  <a className="btn btn-outline btn-md" href={buildKakaoMapEmbedUrl(modalState.item.mapAddress || modalState.item.value)} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
                   <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
                 </div>
               </>
