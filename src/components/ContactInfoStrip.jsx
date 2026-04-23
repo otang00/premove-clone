@@ -1,7 +1,53 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { kakaoSdkConfig } from '../data/landing'
+
+const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
+const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&libraries=services&autoload=false`
+
+function loadScriptOnce(src, test) {
+  return new Promise((resolve, reject) => {
+    if (test()) {
+      resolve()
+      return
+    }
+
+    const existingScript = document.querySelector(`script[src="${src}"]`)
+    const handleLoad = () => resolve()
+    const handleError = () => reject(new Error(`failed to load script: ${src}`))
+
+    if (existingScript) {
+      existingScript.addEventListener('load', handleLoad, { once: true })
+      existingScript.addEventListener('error', handleError, { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = src
+    script.async = true
+    script.addEventListener('load', handleLoad, { once: true })
+    script.addEventListener('error', handleError, { once: true })
+    document.body.appendChild(script)
+  })
+}
+
+async function openKakaoChat(channelPublicId, fallbackHref) {
+  try {
+    await loadScriptOnce(KAKAO_JS_SDK_SRC, () => Boolean(window.Kakao))
+    if (!window.Kakao?.isInitialized?.()) {
+      window.Kakao.init(kakaoSdkConfig.javascriptKey)
+    }
+    window.Kakao.Channel.chat({ channelPublicId })
+  } catch (error) {
+    console.error(error)
+    if (fallbackHref) {
+      window.open(fallbackHref, '_blank', 'noopener,noreferrer')
+    }
+  }
+}
 
 export default function ContactInfoStrip({ items }) {
   const [modalState, setModalState] = useState(null)
+  const [mapError, setMapError] = useState('')
 
   const activeModal = useMemo(() => {
     if (!modalState) return null
@@ -11,7 +57,65 @@ export default function ContactInfoStrip({ items }) {
         lines: modalState.item.detailLines || [],
       }
     }
+    if (modalState.type === 'map') {
+      return {
+        title: modalState.item.label,
+        lines: ['아래 지도에서 위치를 확인할 수 있습니다.'],
+      }
+    }
     return null
+  }, [modalState])
+
+  useEffect(() => {
+    if (modalState?.type !== 'map') return
+
+    let cancelled = false
+    const mapContainerId = 'landing-kakao-map'
+
+    async function renderMap() {
+      try {
+        setMapError('')
+        await loadScriptOnce(KAKAO_MAP_SDK_SRC, () => Boolean(window.kakao?.maps))
+        if (cancelled) return
+
+        window.kakao.maps.load(() => {
+          if (cancelled) return
+          const container = document.getElementById(mapContainerId)
+          if (!container) return
+
+          const map = new window.kakao.maps.Map(container, {
+            center: new window.kakao.maps.LatLng(37.5046, 127.0047),
+            level: 4,
+          })
+
+          const geocoder = new window.kakao.maps.services.Geocoder()
+          geocoder.addressSearch(modalState.item.mapAddress || modalState.item.value, (result, status) => {
+            if (cancelled) return
+            if (status !== window.kakao.maps.services.Status.OK || !result?.[0]) {
+              setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
+              return
+            }
+
+            const position = new window.kakao.maps.LatLng(Number(result[0].y), Number(result[0].x))
+            map.setCenter(position)
+            new window.kakao.maps.Marker({ map, position })
+            window.kakao.maps.event.trigger(map, 'resize')
+            map.relayout()
+            map.setCenter(position)
+          })
+        })
+      } catch (error) {
+        console.error(error)
+        if (!cancelled) {
+          setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
+        }
+      }
+    }
+
+    renderMap()
+    return () => {
+      cancelled = true
+    }
   }, [modalState])
 
   function handleItemClick(item) {
@@ -20,12 +124,12 @@ export default function ContactInfoStrip({ items }) {
       return
     }
 
-    if ((item.actionType === 'kakao' || item.actionType === 'map') && item.href) {
-      window.open(item.href, '_blank', 'noopener,noreferrer')
+    if (item.actionType === 'kakao') {
+      openKakaoChat(item.channelPublicId, item.href)
       return
     }
 
-    if (item.actionType === 'hours') {
+    if (item.actionType === 'map' || item.actionType === 'hours') {
       setModalState({ type: item.actionType, item })
       return
     }
@@ -33,6 +137,7 @@ export default function ContactInfoStrip({ items }) {
 
   function closeModal() {
     setModalState(null)
+    setMapError('')
   }
 
   return (
@@ -51,16 +156,35 @@ export default function ContactInfoStrip({ items }) {
 
       {activeModal ? (
         <div className="delivery-modal-backdrop" onClick={closeModal}>
-          <div className="search-guard-modal panel" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={activeModal.title}>
+          <div
+            className="search-guard-modal panel"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeModal.title}
+            style={modalState?.type === 'map' ? { width: 'min(720px, 100%)' } : undefined}
+          >
             <strong>{activeModal.title}</strong>
             <div className="field-note" style={{ display: 'grid', gap: 6 }}>
               {activeModal.lines.map((line) => (
                 <p key={line} style={{ margin: 0 }}>{line}</p>
               ))}
             </div>
-            <div className="search-guard-actions">
-              <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
-            </div>
+            {modalState?.type === 'map' ? (
+              <>
+                <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
+                <div id="landing-kakao-map" style={{ width: '100%', minHeight: 360, borderRadius: 12, overflow: 'hidden', background: '#f4f8fb' }} />
+                {mapError ? <p className="field-note" style={{ margin: 0 }}>{mapError}</p> : null}
+                <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>
+                  <a className="btn btn-outline btn-md" href={modalState.item.href} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
+                  <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
+                </div>
+              </>
+            ) : (
+              <div className="search-guard-actions">
+                <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}

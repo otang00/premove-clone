@@ -1,5 +1,11 @@
 import { company } from './mock'
 
+export const kakaoSdkConfig = {
+  javascriptKey: 'b912305361ab3ad47fd00c2714bf324e',
+  channelPublicId: '_SZcVn',
+  mapAddress: '서울 서초구 신반포로23길 78-9',
+}
+
 export const landingNotice = {
   serviceNotice: '서울/수도권 전지역 배차/반차 가능합니다. 전화상담 01024167114 카카오톡ID 00RENTCAR',
   phone: '010-2416-7114',
@@ -40,16 +46,18 @@ export const landingContactItems = [
   {
     label: '카카오톡',
     value: landingNotice.kakaoId,
-    note: '카카오톡 채널로 바로 연결',
+    note: '카카오톡 1:1 채팅 연결',
     actionType: 'kakao',
     href: 'https://pf.kakao.com/_SZcVn/friend',
+    channelPublicId: kakaoSdkConfig.channelPublicId,
   },
   {
     label: '방문 주소',
     value: company.address,
-    note: '카카오맵으로 바로 열기',
+    note: '모달에서 지도 보기',
     actionType: 'map',
     href: 'https://kko.to/nsu8bdQELb',
+    mapAddress: kakaoSdkConfig.mapAddress,
   },
   {
     label: '운영시간',
