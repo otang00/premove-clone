@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { kakaoSdkConfig } from '../data/landing'
 
 const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
-const DAUM_ROUGHMAP_SRC = 'https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js'
 const ROUGHMAP_TIMESTAMP = '1776919951083'
 const ROUGHMAP_KEY = '2aqu8keznbw6'
 const ROUGHMAP_CONTAINER_ID = `daumRoughmapContainer${ROUGHMAP_TIMESTAMP}`
+const DAUM_ROUGHMAP_LANDER_SRC = 'https://t1.kakaocdn.net/kakaomapweb/roughmap/place/prod/207038f2_1774248312945/roughmapLander.js'
 
 function loadScriptOnce(src, test) {
   return new Promise((resolve, reject) => {
@@ -56,7 +56,7 @@ function RoughMapEmbed() {
 
     async function renderMap() {
       try {
-        await loadScriptOnce(DAUM_ROUGHMAP_SRC, () => Boolean(window.daum?.roughmap?.Lander))
+        await loadScriptOnce(DAUM_ROUGHMAP_LANDER_SRC, () => Boolean(window.daum?.roughmap?.Lander))
         if (cancelled || renderedRef.current) return
 
         const container = document.getElementById(ROUGHMAP_CONTAINER_ID)
