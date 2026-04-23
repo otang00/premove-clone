@@ -58,6 +58,10 @@ export const landingContactItems = [
     actionType: 'map',
     href: 'https://kko.to/nsu8bdQELb',
     mapAddress: kakaoSdkConfig.mapAddress,
+    mapCoords: {
+      x: 501239,
+      y: 1114525,
+    },
   },
   {
     label: '운영시간',

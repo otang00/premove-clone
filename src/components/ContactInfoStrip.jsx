@@ -88,6 +88,15 @@ export default function ContactInfoStrip({ items }) {
             level: 4,
           })
 
+          const coords = modalState.item.mapCoords
+          if (coords?.x && coords?.y) {
+            const position = new window.kakao.maps.Coords(Number(coords.x), Number(coords.y)).toLatLng()
+            map.relayout()
+            map.setCenter(position)
+            new window.kakao.maps.Marker({ map, position })
+            return
+          }
+
           const geocoder = new window.kakao.maps.services.Geocoder()
           geocoder.addressSearch(modalState.item.mapAddress || modalState.item.value, (result, status) => {
             if (cancelled) return
@@ -97,11 +106,9 @@ export default function ContactInfoStrip({ items }) {
             }
 
             const position = new window.kakao.maps.LatLng(Number(result[0].y), Number(result[0].x))
-            map.setCenter(position)
-            new window.kakao.maps.Marker({ map, position })
-            window.kakao.maps.event.trigger(map, 'resize')
             map.relayout()
             map.setCenter(position)
+            new window.kakao.maps.Marker({ map, position })
           })
         })
       } catch (error) {
