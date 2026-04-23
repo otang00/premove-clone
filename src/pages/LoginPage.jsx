@@ -75,7 +75,6 @@ export default function LoginPage() {
 
             <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
               <div className="reservation-result-row"><span>상태</span><strong>{loading ? '세션 확인 중' : isAuthenticated ? '로그인됨' : '비로그인'}</strong></div>
-              <div className="reservation-result-row"><span>Supabase client</span><strong>{isSupabaseClientReady ? '준비됨' : 'env 키 필요'}</strong></div>
               <div className="reservation-result-row"><span>현재 사용자</span><strong>{user?.email || '-'}</strong></div>
             </div>
 
@@ -116,10 +115,10 @@ export default function LoginPage() {
               </button>
             </form>
 
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <Link className="btn btn-outline btn-md" to={`/signup?redirectTo=${encodeURIComponent(redirectTo)}`}>회원가입</Link>
-              <Link className="btn btn-outline btn-md" to={`/forgot-password?redirectTo=${encodeURIComponent(redirectTo)}`}>비밀번호 재설정</Link>
-              <Link className="btn btn-outline btn-md" to="/">메인으로</Link>
+            <div style={{ width: 'min(100%, 420px)', margin: '0 auto', display: 'grid', gap: 8 }}>
+              <Link className="btn btn-outline btn-md btn-block" to={`/signup?redirectTo=${encodeURIComponent(redirectTo)}`}>회원가입</Link>
+              <Link className="btn btn-outline btn-md btn-block" to={`/forgot-password?redirectTo=${encodeURIComponent(redirectTo)}`}>비밀번호 재설정</Link>
+              <Link className="btn btn-outline btn-md btn-block" to="/">메인으로</Link>
             </div>
           </article>
         </div>
