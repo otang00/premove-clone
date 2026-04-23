@@ -183,7 +183,7 @@ export default function ContactInfoStrip({ items }) {
             </div>
             {modalState?.type === 'map' ? (
               <>
-                <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
+                <p style={{ margin: 0, color: '#17212b', fontSize: '18px', fontWeight: 700, lineHeight: 1.5 }}>{modalState.item.value}</p>
                 <div id={KAKAO_MAP_CONTAINER_ID} className="landing-kakao-map" />
                 {mapError ? <p className="field-note" style={{ margin: 0 }}>{mapError}</p> : null}
                 <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>

@@ -29,6 +29,11 @@ export const landingHero = {
       alt: '빵빵카 메인 배너 1',
     },
     {
+      pcSrc: '/assets/hero/hero-2-pc.png',
+      mobileSrc: '/assets/hero/hero-2-mobile.png',
+      alt: '빵빵카 메인 배너 2',
+    },
+    {
       pcSrc: '/assets/hero/hero-3-pc.png',
       mobileSrc: '/assets/hero/hero-3-mobile.png',
       alt: '빵빵카 메인 배너 3',
@@ -54,7 +59,7 @@ export const landingContactItems = [
   {
     label: '방문 주소',
     value: company.address,
-    note: '모달에서 지도 보기',
+    note: '방문주소 지도창 열기',
     actionType: 'map',
     href: 'https://kko.to/nsu8bdQELb',
     mapAddress: kakaoSdkConfig.mapAddress,
