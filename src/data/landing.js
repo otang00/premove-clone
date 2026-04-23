@@ -40,14 +40,22 @@ export const landingContactItems = [
   {
     label: '카카오톡',
     value: landingNotice.kakaoId,
-    note: '카카오톡 채널 연결 준비 중',
+    note: '카카오톡 채널로 바로 연결',
     actionType: 'kakao',
+    href: 'https://pf.kakao.com/_SZcVn/friend',
   },
   {
     label: '방문 주소',
     value: company.address,
-    note: '지도 연결 준비 중',
+    note: '지도로 위치 확인',
     actionType: 'map',
+    mapEmbed: {
+      timestamp: '1776906143974',
+      key: 'mjougca2xo4',
+      mapWidth: '640',
+      mapHeight: '360',
+    },
+    href: `https://map.kakao.com/?q=${encodeURIComponent(company.address)}`,
   },
   {
     label: '운영시간',

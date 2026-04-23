@@ -1,15 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-const modalCopy = {
-  kakao: {
-    title: '카카오톡 채널 연결 준비 중',
-    lines: ['카카오톡 채널 연결은 아직 준비 중입니다.', '준비가 끝나면 바로 연결되도록 붙이겠습니다.'],
-  },
-  map: {
-    title: '지도 연결 준비 중',
-    lines: ['지도 앱 바로 연결은 아직 준비 중입니다.', '현재 방문 주소를 먼저 확인해 주세요.'],
-  },
-}
+const KAKAO_ROUGHMAP_SCRIPT = 'https://ssl.daumcdn.net/dmaps/map_js_init/roughmapLoader.js'
 
 export default function ContactInfoStrip({ items }) {
   const [modalState, setModalState] = useState(null)
@@ -22,7 +13,48 @@ export default function ContactInfoStrip({ items }) {
         lines: modalState.item.detailLines || [],
       }
     }
-    return modalCopy[modalState.type] || null
+    if (modalState.type === 'map') {
+      return {
+        title: modalState.item.label,
+        lines: ['아래 지도에서 위치를 바로 확인할 수 있습니다.'],
+      }
+    }
+    return null
+  }, [modalState])
+
+  useEffect(() => {
+    if (modalState?.type !== 'map') return
+
+    const mapConfig = modalState.item.mapEmbed
+    const containerId = `daumRoughmapContainer${mapConfig.timestamp}`
+
+    function renderMap() {
+      const container = document.getElementById(containerId)
+      if (!container || !window.daum?.roughmap?.Lander) return
+      if (container.dataset.rendered === 'true') return
+      container.innerHTML = ''
+      new window.daum.roughmap.Lander({
+        timestamp: mapConfig.timestamp,
+        key: mapConfig.key,
+        mapWidth: mapConfig.mapWidth,
+        mapHeight: mapConfig.mapHeight,
+      }).render()
+      container.dataset.rendered = 'true'
+    }
+
+    const existingScript = document.querySelector(`script[src="${KAKAO_ROUGHMAP_SCRIPT}"]`)
+    if (existingScript) {
+      if (window.daum?.roughmap?.Lander) renderMap()
+      else existingScript.addEventListener('load', renderMap, { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = KAKAO_ROUGHMAP_SCRIPT
+    script.async = true
+    script.charset = 'UTF-8'
+    script.addEventListener('load', renderMap, { once: true })
+    document.body.appendChild(script)
   }, [modalState])
 
   function handleItemClick(item) {
@@ -31,12 +63,15 @@ export default function ContactInfoStrip({ items }) {
       return
     }
 
-    if (item.actionType === 'hours') {
-      setModalState({ type: 'hours', item })
+    if (item.actionType === 'kakao' && item.href) {
+      window.open(item.href, '_blank', 'noopener,noreferrer')
       return
     }
 
-    setModalState({ type: item.actionType, item })
+    if (item.actionType === 'hours' || item.actionType === 'map') {
+      setModalState({ type: item.actionType, item })
+      return
+    }
   }
 
   function closeModal() {
@@ -59,18 +94,34 @@ export default function ContactInfoStrip({ items }) {
 
       {activeModal ? (
         <div className="delivery-modal-backdrop" onClick={closeModal}>
-          <div className="search-guard-modal panel" onClick={(event) => event.stopPropagation()} role="dialog" aria-modal="true" aria-label={activeModal.title}>
+          <div
+            className="search-guard-modal panel"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeModal.title}
+            style={modalState?.type === 'map' ? { width: 'min(720px, 100%)' } : undefined}
+          >
             <strong>{activeModal.title}</strong>
             <div className="field-note" style={{ display: 'grid', gap: 6 }}>
               {activeModal.lines.map((line) => (
                 <p key={line} style={{ margin: 0 }}>{line}</p>
               ))}
             </div>
-            {modalState?.type === 'map' ? <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p> : null}
-            {modalState?.type === 'kakao' ? <p className="field-note" style={{ margin: 0 }}>카카오톡 ID: {modalState.item.value}</p> : null}
-            <div className="search-guard-actions">
-              <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
-            </div>
+            {modalState?.type === 'map' ? (
+              <>
+                <p className="field-note" style={{ margin: 0 }}>{modalState.item.value}</p>
+                <div id={`daumRoughmapContainer${modalState.item.mapEmbed.timestamp}`} className="root_daum_roughmap root_daum_roughmap_landing" style={{ width: '100%', minHeight: 360 }} />
+                <div className="search-guard-actions" style={{ justifyContent: 'space-between' }}>
+                  <a className="btn btn-outline btn-md" href={modalState.item.href} target="_blank" rel="noreferrer">카카오맵에서 열기</a>
+                  <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
+                </div>
+              </>
+            ) : (
+              <div className="search-guard-actions">
+                <button className="btn btn-dark btn-md" type="button" onClick={closeModal}>닫기</button>
+              </div>
+            )}
           </div>
         </div>
       ) : null}
