@@ -35,20 +35,25 @@ export const landingContactItems = [
     label: '전화상담',
     value: landingNotice.phone,
     note: '평일 운영시간 내 빠른 상담 가능',
+    actionType: 'phone',
   },
   {
     label: '카카오톡',
     value: landingNotice.kakaoId,
-    note: '채널 또는 ID로 간편 문의 가능',
+    note: '카카오톡 채널 연결 준비 중',
+    actionType: 'kakao',
   },
   {
     label: '방문 주소',
     value: company.address,
-    note: '서울 서초구 반포권역 방문 수령 가능',
+    note: '지도 연결 준비 중',
+    actionType: 'map',
   },
   {
     label: '운영시간',
     value: landingNotice.hours,
-    note: '점심 12:00 - 13:00 / 주말·공휴일 휴무',
+    note: '상세 운영 기준 보기',
+    actionType: 'hours',
+    detailLines: ['평일 09:00 - 18:00', '점심시간 12:00 - 13:00', '주말 및 공휴일 휴무', '운영시간 외 문의는 다음 영업일에 순차 응대'],
   },
 ]

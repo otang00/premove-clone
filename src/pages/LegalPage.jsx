@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { PageShell } from '../components/Layout'
 import termsContent from '../../docs/legal/service-terms.md?raw'
 import privacyContent from '../../docs/legal/privacy-policy.md?raw'
@@ -20,6 +21,10 @@ const contentMap = {
 
 export default function LegalPage({ kind = 'terms' }) {
   const page = contentMap[kind] || contentMap.terms
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
+  }, [kind])
 
   return (
     <PageShell>

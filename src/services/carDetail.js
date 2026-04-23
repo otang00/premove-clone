@@ -34,7 +34,7 @@ function toDetailViewModel(payload) {
     },
     car: {
       id: String(payload.car.carId),
-      name: payload.car.name,
+      name: payload.car.displayName || payload.car.name,
       displayName: payload.car.displayName,
       image: payload.car.imageUrl,
       yearLabel: formatYearLabel(payload.car.minModelYear, payload.car.maxModelYear),
