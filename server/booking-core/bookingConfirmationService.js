@@ -14,11 +14,12 @@ async function fetchBookingOrderByConfirmationToken({ supabaseClient, token } = 
 
   const tokenCheck = verifyBookingConfirmToken({ token })
   if (!tokenCheck.isValid) {
+    const isExpired = tokenCheck.reason === 'expired_token'
     return {
       ok: false,
-      status: 400,
+      status: isExpired ? 410 : 400,
       code: tokenCheck.reason || 'invalid_token',
-      message: '확정 링크가 올바르지 않습니다.',
+      message: isExpired ? '확정 링크가 만료되었습니다.' : '확정 링크가 올바르지 않습니다.',
     }
   }
 

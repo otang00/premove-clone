@@ -2,6 +2,7 @@
 
 const crypto = require('crypto')
 
+const DEFAULT_TTL_SECONDS = 24 * 60 * 60
 const TOKEN_VERSION = 1
 const SECRET_ENV_NAMES = ['BOOKING_CONFIRM_TOKEN_SECRET', 'DETAIL_TOKEN_SECRET', 'APP_SECRET']
 
@@ -49,7 +50,12 @@ function timingSafeEqualString(left, right) {
   return crypto.timingSafeEqual(a, b)
 }
 
-function createBookingConfirmToken({ bookingOrderId, reservationCode, secret } = {}) {
+function resolveTtlSeconds(ttlSeconds) {
+  const parsed = Number(ttlSeconds || process.env.BOOKING_CONFIRM_TOKEN_TTL_SECONDS || DEFAULT_TTL_SECONDS)
+  return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : DEFAULT_TTL_SECONDS
+}
+
+function createBookingConfirmToken({ bookingOrderId, reservationCode, ttlSeconds, now = Date.now(), secret } = {}) {
   if (typeof bookingOrderId !== 'string' || !bookingOrderId.trim()) {
     throw new Error('invalid_booking_confirm_token_booking_order_id')
   }
@@ -58,10 +64,14 @@ function createBookingConfirmToken({ bookingOrderId, reservationCode, secret } =
     throw new Error('invalid_booking_confirm_token_reservation_code')
   }
 
+  const issuedAtSeconds = Math.floor(now / 1000)
+  const expiresAt = issuedAtSeconds + resolveTtlSeconds(ttlSeconds)
+
   const payload = {
     v: TOKEN_VERSION,
     boid: bookingOrderId.trim(),
     rc: reservationCode.trim().toUpperCase(),
+    exp: expiresAt,
   }
 
   const payloadJson = JSON.stringify(payload)
@@ -74,7 +84,7 @@ function createBookingConfirmToken({ bookingOrderId, reservationCode, secret } =
   }
 }
 
-function verifyBookingConfirmToken({ token, secret } = {}) {
+function verifyBookingConfirmToken({ token, now = Date.now(), secret } = {}) {
   const resolvedSecret = secret || getTokenSecret()
 
   if (typeof token !== 'string' || !token.trim()) {
@@ -113,6 +123,11 @@ function verifyBookingConfirmToken({ token, secret } = {}) {
     return { isValid: false, reason: 'invalid_reservation_code', payload }
   }
 
+  const nowSeconds = Math.floor(now / 1000)
+  if (!Number.isInteger(Number(payload.exp)) || Number(payload.exp) <= nowSeconds) {
+    return { isValid: false, reason: 'expired_token', payload }
+  }
+
   return {
     isValid: true,
     reason: null,
@@ -121,6 +136,7 @@ function verifyBookingConfirmToken({ token, secret } = {}) {
 }
 
 module.exports = {
+  DEFAULT_TTL_SECONDS,
   TOKEN_VERSION,
   createBookingConfirmToken,
   verifyBookingConfirmToken,
