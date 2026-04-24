@@ -36,7 +36,6 @@ export default function CarCard({ car }) {
           </div>
           <div className="prices refined-price">
             <strong>{car.dayPrice}</strong>
-            <span>{car.totalPrice}</span>
           </div>
         </div>
         <p className="feature-line">{car.features.join(', ')}</p>

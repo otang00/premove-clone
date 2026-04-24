@@ -88,12 +88,14 @@ export async function fetchSearchCars(searchState) {
   const query = buildRequestQuery(searchState)
   const response = await fetch(`/api/search-cars?${query}`)
   const payload = await parseApiResponse(response, '차량 조회에 실패했습니다.')
+  const mappedCars = Array.isArray(payload.cars) ? payload.cars.map((car) => toCardModel(car, searchState)) : []
+  const sortedCars = sortCars(mappedCars, searchState.order)
 
   return {
     search: payload.search,
     company: payload.company,
     totalCount: payload.totalCount,
-    cars: Array.isArray(payload.cars) ? payload.cars.map((car) => toCardModel(car, searchState)) : [],
+    cars: sortedCars,
     meta: payload.meta,
   }
 }

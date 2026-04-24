@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import CarCard from './CarCard'
-import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
+import { buildSearchQuery, parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchSearchCars } from '../services/cars'
 import { getMockCompany } from '../services/company'
 
@@ -34,6 +34,7 @@ function LoadingState() {
 
 export default function SearchResultsSection() {
   const location = useLocation()
+  const navigate = useNavigate()
   const searchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const validation = useMemo(() => validateSearchState(searchState), [searchState])
   const [company, setCompany] = useState(() => getMockCompany())
@@ -85,6 +86,11 @@ export default function SearchResultsSection() {
     ? ''
     : Object.values(validation.errors)[0] || '잘못된 검색 조건입니다.'
 
+  const handleOrderChange = (order) => {
+    const nextQuery = buildSearchQuery({ ...searchState, order })
+    navigate(`/?${nextQuery}`)
+  }
+
   return (
     <section className="landing-results-section section-bg" id="search-results">
       <div className="main-top-band">
@@ -97,9 +103,9 @@ export default function SearchResultsSection() {
         <div className="list-head-row">
           <strong>총 {totalCount}대</strong>
           <div className="sort-buttons simple">
-            <button className={`btn btn-tab btn-md ${searchState.order === 'lower' ? 'is-active' : ''}`}>낮은 가격순</button>
-            <button className={`btn btn-tab btn-md ${searchState.order === 'higher' ? 'is-active' : ''}`}>높은 가격순</button>
-            <button className={`btn btn-tab btn-md ${searchState.order === 'newer' ? 'is-active' : ''}`}>신차순</button>
+            <button className={`btn btn-tab btn-md ${searchState.order === 'lower' ? 'is-active' : ''}`} onClick={() => handleOrderChange('lower')}>낮은 가격순</button>
+            <button className={`btn btn-tab btn-md ${searchState.order === 'higher' ? 'is-active' : ''}`} onClick={() => handleOrderChange('higher')}>높은 가격순</button>
+            <button className={`btn btn-tab btn-md ${searchState.order === 'newer' ? 'is-active' : ''}`} onClick={() => handleOrderChange('newer')}>신차순</button>
           </div>
         </div>
 
