@@ -42,13 +42,18 @@
   - Phase 1-A — 예약 완료 URL PII 제거
   - Phase 1-B — 게스트 lookup/cancel abuse 방어
   - Phase 1-C — 관리자 예약확정 토큰 만료/무효화
-- 다음 실행 대기:
   - Phase 2-A — server privileged/public client 분리
   - Phase 2-B — secret fallback 정책 정리
+- 다음 실행 대기:
+  - Phase 3-A — 화면 PII 최소화
+  - Phase 3-B — 메일/로그/event PII 최소화
+  - Phase 3-C — localStorage 레거시 경로 정리 여부 결정
 - 비고:
   - Phase 1-A 는 예약 완료 페이지 이동을 `completionToken` 기반으로 전환했고, 빌드 검증을 통과했다.
   - Phase 1-B 는 guest lookup/cancel 에 in-memory baseline rate limit, Retry-After, 실패 지연 응답을 적용했고, 빌드 검증을 통과했다.
   - Phase 1-C 는 booking confirm token 에 exp 를 추가하고, 만료 토큰을 410 상태로 거절하도록 변경했으며, 빌드 검증을 통과했다.
+  - Phase 2-A 는 Supabase server client 를 privileged/public 으로 분리하고 민감 API 를 privileged client 로 전환했으며, 빌드와 unit test 를 통과했다.
+  - Phase 2-B 는 booking confirm/detail/complete token 의 secret fallback 을 제거하고 목적별 단일 secret 로 fail-closed 되도록 정리했으며, 빌드와 unit test 를 통과했다.
 
 ---
 

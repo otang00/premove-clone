@@ -17,10 +17,23 @@ function resolveSupabaseUrl(env = process.env) {
   return ''
 }
 
-function resolveSupabaseKey(env = process.env) {
+function resolveSupabasePrivilegedKey(env = process.env) {
   const candidates = [
     env.SUPABASE_SERVICE_ROLE_KEY,
     env.SUPABASE_SERVICE_KEY,
+  ]
+
+  for (const candidate of candidates) {
+    if (candidate && candidate.trim()) {
+      return candidate.trim()
+    }
+  }
+
+  return ''
+}
+
+function resolveSupabasePublicKey(env = process.env) {
+  const candidates = [
     env.SUPABASE_PUBLISHABLE_KEY,
     env.SUPABASE_ANON_KEY,
   ]
@@ -34,15 +47,15 @@ function resolveSupabaseKey(env = process.env) {
   return ''
 }
 
-function createServerClient(options = {}) {
-  const url = (options.url || resolveSupabaseUrl()).trim()
-  const key = (options.key || resolveSupabaseKey()).trim()
+function createBaseClient({ url, key, headers } = {}) {
+  const resolvedUrl = String(url || '').trim()
+  const resolvedKey = String(key || '').trim()
 
-  if (!url || !key) {
+  if (!resolvedUrl || !resolvedKey) {
     return null
   }
 
-  return createClient(url, key, {
+  return createClient(resolvedUrl, resolvedKey, {
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -50,14 +63,38 @@ function createServerClient(options = {}) {
     global: {
       headers: {
         'x-client-info': 'premove-shadow-search',
-        ...(options.headers || {}),
+        ...(headers || {}),
       },
     },
   })
 }
 
+function createServerPrivilegedClient(options = {}) {
+  const url = (options.url || resolveSupabaseUrl()).trim()
+  const key = (options.key || resolveSupabasePrivilegedKey()).trim()
+
+  return createBaseClient({
+    url,
+    key,
+    headers: options.headers,
+  })
+}
+
+function createServerPublicClient(options = {}) {
+  const url = (options.url || resolveSupabaseUrl()).trim()
+  const key = (options.key || resolveSupabasePublicKey()).trim()
+
+  return createBaseClient({
+    url,
+    key,
+    headers: options.headers,
+  })
+}
+
 module.exports = {
-  createServerClient,
+  createServerPrivilegedClient,
+  createServerPublicClient,
   resolveSupabaseUrl,
-  resolveSupabaseKey,
+  resolveSupabasePrivilegedKey,
+  resolveSupabasePublicKey,
 }

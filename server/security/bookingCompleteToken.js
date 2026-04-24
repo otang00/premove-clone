@@ -4,7 +4,7 @@ const crypto = require('crypto')
 
 const DEFAULT_TTL_SECONDS = 10 * 60
 const TOKEN_VERSION = 1
-const SECRET_ENV_NAMES = ['BOOKING_COMPLETE_TOKEN_SECRET', 'APP_SECRET']
+const SECRET_ENV_NAMES = ['BOOKING_COMPLETE_TOKEN_SECRET']
 
 function getTokenSecret() {
   for (const key of SECRET_ENV_NAMES) {

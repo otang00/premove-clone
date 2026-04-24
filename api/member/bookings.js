@@ -1,6 +1,6 @@
 'use strict'
 
-const { createServerClient } = require('../../server/supabase/createServerClient')
+const { createServerPrivilegedClient } = require('../../server/supabase/createServerClient')
 const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { ensureProfileForUser, serializeProfile } = require('../../server/auth/ensureProfileForUser')
@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: 'method_not_allowed' })
   }
 
-  const supabaseClient = createServerClient()
+  const supabaseClient = createServerPrivilegedClient()
   if (!supabaseClient) {
     return res.status(500).json({ error: 'supabase_client_unavailable' })
   }

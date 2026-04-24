@@ -1,7 +1,7 @@
 'use strict'
 
 const { validateSearchState } = require('../server/search/searchState')
-const { createServerClient } = require('../server/supabase/createServerClient')
+const { createServerPublicClient } = require('../server/supabase/createServerClient')
 const { dbSearchService } = require('../server/search-db/dbSearchService')
 const { createDetailToken } = require('../server/security/detailToken')
 
@@ -16,7 +16,7 @@ const DB_DEFAULT_COMPANY = {
 }
 
 async function runDbSearch(normalizedSearch) {
-  const supabaseClient = createServerClient()
+  const supabaseClient = createServerPublicClient()
   if (!supabaseClient) {
     throw new Error('supabase_client_unavailable')
   }

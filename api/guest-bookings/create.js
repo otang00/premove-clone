@@ -1,6 +1,6 @@
 'use strict'
 
-const { createServerClient } = require('../../server/supabase/createServerClient')
+const { createServerPrivilegedClient } = require('../../server/supabase/createServerClient')
 const { createGuestBooking } = require('../../server/booking-core/guestBookingService')
 const { recordReservationStatusEvent } = require('../../server/booking-core/bookingConfirmationService')
 const { validateGuestBookingCreateInput } = require('../../server/booking-core/guestBookingUtils')
@@ -24,7 +24,7 @@ module.exports = async function handler(req, res) {
     })
   }
 
-  const supabaseClient = createServerClient()
+  const supabaseClient = createServerPrivilegedClient()
   if (!supabaseClient) {
     return res.status(500).json({ error: 'supabase_client_unavailable' })
   }

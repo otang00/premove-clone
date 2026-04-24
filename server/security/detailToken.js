@@ -5,7 +5,7 @@ const { hashSearchState } = require('./hashSearchState')
 
 const DEFAULT_TTL_SECONDS = 15 * 60
 const TOKEN_VERSION = 1
-const SECRET_ENV_NAMES = ['DETAIL_TOKEN_SECRET', 'SEARCH_DETAIL_TOKEN_SECRET', 'APP_SECRET']
+const SECRET_ENV_NAMES = ['DETAIL_TOKEN_SECRET']
 
 function getTokenSecret() {
   for (const key of SECRET_ENV_NAMES) {

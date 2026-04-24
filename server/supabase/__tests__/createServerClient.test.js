@@ -3,7 +3,13 @@
 const test = require('node:test')
 const assert = require('node:assert/strict')
 
-const { createServerClient, resolveSupabaseUrl, resolveSupabaseKey } = require('../createServerClient')
+const {
+  createServerPrivilegedClient,
+  createServerPublicClient,
+  resolveSupabaseUrl,
+  resolveSupabasePrivilegedKey,
+  resolveSupabasePublicKey,
+} = require('../createServerClient')
 
 test('resolveSupabaseUrl prefers explicit url', () => {
   const env = {
@@ -13,14 +19,25 @@ test('resolveSupabaseUrl prefers explicit url', () => {
   assert.equal(resolveSupabaseUrl(env), 'https://example.supabase.co')
 })
 
-test('resolveSupabaseKey falls back through candidates', () => {
+test('resolveSupabasePrivilegedKey uses only privileged candidates', () => {
   const env = {
     SUPABASE_SERVICE_ROLE_KEY: '',
     SUPABASE_SERVICE_KEY: 'service-key',
+    SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
   }
-  assert.equal(resolveSupabaseKey(env), 'service-key')
+  assert.equal(resolveSupabasePrivilegedKey(env), 'service-key')
 })
 
-test('createServerClient returns null when config missing', () => {
-  assert.equal(createServerClient({ url: '', key: '' }), null)
+test('resolveSupabasePublicKey uses only public candidates', () => {
+  const env = {
+    SUPABASE_SERVICE_ROLE_KEY: 'service-role-key',
+    SUPABASE_PUBLISHABLE_KEY: 'publishable-key',
+    SUPABASE_ANON_KEY: 'anon-key',
+  }
+  assert.equal(resolveSupabasePublicKey(env), 'publishable-key')
+})
+
+test('server clients return null when config missing', () => {
+  assert.equal(createServerPrivilegedClient({ url: '', key: '' }), null)
+  assert.equal(createServerPublicClient({ url: '', key: '' }), null)
 })

@@ -1,5 +1,5 @@
 const { normalizeSearchState, validateDetailSearch } = require('../server/search/searchState')
-const { createServerClient } = require('../server/supabase/createServerClient')
+const { createServerPublicClient } = require('../server/supabase/createServerClient')
 const { buildDbCarDetailDto } = require('../server/detail/buildDbCarDetailDto')
 const { verifyDetailToken } = require('../server/security/detailToken')
 
@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       })
     }
 
-    const supabaseClient = createServerClient()
+    const supabaseClient = createServerPublicClient()
     if (!supabaseClient) {
       throw new Error('supabase_client_unavailable')
     }

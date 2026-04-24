@@ -1,6 +1,6 @@
 'use strict'
 
-const { createServerClient } = require('../../server/supabase/createServerClient')
+const { createServerPrivilegedClient } = require('../../server/supabase/createServerClient')
 const { fetchBookingOrderByCompletionToken } = require('../../server/booking-core/guestBookingService')
 const { verifyBookingCompleteToken } = require('../../server/security/bookingCompleteToken')
 
@@ -20,7 +20,7 @@ module.exports = async function handler(req, res) {
     return res.status(403).json({ error: 'invalid_booking_complete_token', message: '예약 완료 정보를 확인할 수 없습니다.' })
   }
 
-  const supabaseClient = createServerClient()
+  const supabaseClient = createServerPrivilegedClient()
   if (!supabaseClient) {
     return res.status(500).json({ error: 'supabase_client_unavailable' })
   }
