@@ -105,14 +105,30 @@ function validateGuestBookingCreateInput(input = {}) {
   }
 }
 
+function maskPhone(value) {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (digits.length < 7) return digits ? `${digits.slice(0, 2)}***` : null
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-***-${digits.slice(-4)}`
+  }
+  return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`
+}
+
+function maskBirth(value) {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (!digits) return null
+  if (digits.length <= 4) return `${digits.slice(0, 2)}**`
+  return `${digits.slice(0, 4)}****`
+}
+
 function serializeBookingOrder(order = {}) {
   return {
     id: order.id || null,
     publicReservationCode: order.public_reservation_code || null,
     customerName: order.customer_name || null,
-    customerPhone: order.customer_phone || null,
+    customerPhone: maskPhone(order.customer_phone),
     customerPhoneLast4: order.customer_phone_last4 || null,
-    customerBirth: order.customer_birth || order.pricing_snapshot?.customerBirth || null,
+    customerBirth: maskBirth(order.customer_birth || order.pricing_snapshot?.customerBirth),
     pickupAt: order.pickup_at || null,
     returnAt: order.return_at || null,
     pickupMethod: order.pickup_method || null,

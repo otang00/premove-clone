@@ -27,6 +27,22 @@ function formatLocalDateTime(value) {
   }).format(date).replace(/\. /g, '.').replace(/\.$/, '')
 }
 
+function maskPhone(value) {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (digits.length < 7) return digits ? `${digits.slice(0, 2)}***` : '-'
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)}-***-${digits.slice(-4)}`
+  }
+  return `${digits.slice(0, 3)}-****-${digits.slice(-4)}`
+}
+
+function maskBirth(value) {
+  const digits = String(value || '').replace(/[^\d]/g, '')
+  if (!digits) return '-'
+  if (digits.length <= 4) return `${digits.slice(0, 2)}**`
+  return `${digits.slice(0, 4)}****`
+}
+
 function buildOrigin(req) {
   const forwardedProto = String(req?.headers?.['x-forwarded-proto'] || '').split(',')[0].trim()
   const protocol = forwardedProto || 'https'
@@ -52,7 +68,8 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
   const detailUrl = `${confirmUrl}&view=detail`
   const carName = booking.pricingSnapshot?.carName || '-'
   const carNumber = booking.pricingSnapshot?.carNumber || '-'
-  const customerPhone = booking.customerPhone || booking.customerPhoneLast4 || '-'
+  const customerPhone = maskPhone(booking.customerPhone || booking.customerPhoneLast4 || '')
+  const customerBirth = maskBirth(booking.customerBirth || '')
   const paymentMethod = booking.pricingSnapshot?.paymentMethod || '확인 필요'
   const totalAmount = `${Number(booking.quotedTotalAmount || 0).toLocaleString('ko-KR')}원`
 
@@ -66,13 +83,13 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
     `예약번호: ${booking.publicReservationCode}`,
     `고객명: ${booking.customerName || '-'}`,
     `연락처: ${customerPhone}`,
-    `생년월일: ${booking.customerBirth || '-'}`,
+    `생년월일: ${customerBirth}`,
     `차량명: ${carName}`,
     `차량 번호: ${carNumber}`,
     `대여일시: ${formatLocalDateTime(booking.pickupAt)}`,
     `반납일시: ${formatLocalDateTime(booking.returnAt)}`,
     `배차/수령: ${booking.pickupLocationSnapshot?.pickupOption === 'delivery'
-      ? [booking.pickupLocationSnapshot?.deliveryAddress, booking.pickupLocationSnapshot?.deliveryAddressDetail].filter(Boolean).join(' ') || '딜리버리'
+      ? booking.pickupLocationSnapshot?.deliveryAddress || '딜리버리'
       : '회사 방문 수령'}`,
     `총 금액: ${totalAmount}`,
     `결제수단: ${paymentMethod}`,
@@ -111,13 +128,13 @@ function buildBookingConfirmationEmail({ booking, req } = {}) {
               ['예약번호', booking.publicReservationCode],
               ['고객명', booking.customerName || '-'],
               ['연락처', customerPhone],
-              ['생년월일', booking.customerBirth || '-'],
+              ['생년월일', customerBirth],
               ['차량명', carName],
               ['차량 번호', carNumber],
               ['대여일시', formatLocalDateTime(booking.pickupAt)],
               ['반납일시', formatLocalDateTime(booking.returnAt)],
               ['배차/수령', booking.pickupLocationSnapshot?.pickupOption === 'delivery'
-                ? [booking.pickupLocationSnapshot?.deliveryAddress, booking.pickupLocationSnapshot?.deliveryAddressDetail].filter(Boolean).join(' ') || '딜리버리'
+                ? booking.pickupLocationSnapshot?.deliveryAddress || '딜리버리'
                 : '회사 방문 수령'],
               ['총 금액', totalAmount],
               ['결제수단', paymentMethod],
