@@ -130,6 +130,36 @@ async function fetchBookingOrderByGuestLookup(params = {}) {
   return result.order || null
 }
 
+async function fetchBookingOrderByCompletionToken({
+  supabaseClient,
+  bookingOrderId,
+  reservationCode,
+} = {}) {
+  if (!supabaseClient) {
+    throw new Error('supabase client is required')
+  }
+
+  const normalizedBookingOrderId = String(bookingOrderId || '').trim()
+  const normalizedReservationCode = String(reservationCode || '').trim().toUpperCase()
+  if (!normalizedBookingOrderId || !normalizedReservationCode) {
+    return null
+  }
+
+  const { data, error } = await supabaseClient
+    .from('booking_orders')
+    .select('*')
+    .eq('id', normalizedBookingOrderId)
+    .eq('public_reservation_code', normalizedReservationCode)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  return data ? serializeBookingOrder(data) : null
+}
+
 async function createGuestBooking({
   supabaseClient,
   bookingInput,
@@ -575,6 +605,7 @@ module.exports = {
   fetchCarBySourceCarId,
   findBookingOrderByGuestLookup,
   fetchBookingOrderByGuestLookup,
+  fetchBookingOrderByCompletionToken,
   fetchBookingOrderByMemberReservationCode,
   fetchActiveReservationMapping,
   createGuestBooking,

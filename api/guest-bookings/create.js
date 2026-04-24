@@ -7,6 +7,7 @@ const { validateGuestBookingCreateInput } = require('../../server/booking-core/g
 const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { sendBookingConfirmationEmail } = require('../../server/email/sendBookingConfirmationEmail')
+const { createBookingCompleteToken } = require('../../server/security/bookingCompleteToken')
 
 module.exports = async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -95,6 +96,10 @@ module.exports = async function handler(req, res) {
 
     return res.status(201).json({
       booking: result.booking,
+      completionToken: createBookingCompleteToken({
+        bookingOrderId: result.booking.id,
+        reservationCode: result.booking.publicReservationCode,
+      }).token,
       email: emailMeta,
     })
   } catch (error) {

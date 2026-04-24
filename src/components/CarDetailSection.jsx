@@ -281,7 +281,7 @@ export default function CarDetailSection() {
       setIsCreatingReservation(true)
       setReservationSubmitError('')
 
-      const reservation = await createGuestBooking({
+      const result = await createGuestBooking({
         carId: Number(car.id),
         deliveryDateTime: parsedSearchState.deliveryDateTime,
         returnDateTime: parsedSearchState.returnDateTime,
@@ -300,9 +300,15 @@ export default function CarDetailSection() {
       }, {
         session,
       })
+      const reservation = result?.booking
+      const completionToken = result?.completionToken || ''
+
+      if (!reservation || !completionToken) {
+        throw new Error('예약 완료 정보를 불러오지 못했습니다.')
+      }
 
       setIsReservationConfirmOpen(false)
-      navigate(`/reservation-complete?customerName=${encodeURIComponent(reservation.customerName)}&customerPhone=${encodeURIComponent(reservation.customerPhone)}&customerBirth=${encodeURIComponent(reservation.customerBirth)}`)
+      navigate(`/reservation-complete?token=${encodeURIComponent(completionToken)}`)
     } catch (error) {
       setReservationSubmitError(error.message || '예약 생성에 실패했습니다.')
       setIsReservationConfirmOpen(false)

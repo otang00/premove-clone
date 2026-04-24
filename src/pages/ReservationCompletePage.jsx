@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useEffect, useState } from 'react'
-import { lookupGuestBooking } from '../services/guestBookingApi'
+import { fetchCompletedGuestBooking } from '../services/guestBookingApi'
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = String(dateText || '').split(' ')
@@ -14,16 +14,14 @@ function formatDisplay(dateText) {
 
 export default function ReservationCompletePage() {
   const [searchParams] = useSearchParams()
-  const customerName = searchParams.get('customerName') || ''
-  const customerPhone = searchParams.get('customerPhone') || ''
-  const customerBirth = searchParams.get('customerBirth') || ''
+  const completionToken = searchParams.get('token') || ''
   const [reservation, setReservation] = useState(null)
   const [loadError, setLoadError] = useState('')
 
   useEffect(() => {
     let isCancelled = false
 
-    if (!customerName || !customerPhone || !customerBirth) {
+    if (!completionToken) {
       setReservation(null)
       setLoadError('예약 정보를 찾지 못했습니다.')
       return () => {
@@ -31,7 +29,7 @@ export default function ReservationCompletePage() {
       }
     }
 
-    lookupGuestBooking({ customerName, customerPhone, customerBirth })
+    fetchCompletedGuestBooking(completionToken)
       .then((result) => {
         if (isCancelled) return
         setReservation(result.booking)
@@ -46,7 +44,7 @@ export default function ReservationCompletePage() {
     return () => {
       isCancelled = true
     }
-  }, [customerBirth, customerName, customerPhone])
+  }, [completionToken])
 
   return (
     <PageShell>

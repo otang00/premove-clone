@@ -13,7 +13,10 @@ export async function createGuestBooking(payload, options = {}) {
   })
 
   const result = await parseApiResponse(response, '예약 생성에 실패했습니다.')
-  return toBookingViewModel(result.booking)
+  return {
+    booking: toBookingViewModel(result.booking),
+    completionToken: result.completionToken || '',
+  }
 }
 
 export async function lookupGuestBooking(payload) {
@@ -29,6 +32,14 @@ export async function lookupGuestBooking(payload) {
   return {
     booking: toBookingViewModel(result.booking),
     mapping: result.mapping || null,
+  }
+}
+
+export async function fetchCompletedGuestBooking(completionToken) {
+  const response = await fetch(`/api/guest-bookings/complete?token=${encodeURIComponent(String(completionToken || ''))}`)
+  const result = await parseApiResponse(response, '예약 정보를 찾지 못했습니다.')
+  return {
+    booking: toBookingViewModel(result.booking),
   }
 }
 
