@@ -130,10 +130,26 @@ export default function CarDetailSection() {
   const [reservationSubmitError, setReservationSubmitError] = useState('')
   const [isCreatingReservation, setIsCreatingReservation] = useState(false)
   const paymentSummaryRef = useRef(null)
+  const summaryCardRef = useRef(null)
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
   }, [parsedSearchState.deliveryAddressDetail])
+
+  useEffect(() => {
+    if (!car || !pricing || !insurance || isLoading || fetchError) return undefined
+
+    const frameId = window.requestAnimationFrame(() => {
+      const element = summaryCardRef.current
+      if (!element) return
+
+      const headerOffset = 108
+      const top = element.getBoundingClientRect().top + window.scrollY - headerOffset
+      window.scrollTo({ top: Math.max(0, top), left: 0, behavior: 'auto' })
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [carId, car, pricing, insurance, isLoading, fetchError])
 
   const reservationValidation = useMemo(
     () => validateReservationForm(reservationForm),
@@ -328,7 +344,7 @@ export default function CarDetailSection() {
         {hasSearchContext && validation.isValid && !isLoading && !fetchError && car && pricing && insurance && (
           <div className="detail-columns">
             <section className="detail-main">
-              <article className="detail-card panel summary-card">
+              <article className="detail-card panel summary-card" ref={summaryCardRef}>
                 <div className="summary-image-wrap">
                   {car.image ? <img src={car.image} alt={car.name} /> : <div className="pickup-location-readonly-box">이미지 준비중</div>}
                 </div>

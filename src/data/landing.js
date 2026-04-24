@@ -58,7 +58,7 @@ export const landingContactItems = [
   },
   {
     label: '방문 주소',
-    value: company.address,
+    value: '서울 서초구 신반포로23길 78-9',
     note: '방문주소 지도창 열기',
     actionType: 'map',
     href: 'https://kko.to/nsu8bdQELb',
