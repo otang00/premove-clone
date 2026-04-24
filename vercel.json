@@ -21,7 +21,7 @@
         },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' https://developers.kakao.com https://dapi.kakao.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://developers.kakao.com https://dapi.kakao.com https://*.kakao.com https://*.daumcdn.net https://*.kakaocdn.net; frame-src 'none';"
+          "value": "default-src 'self'; base-uri 'self'; frame-ancestors 'none'; object-src 'none'; script-src 'self' https://developers.kakao.com https://dapi.kakao.com https://t1.daumcdn.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data: https:; connect-src 'self' https://*.supabase.co https://developers.kakao.com https://dapi.kakao.com https://*.kakao.com https://*.daumcdn.net https://*.kakaocdn.net; frame-src 'none';"
         }
       ]
     }

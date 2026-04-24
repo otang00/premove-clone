@@ -184,31 +184,44 @@
 
 ---
 
-### E. 보안 헤더 미구성
+### E. 보안 헤더 구성 이후 CSP 회귀 위험
 현재 상태
-- HSTS 외에 CSP, frame 제한, referrer 제한 등 핵심 헤더가 없다.
+- `vercel.json` 기준으로 핵심 보안 헤더는 이미 적용됐다.
+- 다만 CSP가 Kakao Maps의 실제 하위 로딩 경로를 충분히 허용하지 않아 운영 지도 기능이 깨진 사례가 확인됐다.
+
+실제 확인 결과 (2026-04-24)
+- 최소 정적 테스트 페이지에서도 Kakao Maps 생성자(`Map`, `LatLng`)가 로드되지 않았다.
+- 브라우저 콘솔에서 아래 CSP 위반이 확인됐다.
+  - `Loading the script 'https://t1.daumcdn.net/mapjsapi/js/main/4.4.23/kakao.js' violates the following Content Security Policy directive: "script-src 'self' https://developers.kakao.com https://dapi.kakao.com"`
+- 즉 원인은 앱 코드가 아니라 **CSP가 Kakao Maps 내부 스크립트 로딩(`t1.daumcdn.net`)을 차단한 것**으로 확정됐다.
 
 실제 수정 대상
 - `vercel.json`
 - 필요 시 앱/SDK 로딩 정책 문서
 
 수정 방향
-- 최소 헤더 baseline 을 먼저 넣는다.
-  - `Content-Security-Policy`
-  - `X-Frame-Options` 또는 `frame-ancestors`
-  - `Referrer-Policy`
-  - `Permissions-Policy`
-- Kakao SDK/Supabase/자체 asset 경로를 반영한 CSP를 단계적으로 tightening 한다.
+- 현재 보안 헤더 baseline 은 유지한다.
+- 대신 `script-src` 허용 목록에 Kakao Maps 실제 하위 로딩 경로를 정밀하게 추가한다.
+  - 최소: `https://t1.daumcdn.net`
+  - 권장 검토: `https://*.daumcdn.net`
+- 허용은 무작정 넓히지 말고, 지도 기능에 필요한 도메인만 증거 기반으로 추가한다.
 
 기능 상실 우려
 - 지도/카카오 스크립트 차단
 - 인라인 스타일/스크립트 충돌
 - 운영/프리뷰 도메인 차이로 일부 기능 불능
+- 보안 강화 직후 외부 SDK 회귀가 다시 발생할 수 있음
 
 사전 검증 기준
 - 랜딩, 지도, 예약, 로그인, 관리자 화면 모두 정상 동작
 - 콘솔 CSP violation 점검
 - preview/prod 각각 허용 origin 분리 검토
+- Kakao Maps는 최소 테스트 페이지와 실제 랜딩 모달 양쪽에서 검증
+
+재발 방지 메모
+- 외부 SDK는 1차 로더 도메인만 보고 CSP를 작성하면 안 된다.
+- 특히 Kakao Maps는 `dapi.kakao.com` 외에 `t1.daumcdn.net` 하위 스크립트 로딩까지 함께 검증해야 한다.
+- 보안 헤더 수정 시에는 반드시 "최소 정적 테스트 페이지 + 실제 화면" 2단 검증을 거친다.
 
 ---
 

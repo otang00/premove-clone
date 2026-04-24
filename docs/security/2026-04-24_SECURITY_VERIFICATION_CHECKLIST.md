@@ -12,7 +12,7 @@
 
 ## 이번 검증에서 확인한 사실
 - 프로덕션 도메인 `https://rentcar00.com` 에 최신 번들 반영 확인
-- 기본 보안 헤더는 HSTS만 확인됨
+- `vercel.json` 기준 핵심 보안 헤더는 현재 적용됨
 - `npm audit --omit=dev` 결과 `nodemailer` 1건 high 취약점 존재
 - 코드상 즉시 하드코딩된 비밀키는 직접 확인되지 않았으나, 공개/비공개 구분이 필요한 키와 토큰 설계 이슈가 존재함
 
@@ -83,17 +83,20 @@
     - 고정 `APP_ORIGIN` 사용 여부
     - 허용 host allowlist 적용 여부
 
-- [ ] **보안 헤더가 사실상 미구성 상태**
+- [ ] **보안 헤더 적용 후 CSP 회귀 점검 필요**
   - 위험도: 중간
   - 근거:
-    - 라이브 `curl -I https://rentcar00.com`
-    - 라이브 `curl -D - https://rentcar00.com/api/auth/me -o /dev/null`
+    - `vercel.json`
+    - 라이브 `curl -I https://rentcar00.com/kakao-map-test.html`
+    - 브라우저 콘솔 에러: `Loading the script 'https://t1.daumcdn.net/mapjsapi/js/main/4.4.23/kakao.js' violates the following Content Security Policy directive: "script-src 'self' https://developers.kakao.com https://dapi.kakao.com"`
   - 내용:
-    - 확인된 헤더는 주로 `strict-transport-security` 수준
-    - `Content-Security-Policy`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy` 부재
+    - 현재 `Content-Security-Policy`, `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`는 적용되어 있음
+    - 다만 CSP `script-src`가 Kakao Maps 내부 하위 스크립트 로딩 경로 `https://t1.daumcdn.net` 를 허용하지 않아 지도 생성자가 로드되지 않음
+    - 최소 테스트 페이지에서도 동일 증상이 재현되어 앱 코드 문제가 아님을 확인함
   - 확인할 것:
-    - Vercel 헤더 정책 추가
-    - iframe 차단, referrer 최소화, script source 제한
+    - `script-src`에 `https://t1.daumcdn.net` 또는 검토 후 `https://*.daumcdn.net` 추가
+    - 수정 후 최소 테스트 페이지 + 실제 랜딩 지도 모달 재검증
+    - 보안 헤더 강화 시 외부 SDK 하위 로딩 경로까지 함께 점검하는 절차 문서화
 
 - [ ] **`nodemailer` 프로덕션 취약점 존재**
   - 위험도: 중간
@@ -193,7 +196,7 @@
 - [ ] Referrer 전파 차단 헤더 검토
 
 ### Phase 4 — 운영 보안 설정 검증
-- [ ] CSP 설계
+- [ ] CSP 설계 및 외부 SDK 하위 로딩 경로 검증
 - [ ] X-Frame-Options 또는 frame-ancestors 설정
 - [ ] Referrer-Policy 설정
 - [ ] Permissions-Policy 설정
