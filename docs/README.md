@@ -9,6 +9,8 @@
 - `present/RENTCAR00_RESERVATION_CURRENT.md`
 - `present/LOGIN_SYSTEM_CURRENT.md`
 - `present/RENTCAR00_ADMIN_FOLLOWUPS_CURRENT.md`
+- `present/RENTCAR00_SECURITY_CURRENT.md`
+- `present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md`
 
 원칙:
 - present 에는 실제 실행 기준으로 쓰는 current 만 둔다.
@@ -32,5 +34,7 @@
 - 예약/결제/주소 기준은 `present/RENTCAR00_RESERVATION_CURRENT.md` 부터 본다.
 - 로그인/회원 기준은 `present/LOGIN_SYSTEM_CURRENT.md` 를 함께 본다.
 - 관리자 후속 개선은 `present/RENTCAR00_ADMIN_FOLLOWUPS_CURRENT.md` 를 본다.
+- 보안 현행 기준은 `present/RENTCAR00_SECURITY_CURRENT.md` 를 본다.
+- 보안 실제 실행은 `present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md` 를 본다.
 - active 기준이 아닌 체크리스트는 남기지 않는다.
 - 구기준 문서는 과감하게 active 영역에서 제거한다.
