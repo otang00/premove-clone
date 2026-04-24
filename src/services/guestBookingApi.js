@@ -36,7 +36,13 @@ export async function lookupGuestBooking(payload) {
 }
 
 export async function fetchCompletedGuestBooking(completionToken) {
-  const response = await fetch(`/api/guest-bookings/complete?token=${encodeURIComponent(String(completionToken || ''))}`)
+  const response = await fetch('/api/guest-bookings/lookup', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({ completionToken }),
+  })
   const result = await parseApiResponse(response, '예약 정보를 찾지 못했습니다.')
   return {
     booking: toBookingViewModel(result.booking),

@@ -5,11 +5,11 @@
 - 용도: rentcar00 예약/결제/고객정보 시스템 보안 현행 기준 문서
 - 기준 브랜치: `feat/db-preview-home`
 - 관련 문서:
-  - `docs/security/2026-04-24_SECURITY_VERIFICATION_CHECKLIST.md`
+  - `docs/past/present-history/2026-04-24_SECURITY_VERIFICATION_CHECKLIST_PAST.md`
   - `docs/present/RENTCAR00_RESERVATION_CURRENT.md`
   - `docs/present/LOGIN_SYSTEM_CURRENT.md`
   - `docs/present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md`
-- 직전 보안 점검 근거 문서: `docs/security/2026-04-24_SECURITY_VERIFICATION_CHECKLIST.md`
+- 직전 보안 점검 근거 문서: `docs/past/present-history/2026-04-24_SECURITY_VERIFICATION_CHECKLIST_PAST.md`
 
 ---
 

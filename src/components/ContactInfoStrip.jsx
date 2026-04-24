@@ -2,8 +2,15 @@ import { useEffect, useMemo, useState } from 'react'
 import { kakaoSdkConfig } from '../data/landing'
 
 const KAKAO_JS_SDK_SRC = 'https://developers.kakao.com/sdk/js/kakao.min.js'
-const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&autoload=false`
+const KAKAO_MAP_SDK_SRC = `https://dapi.kakao.com/v2/maps/sdk.js?appkey=${kakaoSdkConfig.javascriptKey}&autoload=false&libraries=services`
 const KAKAO_MAP_CONTAINER_ID = 'landing-kakao-map'
+const MAP_ERROR_MESSAGE = '지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.'
+
+function wait(ms) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms)
+  })
+}
 
 function loadScriptOnce(src, test) {
   return new Promise((resolve, reject) => {
@@ -13,10 +20,18 @@ function loadScriptOnce(src, test) {
     }
 
     const existingScript = document.querySelector(`script[src="${src}"]`)
-    const handleLoad = () => resolve()
+    const handleLoad = (event) => {
+      event?.currentTarget?.setAttribute?.('data-loaded', 'true')
+      resolve()
+    }
     const handleError = () => reject(new Error(`failed to load script: ${src}`))
 
     if (existingScript) {
+      if (existingScript.getAttribute('data-loaded') === 'true' || existingScript.readyState === 'complete') {
+        resolve()
+        return
+      }
+
       existingScript.addEventListener('load', handleLoad, { once: true })
       existingScript.addEventListener('error', handleError, { once: true })
       return
@@ -44,6 +59,41 @@ async function openKakaoChat(channelPublicId, fallbackHref) {
       window.open(fallbackHref, '_blank', 'noopener,noreferrer')
     }
   }
+}
+
+async function ensureKakaoMapsReady() {
+  await loadScriptOnce(KAKAO_MAP_SDK_SRC, () => Boolean(window.kakao?.maps?.load))
+
+  await new Promise((resolve, reject) => {
+    if (!window.kakao?.maps?.load) {
+      reject(new Error('kakao_maps_load_unavailable'))
+      return
+    }
+
+    try {
+      window.kakao.maps.load(resolve)
+    } catch (error) {
+      reject(error)
+    }
+  })
+
+  for (let attempt = 0; attempt < 8; attempt += 1) {
+    const maps = window.kakao?.maps
+    if (maps?.Map && maps?.Marker && maps?.LatLng) {
+      return maps
+    }
+    await wait(120)
+  }
+
+  throw new Error('kakao_maps_constructor_unavailable')
+}
+
+function getFallbackPosition(maps, coords) {
+  if (!coords?.x || !coords?.y || !maps?.Coords) {
+    return null
+  }
+
+  return new maps.Coords(Number(coords.x), Number(coords.y)).toLatLng()
 }
 
 export default function ContactInfoStrip({ items }) {
@@ -76,32 +126,32 @@ export default function ContactInfoStrip({ items }) {
     async function renderMap() {
       try {
         setMapError('')
-        await loadScriptOnce(KAKAO_MAP_SDK_SRC, () => Boolean(window.kakao?.maps))
+        const maps = await ensureKakaoMapsReady()
         if (cancelled) return
 
-        window.kakao.maps.load(() => {
-          if (cancelled) return
+        const container = document.getElementById(KAKAO_MAP_CONTAINER_ID)
+        if (!container) {
+          throw new Error('kakao_map_container_missing')
+        }
 
-          const container = document.getElementById(KAKAO_MAP_CONTAINER_ID)
-          if (!container) return
+        const coords = modalState.item.mapCoords
+        const services = maps.services
 
-          const coords = modalState.item.mapCoords
-          if (!coords?.x || !coords?.y) {
-            setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
-            return
+        const renderPosition = (position) => {
+          if (!position) {
+            throw new Error('kakao_map_position_missing')
           }
 
           container.innerHTML = ''
-          const position = new window.kakao.maps.Coords(Number(coords.x), Number(coords.y)).toLatLng()
-          const map = new window.kakao.maps.Map(container, {
+          const map = new maps.Map(container, {
             center: position,
             level: 3,
           })
 
-          new window.kakao.maps.Marker({
+          new maps.Marker({
             map,
             position,
-            title: '빵빵카',
+            title: modalState.item.mapPlaceName || '빵빵렌트카',
           })
 
           const relayout = () => {
@@ -110,12 +160,42 @@ export default function ContactInfoStrip({ items }) {
           }
 
           requestAnimationFrame(relayout)
-          resizeTimer = window.setTimeout(relayout, 180)
-        })
+          window.setTimeout(relayout, 80)
+          resizeTimer = window.setTimeout(relayout, 220)
+        }
+
+        const fallbackPosition = getFallbackPosition(maps, coords)
+
+        if (services?.Geocoder && modalState.item.mapAddress) {
+          const geocoder = new services.Geocoder()
+          geocoder.addressSearch(modalState.item.mapAddress, (result, status) => {
+            if (cancelled) return
+
+            if (status === services.Status.OK && Array.isArray(result) && result[0] && maps.LatLng) {
+              renderPosition(new maps.LatLng(Number(result[0].y), Number(result[0].x)))
+              return
+            }
+
+            if (fallbackPosition) {
+              renderPosition(fallbackPosition)
+              return
+            }
+
+            setMapError(MAP_ERROR_MESSAGE)
+          })
+          return
+        }
+
+        if (fallbackPosition) {
+          renderPosition(fallbackPosition)
+          return
+        }
+
+        setMapError(MAP_ERROR_MESSAGE)
       } catch (error) {
-        console.error(error)
+        console.error('[kakao-map] render failed', error)
         if (!cancelled) {
-          setMapError('지도를 불러오지 못했습니다. 아래 버튼으로 카카오맵을 열어 주세요.')
+          setMapError(MAP_ERROR_MESSAGE)
         }
       }
     }

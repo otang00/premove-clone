@@ -4,6 +4,8 @@ export const kakaoSdkConfig = {
   javascriptKey: 'b912305361ab3ad47fd00c2714bf324e',
   channelPublicId: '_SZcVn',
   mapAddress: '서울 서초구 신반포로23길 78-9',
+  mapPlaceName: '빵빵렌트카',
+  mapPlaceHref: 'https://map.kakao.com/?map_type=TYPE_MAP&itemId=27150232&q=%EB%B9%B5%EB%B9%B5%EB%A0%8C%ED%8A%B8%EC%B9%B4&urlLevel=3&urlX=501248&urlY=1114509',
 }
 
 export const landingNotice = {
@@ -61,8 +63,9 @@ export const landingContactItems = [
     value: '서울 서초구 신반포로23길 78-9',
     note: '방문주소 지도창 열기',
     actionType: 'map',
-    href: 'https://kko.to/nsu8bdQELb',
+    href: kakaoSdkConfig.mapPlaceHref,
     mapAddress: kakaoSdkConfig.mapAddress,
+    mapPlaceName: kakaoSdkConfig.mapPlaceName,
     mapCoords: {
       x: 501239,
       y: 1114525,

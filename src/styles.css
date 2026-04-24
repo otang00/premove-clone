@@ -625,6 +625,9 @@
 
 .reservation-confirm-modal{
   width:min(460px,100%);
+  max-height:min(88dvh, 720px);
+  overflow:auto;
+  -webkit-overflow-scrolling:touch;
 }
 
 .reservation-confirm-card{
@@ -654,6 +657,16 @@
   padding:0 var(--btn-px-lg);
 }
 
+.delivery-modal-backdrop{
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+
+.search-guard-modal{
+  max-height:min(88dvh, 720px);
+  overflow:auto;
+}
+
 @media (max-width: 960px){
   .reservation-result-card{
     padding:14px;
@@ -678,5 +691,26 @@
   .reservation-result-row strong{
     flex:auto;
     text-align:left;
+  }
+
+  .search-guard-modal{
+    width:min(100%, calc(100vw - 16px));
+    max-height:calc(100dvh - 16px);
+    margin:8px;
+    padding:16px;
+  }
+
+  .reservation-confirm-modal{
+    width:min(100%, calc(100vw - 16px));
+    max-height:calc(100dvh - 16px);
+    border-radius:18px;
+  }
+
+  .reservation-confirm-modal .search-guard-actions{
+    flex-direction:column-reverse;
+  }
+
+  .reservation-confirm-modal .search-guard-actions .btn{
+    width:100%;
   }
 }

@@ -9,7 +9,7 @@
   - `docs/present/RENTCAR00_RESERVATION_CURRENT.md`
   - `docs/present/LOGIN_SYSTEM_CURRENT.md`
 - 보조 근거 문서:
-  - `docs/security/2026-04-24_SECURITY_VERIFICATION_CHECKLIST.md`
+  - `docs/past/present-history/2026-04-24_SECURITY_VERIFICATION_CHECKLIST_PAST.md`
 
 ---
 
