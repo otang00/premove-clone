@@ -47,11 +47,12 @@
   - Phase 3-A — 화면 PII 최소화
   - Phase 3-B — 메일/로그/event PII 최소화
   - Phase 3-C — localStorage 레거시 경로 정리 여부 결정
-- 다음 실행 대기:
   - Phase 4-A — 보안 헤더 baseline 적용
   - Phase 4-B — CSP tightening + 외부 SDK 허용정책 조정
   - Phase 5-A — nodemailer 업그레이드
   - Phase 5-B — 최종 보안 회귀 점검 및 운영 체크리스트 확정
+- 다음 실행 대기:
+  - 없음
 - 비고:
   - Phase 1-A 는 예약 완료 페이지 이동을 `completionToken` 기반으로 전환했고, 빌드 검증을 통과했다.
   - Phase 1-B 는 guest lookup/cancel 에 in-memory baseline rate limit, Retry-After, 실패 지연 응답을 적용했고, 빌드 검증을 통과했다.
@@ -61,6 +62,24 @@
   - Phase 3-A 는 예약/회원/관리 응답 serializer 기준에서 휴대폰/생년월일 마스킹을 적용했고, 빌드 검증을 통과했다.
   - Phase 3-B 는 관리자 메일 본문에서 전화번호/생년월일/상세주소를 최소화했고, 빌드 검증을 통과했다.
   - Phase 3-C 는 미참조 localStorage guest reservation 유틸이 dead code 임을 확인하고 제거했으며, 빌드 검증을 통과했다.
+  - Phase 4-A 는 `vercel.json` 에 Referrer-Policy, Permissions-Policy, X-Frame-Options, X-Content-Type-Options 를 추가했고, JSON 파싱 및 빌드 검증을 통과했다.
+  - Phase 4-B 는 CSP baseline 을 추가해 Kakao/Supabase/self origin 범위를 명시했고, JSON 파싱 및 빌드 검증을 통과했다.
+  - Phase 5-A 는 `nodemailer` 를 `8.0.5` 로 상향했고, `npm audit --omit=dev` 결과 prod high/critical 0건을 확인했다.
+  - Phase 5-B 는 전체 빌드 검증과 단계별 current 문서 갱신을 완료했다.
+
+---
+
+## 최종 검증 결과
+
+- `npm run build` 통과
+- `node --test server/supabase/__tests__/createServerClient.test.js` 통과
+- `npm audit --omit=dev` 결과 prod 취약점 0건
+- `vercel.json` JSON 파싱 통과
+- 예약 완료 URL의 직접 PII query 제거 확인
+- guest lookup/cancel 보호 계층 추가 확인
+- admin confirm token exp 강제 확인
+- privileged/public Supabase client 분리 확인
+- booking 관련 응답/메일의 PII 최소화 반영 확인
 
 ---
 
