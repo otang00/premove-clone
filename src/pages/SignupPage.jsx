@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
-import { supabase } from '../lib/supabaseClient'
+import { parseApiResponse } from '../utils/apiResponse'
 
 function resolveRedirectTo(search) {
   const params = new URLSearchParams(search)
@@ -13,7 +13,7 @@ function resolveRedirectTo(search) {
 function getErrorMessage(error) {
   if (!error) return '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
   if (error.message?.includes('User already registered')) return '이미 가입된 이메일입니다. 로그인으로 진행해주세요.'
-  if (error.message?.includes('Password should be at least')) return '비밀번호는 최소 6자 이상이어야 합니다.'
+  if (error.message?.includes('Password should be at least')) return '비밀번호는 최소 8자 이상이어야 합니다.'
   return error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
 }
 
@@ -23,6 +23,12 @@ function formatPhoneNumber(value) {
   if (digits.length <= 3) return digits
   if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
   return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
+}
+
+function normalizePhoneNumber(value) {
+  const digits = value.replace(/\D/g, '')
+  if (digits.startsWith('82')) return `0${digits.slice(2)}`
+  return digits
 }
 
 function formatBirthDate(value) {
@@ -37,6 +43,13 @@ function getPasswordChecks(password, email) {
     noSpace: !/\s/.test(password),
     notEmail: email.trim() ? password !== email.trim() : true,
   }
+}
+
+function formatSeconds(seconds) {
+  const safeSeconds = Math.max(0, Number(seconds || 0))
+  const minutes = String(Math.floor(safeSeconds / 60)).padStart(2, '0')
+  const remainSeconds = String(safeSeconds % 60).padStart(2, '0')
+  return `${minutes}:${remainSeconds}`
 }
 
 function SectionTitle({ title, description }) {
@@ -77,15 +90,43 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [otpRequesting, setOtpRequesting] = useState(false)
+  const [otpVerifying, setOtpVerifying] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
-  const [otpMessage, setOtpMessage] = useState('OTP 연동 전 단계입니다. 현재는 UI 자리만 먼저 구성했습니다.')
+  const [otpMessage, setOtpMessage] = useState('휴대폰 인증을 완료해야 회원가입할 수 있습니다.')
   const [addressMessage, setAddressMessage] = useState('주소 검색 연동 전 단계입니다. 현재는 입력 영역과 버튼 자리만 먼저 구성했습니다.')
+  const [verificationId, setVerificationId] = useState('')
+  const [verificationToken, setVerificationToken] = useState('')
+  const [verifiedPhone, setVerifiedPhone] = useState('')
+  const [otpExpiresAt, setOtpExpiresAt] = useState(null)
+  const [otpCooldownUntil, setOtpCooldownUntil] = useState(null)
+  const [nowMs, setNowMs] = useState(Date.now())
 
   const passwordChecks = useMemo(() => getPasswordChecks(password, email), [password, email])
+  const passwordValid = useMemo(() => Object.values(passwordChecks).every(Boolean), [passwordChecks])
   const isPasswordConfirmed = passwordConfirm.length > 0 && password === passwordConfirm
   const requiredTermsAgreed = agreeTerms && agreePrivacy && agreeRental && agreeAge
-  const canSubmitCurrentSignup = email.trim() && password && passwordConfirm && password === passwordConfirm && isSupabaseClientReady && !submitting && !loading
+  const normalizedPhone = useMemo(() => normalizePhoneNumber(phone), [phone])
+  const isOtpVerified = Boolean(verificationId && verificationToken && verifiedPhone && verifiedPhone === normalizedPhone)
+  const otpSecondsLeft = otpExpiresAt ? Math.max(0, Math.ceil((otpExpiresAt - nowMs) / 1000)) : 0
+  const otpCooldownLeft = otpCooldownUntil ? Math.max(0, Math.ceil((otpCooldownUntil - nowMs) / 1000)) : 0
+  const canSubmitCurrentSignup = Boolean(
+    name.trim().length >= 2
+    && /^\d{8}$/.test(birthDate)
+    && email.trim()
+    && passwordValid
+    && isPasswordConfirmed
+    && /^01\d{8,9}$/.test(normalizedPhone)
+    && /^\d{5}$/.test(postalCode)
+    && addressMain.trim()
+    && addressDetail.trim()
+    && requiredTermsAgreed
+    && isOtpVerified
+    && isSupabaseClientReady
+    && !submitting
+    && !loading
+  )
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -100,6 +141,24 @@ export default function SignupPage() {
     }
   }, [agreeAge, agreeAll, agreeMarketing, agreePrivacy, agreeRental, agreeTerms])
 
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setNowMs(Date.now())
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!verifiedPhone) return
+    if (verifiedPhone === normalizedPhone) return
+
+    setVerificationId('')
+    setVerificationToken('')
+    setVerifiedPhone('')
+    setOtpMessage('휴대폰 번호가 바뀌어 인증 상태가 초기화되었습니다. 다시 인증해 주세요.')
+  }, [normalizedPhone, verifiedPhone])
+
   function handleToggleAllTerms(nextChecked) {
     setAgreeAll(nextChecked)
     setAgreeTerms(nextChecked)
@@ -109,28 +168,99 @@ export default function SignupPage() {
     setAgreeMarketing(nextChecked)
   }
 
-  function handleOtpRequest() {
-    setOtpMessage('OTP 발송 기능은 다음 단계에서 연결됩니다. 현재는 버튼 위치와 상태 문구만 검토합니다.')
+  async function handleOtpRequest() {
+    if (!/^01\d{8,9}$/.test(normalizedPhone)) {
+      setOtpMessage('휴대폰 번호를 먼저 정확히 입력해 주세요.')
+      return
+    }
+
+    setOtpRequesting(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    try {
+      const response = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: normalizedPhone,
+          purpose: 'signup',
+        }),
+      })
+
+      const result = await parseApiResponse(response, '인증번호 발송에 실패했습니다.')
+      setVerificationId(result.verificationId || '')
+      setVerificationToken('')
+      setVerifiedPhone('')
+      setOtpCode('')
+      setOtpExpiresAt(Date.now() + Number(result.expiresInSeconds || 180) * 1000)
+      setOtpCooldownUntil(Date.now() + Number(result.cooldownSeconds || 60) * 1000)
+      setOtpMessage(result.message || '인증번호를 발송했습니다.')
+    } catch (error) {
+      setOtpMessage(error.message || '인증번호 발송에 실패했습니다.')
+    } finally {
+      setOtpRequesting(false)
+    }
   }
 
-  function handleOtpVerify() {
-    setOtpMessage('OTP 확인 기능은 아직 연결되지 않았습니다. 다음 단계에서 API와 연결합니다.')
+  async function handleOtpVerify() {
+    if (!verificationId) {
+      setOtpMessage('먼저 인증번호를 요청해 주세요.')
+      return
+    }
+
+    if (otpCode.length !== 6) {
+      setOtpMessage('인증번호 6자리를 입력해 주세요.')
+      return
+    }
+
+    setOtpVerifying(true)
+    setErrorMessage('')
+    setSuccessMessage('')
+
+    try {
+      const response = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          verificationId,
+          phone: normalizedPhone,
+          code: otpCode,
+          purpose: 'signup',
+        }),
+      })
+
+      const result = await parseApiResponse(response, '휴대폰 인증에 실패했습니다.')
+      setVerificationToken(result.verificationToken || '')
+      setVerifiedPhone(normalizedPhone)
+      setOtpMessage(result.message || '휴대폰 인증이 완료되었습니다.')
+    } catch (error) {
+      setVerificationToken('')
+      setVerifiedPhone('')
+      setOtpMessage(error.message || '휴대폰 인증에 실패했습니다.')
+    } finally {
+      setOtpVerifying(false)
+    }
   }
 
   function handleFindAddress() {
-    setAddressMessage('주소 검색 기능은 다음 단계에서 연결됩니다. 현재는 우편번호/기본주소/상세주소 UI 검토용입니다.')
+    setAddressMessage('주소 검색 기능은 다음 단계에서 연결됩니다. 현재는 수기 입력으로 진행 가능합니다.')
   }
 
   async function handleSubmit(event) {
     event.preventDefault()
 
-    if (!supabase || !isSupabaseClientReady) {
+    if (!isSupabaseClientReady) {
       setErrorMessage('Supabase 설정이 준비되지 않았습니다.')
       return
     }
 
-    if (password !== passwordConfirm) {
-      setErrorMessage('비밀번호 확인이 일치하지 않습니다.')
+    if (!isOtpVerified) {
+      setErrorMessage('휴대폰 인증을 완료해 주세요.')
       return
     }
 
@@ -138,27 +268,45 @@ export default function SignupPage() {
     setErrorMessage('')
     setSuccessMessage('')
 
-    const { data, error } = await supabase.auth.signUp({
-      email: email.trim(),
-      password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login?redirectTo=${encodeURIComponent(redirectTo)}`,
-      },
-    })
+    try {
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name,
+          birthDate,
+          email,
+          password,
+          passwordConfirm,
+          phone: normalizedPhone,
+          postalCode,
+          addressMain,
+          addressDetail,
+          redirectTo: `${window.location.origin}/login?redirectTo=${encodeURIComponent(redirectTo)}`,
+          phoneVerificationId: verificationId,
+          phoneVerificationToken: verificationToken,
+          agreeTerms,
+          agreePrivacy,
+          agreeRental,
+          agreeAge,
+          agreeMarketing,
+        }),
+      })
 
-    if (error) {
+      const result = await parseApiResponse(response, '회원가입에 실패했습니다.')
+      setSuccessMessage(result.message || '회원가입이 완료되었습니다.')
+      setOtpMessage('휴대폰 인증이 완료된 상태로 가입이 처리되었습니다.')
+
+      if (!result.requiresEmailVerification) {
+        navigate(redirectTo, { replace: true })
+      }
+    } catch (error) {
       setErrorMessage(getErrorMessage(error))
+    } finally {
       setSubmitting(false)
-      return
     }
-
-    if (data.session) {
-      navigate(redirectTo, { replace: true })
-      return
-    }
-
-    setSuccessMessage('기존 이메일 회원가입은 동작합니다. 아래 추가 회원정보/OTP/주소 영역은 현재 UI 초안 단계입니다.')
-    setSubmitting(false)
   }
 
   return (
@@ -169,14 +317,14 @@ export default function SignupPage() {
             <div>
               <h1 style={{ margin: 0 }}>회원가입</h1>
               <p className="small-note" style={{ marginTop: 8 }}>
-                현재는 기존 이메일 회원가입을 유지하면서, 실서비스형 회원가입 폼 UI 초안을 먼저 확장한 상태입니다.
+                이메일 인증은 유지하고, 가입 전 휴대폰 인증을 먼저 완료하는 구조로 연결했습니다.
               </p>
             </div>
 
             <form className="stack-form stack-form-centered" onSubmit={handleSubmit}>
               <div style={{ display: 'grid', gap: 20 }}>
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="기본정보" description="회원 기본정보 입력 영역입니다. 현재는 폼 구조와 입력 흐름을 먼저 확인합니다." />
+                  <SectionTitle title="기본정보" description="회원가입에 필요한 기본 정보를 입력합니다." />
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-name">이름</label>
@@ -188,6 +336,7 @@ export default function SignupPage() {
                       value={name}
                       onChange={(event) => setName(event.target.value)}
                       disabled={submitting}
+                      required
                     />
                   </div>
 
@@ -202,8 +351,9 @@ export default function SignupPage() {
                       value={birthDate}
                       onChange={(event) => setBirthDate(formatBirthDate(event.target.value))}
                       disabled={submitting}
+                      required
                     />
-                    <FieldNote>숫자 8자리 입력 기준으로 UI를 먼저 잡습니다.</FieldNote>
+                    <FieldNote>숫자 8자리로 입력해 주세요.</FieldNote>
                   </div>
 
                   <div className="field-group">
@@ -223,7 +373,7 @@ export default function SignupPage() {
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="비밀번호" description="기존 이메일 회원가입 로직은 유지하고, 폼 상호작용을 같이 점검합니다." />
+                  <SectionTitle title="비밀번호" description="이메일 로그인 비밀번호를 설정합니다." />
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-password">비밀번호</label>
@@ -239,7 +389,7 @@ export default function SignupPage() {
                           onChange={(event) => setPassword(event.target.value)}
                           disabled={submitting || !isSupabaseClientReady}
                           required
-                          minLength={6}
+                          minLength={8}
                         />
                         <button
                           type="button"
@@ -267,7 +417,7 @@ export default function SignupPage() {
                           onChange={(event) => setPasswordConfirm(event.target.value)}
                           disabled={submitting || !isSupabaseClientReady}
                           required
-                          minLength={6}
+                          minLength={8}
                         />
                         <button
                           type="button"
@@ -295,7 +445,7 @@ export default function SignupPage() {
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="연락처 인증" description="OTP 연동 전이라 현재는 입력 영역과 상태 문구만 먼저 구성했습니다." />
+                  <SectionTitle title="연락처 인증" description="회원가입 전에 휴대폰 인증을 완료해야 합니다." />
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-phone">휴대폰 번호</label>
@@ -308,10 +458,16 @@ export default function SignupPage() {
                         placeholder="010-0000-0000"
                         value={phone}
                         onChange={(event) => setPhone(formatPhoneNumber(event.target.value))}
-                        disabled={submitting}
+                        disabled={submitting || otpRequesting || otpVerifying}
+                        required
                       />
-                      <button type="button" className="btn btn-outline btn-md" onClick={handleOtpRequest} disabled={submitting}>
-                        인증번호 받기
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-md"
+                        onClick={handleOtpRequest}
+                        disabled={submitting || otpRequesting || otpVerifying || otpCooldownLeft > 0}
+                      >
+                        {otpRequesting ? '발송 중...' : otpCooldownLeft > 0 ? `재전송 ${otpCooldownLeft}s` : '인증번호 받기'}
                       </button>
                     </div>
                   </div>
@@ -327,19 +483,30 @@ export default function SignupPage() {
                         placeholder="6자리 숫자 입력"
                         value={otpCode}
                         onChange={(event) => setOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
-                        disabled={submitting}
+                        disabled={submitting || otpVerifying || !verificationId || isOtpVerified}
                       />
-                      <button type="button" className="btn btn-outline btn-md" onClick={handleOtpVerify} disabled={submitting}>
-                        확인
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-md"
+                        onClick={handleOtpVerify}
+                        disabled={submitting || otpVerifying || !verificationId || otpCode.length !== 6 || isOtpVerified}
+                      >
+                        {isOtpVerified ? '인증완료' : otpVerifying ? '확인 중...' : '확인'}
                       </button>
                     </div>
-                    <FieldNote>남은 시간 03:00</FieldNote>
-                    <FieldNote>{otpMessage}</FieldNote>
+                    <FieldNote color={isOtpVerified ? '#166534' : '#6b7280'}>
+                      {isOtpVerified
+                        ? '휴대폰 인증이 완료되었습니다.'
+                        : verificationId
+                          ? `남은 시간 ${formatSeconds(otpSecondsLeft)}`
+                          : '인증번호를 먼저 요청해 주세요.'}
+                    </FieldNote>
+                    <FieldNote color={isOtpVerified ? '#166534' : '#6b7280'}>{otpMessage}</FieldNote>
                   </div>
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="주소" description="주소 검색 연동 전이라 현재는 입력 구조와 배치만 먼저 검토합니다." />
+                  <SectionTitle title="주소" description="주소 검색 연동 전이라 현재는 수기 입력으로 진행합니다." />
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-postal-code">우편번호</label>
@@ -353,6 +520,7 @@ export default function SignupPage() {
                         value={postalCode}
                         onChange={(event) => setPostalCode(event.target.value.replace(/\D/g, '').slice(0, 5))}
                         disabled={submitting}
+                        required
                       />
                       <button type="button" className="btn btn-outline btn-md" onClick={handleFindAddress} disabled={submitting}>
                         우편번호 찾기
@@ -370,6 +538,7 @@ export default function SignupPage() {
                       value={addressMain}
                       onChange={(event) => setAddressMain(event.target.value)}
                       disabled={submitting}
+                      required
                     />
                   </div>
 
@@ -383,13 +552,14 @@ export default function SignupPage() {
                       value={addressDetail}
                       onChange={(event) => setAddressDetail(event.target.value)}
                       disabled={submitting}
+                      required
                     />
                     <FieldNote>{addressMessage}</FieldNote>
                   </div>
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="약관 동의" description="필수/선택 구조와 전체 동의 동작을 먼저 확인합니다." />
+                  <SectionTitle title="약관 동의" description="필수 약관 전체 동의 후 회원가입할 수 있습니다." />
 
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 600 }}>
                     <input
@@ -425,7 +595,7 @@ export default function SignupPage() {
                   </div>
 
                   <FieldNote color={requiredTermsAgreed ? '#166534' : '#6b7280'}>
-                    {requiredTermsAgreed ? '필수 약관 동의가 완료되었습니다.' : '현재는 필수 약관 체크 UI만 먼저 확인합니다.'}
+                    {requiredTermsAgreed ? '필수 약관 동의가 완료되었습니다.' : '필수 약관에 모두 동의해 주세요.'}
                   </FieldNote>
                 </section>
               </div>
@@ -438,7 +608,7 @@ export default function SignupPage() {
               </button>
 
               <FieldNote>
-                현재 제출은 기존 이메일 회원가입 기준으로만 동작합니다. 추가 회원정보/OTP/주소 저장 연결은 다음 단계에서 붙입니다.
+                휴대폰 인증 완료 후 가입되며, 가입 뒤에는 이메일 인증 메일을 확인해야 로그인할 수 있습니다.
               </FieldNote>
             </form>
 
