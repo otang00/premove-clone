@@ -4,7 +4,9 @@
 - 상태: active present
 - 용도: 예약/결제/주소 축 현재 기준 문서
 - 기준 브랜치: `feat/db-preview-home`
-- 연관 current 문서: `docs/present/LOGIN_SYSTEM_CURRENT.md`
+- 연관 current 문서:
+  - `docs/present/LOGIN_SYSTEM_CURRENT.md`
+  - `docs/present/RENTCAR00_API_CURRENT.md`
 - 직전 active present 문서: `docs/past/present-history/2026-04-21-1830_EXECUTION_MASTER_PRESENT_PAST.md`
 
 ---
