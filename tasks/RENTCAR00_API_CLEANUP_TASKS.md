@@ -1,33 +1,43 @@
 # RENTCAR00 API cleanup tasks
 
 ## 목적
-현재 배포 가능한 11개 API 구조를 기준으로, 중복 라우트와 장기 확장 리스크를 줄이기 위한 다음 작업 목록을 고정한다.
+현재 API 7개 구조를 기준으로, 남은 운영 확인과 후속 확장 포인트를 고정한다.
 
 ## 현재 기준
-- 기준 커밋 전 상태: `3dfc6c7`
+- 기준 커밋 전 상태: `35deb45`
 - 운영 alias: `https://rentcar00.com`
-- 현재 API 파일 수: 11
+- 현재 API 파일 수: 7
 - 현재 핵심 blocker: Solapi 운영 ENV 미설정
 
 ---
 
-## 우선순위 1
+## 완료
 ### member 예약 API 중복 정리
-대상:
-- `api/member/bookings.js`
-- `api/member/bookings/[reservationCode].js`
-- `api/member/bookings/[reservationCode]/cancel.js`
+완료 내용:
+- `api/member/bookings.js` 를 기준 API로 확정
+- 아래 중복 라우트 제거
+  - `api/member/bookings/[reservationCode].js`
+  - `api/member/bookings/[reservationCode]/cancel.js`
 
+### admin 예약 API 통합
+완료 내용:
+- `api/admin/bookings.js` 로 목록/확정대상조회/확정/취소 통합
+- 아래 구 라우트 제거
+  - `api/admin/booking-confirm.js`
+  - `api/admin/booking-cancel.js`
+
+---
+
+## 우선순위 1
+### 운영 재배포 및 실응답 확인
 할 일:
-1. 집약형 유지 vs 경로형 유지 결정
-2. 살아남길 기준 라우트 확정
-3. 프론트 호출 경로 전수 점검
-4. 중복 라우트 제거
-5. 회귀 검증
+1. 프로덕션 재배포
+2. admin confirm-target 응답 확인
+3. admin confirm 응답 확인
+4. admin cancel 응답 확인
 
 완료 조건:
-- 회원 예약 목록/상세/취소가 한 정책으로만 동작
-- 동일 기능을 두 경로로 제공하지 않음
+- 운영에서 새 admin API 경로 응답 정상
 
 ---
 
@@ -46,22 +56,20 @@
 ---
 
 ## 우선순위 3
-### API 스타일 통일
-할 일:
-1. 축별로 action형 / REST형 혼용 여부 점검
-2. 신규 API 추가 규칙 문서화
-3. 함수 수 제한을 고려한 기본 패턴 고정
-
-완료 조건:
-- 같은 도메인 축에서 라우트 스타일이 섞이지 않음
+### 다음 API 추가 원칙 유지
+원칙:
+1. Hobby 유지 시 함수 수를 먼저 계산한다.
+2. 같은 도메인 축에서 라우트 스타일을 섞지 않는다.
+3. member/admin 축은 `bookings.js` 중심으로 유지한다.
+4. 운영 ENV 의존 기능은 배포 완료와 운영 가능을 구분한다.
 
 ---
 
 ## 우선순위 4
 ### 플랜 판단
 선택지:
-- Hobby 유지: API 압축 규칙 강화
-- Pro 전환: 함수 수 제약 완화 후 직관적 라우트 복원 검토
+- Hobby 유지: 현재 압축 구조 유지
+- Pro 전환: 추후 직관적 REST 구조 복원 검토
 
 완료 조건:
-- 다음 기능 추가 전에 플랜 전략 확정
+- 결제/웹훅/API 확장 전에 플랜 전략 확정

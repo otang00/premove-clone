@@ -3,7 +3,7 @@ import { toBookingViewModel } from './bookingViewModel'
 
 export async function fetchAdminBookingConfirm(session, token) {
   const accessToken = session?.access_token
-  const response = await fetch(`/api/admin/booking-confirm?token=${encodeURIComponent(token)}`, {
+  const response = await fetch(`/api/admin/bookings?action=confirm-target&token=${encodeURIComponent(token)}`, {
     method: 'GET',
     headers: {
       ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
@@ -18,7 +18,7 @@ export async function fetchAdminBookingConfirm(session, token) {
 
 export async function confirmAdminBooking(session, token) {
   const accessToken = session?.access_token
-  const response = await fetch('/api/admin/booking-confirm', {
+  const response = await fetch('/api/admin/bookings?action=confirm', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -37,7 +37,7 @@ export async function confirmAdminBooking(session, token) {
 
 export async function cancelAdminBooking(session, token, payload = {}) {
   const accessToken = session?.access_token
-  const response = await fetch('/api/admin/booking-cancel', {
+  const response = await fetch('/api/admin/bookings?action=cancel', {
     method: 'POST',
     headers: {
       'content-type': 'application/json',

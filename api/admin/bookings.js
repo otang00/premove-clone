@@ -5,6 +5,8 @@ const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenF
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { assertAdminUser } = require('../../server/auth/adminAccess')
 const { serializeBookingOrder } = require('../../server/booking-core/guestBookingUtils')
+const { fetchBookingOrderByConfirmationToken, confirmBookingByToken } = require('../../server/booking-core/bookingConfirmationService')
+const { cancelBookingOrder } = require('../../server/booking-core/guestBookingService')
 const { createBookingConfirmToken } = require('../../server/security/bookingConfirmToken')
 
 const TAB_STATUS_MAP = {
@@ -103,9 +105,137 @@ async function fetchFallbackCarNumbers({ supabaseClient, rows } = {}) {
   return new Map((Array.isArray(data) ? data : []).map((row) => [Number(row.id), String(row.car_number || '')]))
 }
 
+async function handleList(req, res, supabaseClient) {
+  const tab = normalizeTab(req.query?.tab)
+  const q = String(req.query?.q || '').trim()
+  const qField = normalizeQueryField(req.query?.qField)
+  const page = normalizePage(req.query?.page, 1)
+  const pageSize = Math.min(normalizePage(req.query?.pageSize, 20), 100)
+
+  const statuses = TAB_STATUS_MAP[tab]
+  const { data, error } = await supabaseClient
+    .from('booking_orders')
+    .select('*')
+    .in('booking_status', statuses)
+    .order('pickup_at', { ascending: true, nullsFirst: false })
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    throw error
+  }
+
+  const fallbackCarNumberById = await fetchFallbackCarNumbers({ supabaseClient, rows: data })
+
+  const items = (Array.isArray(data) ? data : [])
+    .map((row) => toAdminBookingItem(row, fallbackCarNumberById))
+    .filter((item) => matchesSearch({
+      publicReservationCode: item.reservationNumber,
+      customerName: item.customerName,
+      pricingSnapshot: {
+        carNumber: item.carNumber,
+      },
+    }, qField, q))
+
+  const start = (page - 1) * pageSize
+  const pagedItems = items.slice(start, start + pageSize)
+
+  return res.status(200).json({
+    items: pagedItems,
+    page,
+    pageSize,
+    total: items.length,
+    filters: {
+      tab,
+      q,
+      qField,
+    },
+  })
+}
+
+async function handleConfirmTarget(req, res, supabaseClient) {
+  const token = String(req.query?.token || '').trim()
+  if (!token) {
+    return res.status(400).json({ error: 'missing_token', message: '확정 토큰이 필요합니다.' })
+  }
+
+  const result = await fetchBookingOrderByConfirmationToken({ supabaseClient, token })
+  if (!result.ok) {
+    return res.status(result.status || 400).json({
+      error: result.code || 'booking_confirm_lookup_failed',
+      message: result.message,
+    })
+  }
+
+  return res.status(200).json({ booking: result.booking })
+}
+
+async function handleConfirm(req, res, supabaseClient) {
+  const token = String(req.body?.token || '').trim()
+  if (!token) {
+    return res.status(400).json({ error: 'missing_token', message: '확정 토큰이 필요합니다.' })
+  }
+
+  const result = await confirmBookingByToken({ supabaseClient, token, requestedBy: 'admin_web' })
+  if (!result.ok) {
+    return res.status(result.status || 400).json({
+      error: result.code || 'booking_confirm_failed',
+      message: result.message || '예약 확정에 실패했습니다.',
+      booking: result.booking || null,
+    })
+  }
+
+  return res.status(200).json({
+    booking: result.booking,
+    alreadyProcessed: Boolean(result.alreadyProcessed),
+    message: result.message || null,
+  })
+}
+
+async function handleCancel(req, res, supabaseClient) {
+  const token = String(req.body?.token || '').trim()
+  const reason = String(req.body?.reason || '').trim()
+  if (!token) {
+    return res.status(400).json({ error: 'missing_token', message: '예약 토큰이 필요합니다.' })
+  }
+
+  const lookup = await fetchBookingOrderByConfirmationToken({ supabaseClient, token })
+  if (!lookup.ok) {
+    return res.status(lookup.status || 400).json({
+      error: lookup.code || 'admin_cancel_lookup_failed',
+      message: lookup.message || '예약 정보를 찾지 못했습니다.',
+    })
+  }
+
+  const pickupAt = lookup.rawBooking?.pickup_at ? new Date(lookup.rawBooking.pickup_at) : null
+  const started = pickupAt && !Number.isNaN(pickupAt.getTime()) ? pickupAt <= new Date() : false
+
+  const result = await cancelBookingOrder({
+    supabaseClient,
+    order: lookup.rawBooking,
+    requestedBy: 'admin_web',
+    eventType: started ? 'admin_cancelled_after_start' : 'admin_cancelled',
+    reason,
+    allowStartedCancel: true,
+    allowedBookingStatuses: ['confirmation_pending', 'confirmed_pending_sync', 'confirmed', 'in_use'],
+  })
+
+  if (!result.ok) {
+    return res.status(result.status || 400).json({
+      error: result.code || 'admin_cancel_failed',
+      message: result.message || '예약 취소에 실패했습니다.',
+      booking: result.booking || null,
+    })
+  }
+
+  return res.status(200).json({
+    booking: result.booking,
+    mapping: result.mapping || null,
+  })
+}
+
 module.exports = async function handler(req, res) {
-  if (req.method !== 'GET') {
-    res.setHeader('Allow', 'GET')
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST')
     return res.status(405).json({ error: 'method_not_allowed' })
   }
 
@@ -130,50 +260,25 @@ module.exports = async function handler(req, res) {
       return res.status(access.status).json({ error: access.code, message: access.message })
     }
 
-    const tab = normalizeTab(req.query?.tab)
-    const q = String(req.query?.q || '').trim()
-    const qField = normalizeQueryField(req.query?.qField)
-    const page = normalizePage(req.query?.page, 1)
-    const pageSize = Math.min(normalizePage(req.query?.pageSize, 20), 100)
+    const action = String(req.query?.action || '').trim().toLowerCase()
 
-    const statuses = TAB_STATUS_MAP[tab]
-    const { data, error } = await supabaseClient
-      .from('booking_orders')
-      .select('*')
-      .in('booking_status', statuses)
-      .order('pickup_at', { ascending: true, nullsFirst: false })
-      .order('created_at', { ascending: false })
-
-    if (error) {
-      throw error
+    if (req.method === 'GET' && action === 'confirm-target') {
+      return handleConfirmTarget(req, res, supabaseClient)
     }
 
-    const fallbackCarNumberById = await fetchFallbackCarNumbers({ supabaseClient, rows: data })
+    if (req.method === 'POST' && action === 'confirm') {
+      return handleConfirm(req, res, supabaseClient)
+    }
 
-    const items = (Array.isArray(data) ? data : [])
-      .map((row) => toAdminBookingItem(row, fallbackCarNumberById))
-      .filter((item) => matchesSearch({
-        publicReservationCode: item.reservationNumber,
-        customerName: item.customerName,
-        pricingSnapshot: {
-          carNumber: item.carNumber,
-        },
-      }, qField, q))
+    if (req.method === 'POST' && action === 'cancel') {
+      return handleCancel(req, res, supabaseClient)
+    }
 
-    const start = (page - 1) * pageSize
-    const pagedItems = items.slice(start, start + pageSize)
+    if (req.method === 'GET' && !action) {
+      return handleList(req, res, supabaseClient)
+    }
 
-    return res.status(200).json({
-      items: pagedItems,
-      page,
-      pageSize,
-      total: items.length,
-      filters: {
-        tab,
-        q,
-        qField,
-      },
-    })
+    return res.status(404).json({ error: 'not_found' })
   } catch (error) {
     return res.status(500).json({
       error: 'admin_bookings_failed',

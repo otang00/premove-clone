@@ -12,6 +12,7 @@
 - `present/RENTCAR00_SECURITY_CURRENT.md`
 - `present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md`
 - `present/RENTCAR00_API_CURRENT.md`
+- `present/RENTCAR00_API_REDUCTION_PLAN_CURRENT.md`
 
 원칙:
 - present 에는 실제 실행 기준으로 쓰는 current 만 둔다.
@@ -36,6 +37,7 @@
 - 로그인/회원 기준은 `present/LOGIN_SYSTEM_CURRENT.md` 를 함께 본다.
 - 관리자 후속 개선은 `present/RENTCAR00_ADMIN_FOLLOWUPS_CURRENT.md` 를 본다.
 - API 현행 기준은 `present/RENTCAR00_API_CURRENT.md` 를 본다.
+- API 축소 정리 기준은 `present/RENTCAR00_API_REDUCTION_PLAN_CURRENT.md` 를 본다.
 - 보안 현행 기준은 `present/RENTCAR00_SECURITY_CURRENT.md` 를 본다.
 - 보안 실제 실행은 `present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md` 를 본다.
 - active 기준이 아닌 체크리스트는 남기지 않는다.
