@@ -250,14 +250,6 @@ export default function SignupPage() {
                           {showPassword ? '숨기기' : '보기'}
                         </button>
                       </div>
-
-                      <div style={{ display: 'grid', gap: 4 }}>
-                        <FieldNote color={passwordChecks.length ? '#166534' : '#6b7280'}>{passwordChecks.length ? '✓' : '○'} 8자 이상</FieldNote>
-                        <FieldNote color={passwordChecks.english ? '#166534' : '#6b7280'}>{passwordChecks.english ? '✓' : '○'} 영문 포함</FieldNote>
-                        <FieldNote color={passwordChecks.number ? '#166534' : '#6b7280'}>{passwordChecks.number ? '✓' : '○'} 숫자 포함</FieldNote>
-                        <FieldNote color={passwordChecks.noSpace ? '#166534' : '#be123c'}>{passwordChecks.noSpace ? '✓' : '○'} 공백 없음</FieldNote>
-                        <FieldNote color={passwordChecks.notEmail ? '#166534' : '#be123c'}>{passwordChecks.notEmail ? '✓' : '○'} 이메일과 동일하지 않음</FieldNote>
-                      </div>
                     </div>
                   </div>
 
@@ -291,6 +283,13 @@ export default function SignupPage() {
                           {isPasswordConfirmed ? '비밀번호가 일치합니다.' : '비밀번호가 일치하지 않습니다.'}
                         </FieldNote>
                       ) : null}
+                      <div style={{ display: 'grid', gap: 4 }}>
+                        <FieldNote color={passwordChecks.length ? '#166534' : '#6b7280'}>{passwordChecks.length ? '✓' : '○'} 8자 이상</FieldNote>
+                        <FieldNote color={passwordChecks.english ? '#166534' : '#6b7280'}>{passwordChecks.english ? '✓' : '○'} 영문 포함</FieldNote>
+                        <FieldNote color={passwordChecks.number ? '#166534' : '#6b7280'}>{passwordChecks.number ? '✓' : '○'} 숫자 포함</FieldNote>
+                        <FieldNote color={passwordChecks.noSpace ? '#166534' : '#be123c'}>{passwordChecks.noSpace ? '✓' : '○'} 공백 없음</FieldNote>
+                        <FieldNote color={passwordChecks.notEmail ? '#166534' : '#be123c'}>{passwordChecks.notEmail ? '✓' : '○'} 이메일과 동일하지 않음</FieldNote>
+                      </div>
                     </div>
                   </div>
                 </section>
