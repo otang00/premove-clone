@@ -17,6 +17,38 @@ const QUERY_FIELD_OPTIONS = [
   { key: 'customerName', label: '고객명' },
 ]
 
+function formatSyncDateTime(value) {
+  if (!value) return '-'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '-'
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date)
+}
+
+function buildImsSyncStatusText(sync) {
+  if (!sync) return 'IMS 싱크 상태: 아직 실행 이력이 없습니다.'
+  const updatedAt = formatSyncDateTime(sync.updatedAt)
+  if (sync.status === 'success') {
+    return `IMS 싱크 상태: 성공 · 최근 업데이트 ${updatedAt}`
+  }
+  if (sync.status === 'partial_success') {
+    return `IMS 싱크 상태: 부분성공 · 최근 업데이트 ${updatedAt}`
+  }
+  if (sync.status === 'failed') {
+    return `IMS 싱크 상태: 실패 · 최근 업데이트 ${updatedAt}`
+  }
+  if (sync.status === 'running') {
+    return `IMS 싱크 상태: 실행중 · 최근 시작 ${updatedAt}`
+  }
+  return `IMS 싱크 상태: ${sync.status || '알수없음'} · 최근 업데이트 ${updatedAt}`
+}
+
 export default function AdminBookingsPage() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
@@ -25,6 +57,7 @@ export default function AdminBookingsPage() {
   const [fetching, setFetching] = useState(true)
   const [error, setError] = useState('')
   const [total, setTotal] = useState(0)
+  const [imsSync, setImsSync] = useState(null)
 
   const tab = searchParams.get('tab') || 'pending'
   const qField = searchParams.get('qField') || 'carNumber'
@@ -61,12 +94,14 @@ export default function AdminBookingsPage() {
         if (ignore) return
         setItems(result.items || [])
         setTotal(result.total || 0)
+        setImsSync(result.imsSync || null)
         setError('')
       })
       .catch((fetchError) => {
         if (ignore) return
         setItems([])
         setTotal(0)
+        setImsSync(null)
         setError(fetchError.message || '관리자 예약 목록을 불러오지 못했습니다.')
       })
       .finally(() => {
@@ -117,6 +152,21 @@ export default function AdminBookingsPage() {
               <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
                 <div className="reservation-result-row"><span>관리자 계정</span><strong>{adminEmail || '-'}</strong></div>
                 <div className="reservation-result-row"><span>표시 건수</span><strong>{fetching ? '불러오는 중' : `${total}건`}</strong></div>
+              </div>
+            ) : null}
+
+            {hasAdminHint ? (
+              <div className="panel-sub" style={{ padding: '10px 14px' }}>
+                <p
+                  className="field-note"
+                  style={{
+                    margin: 0,
+                    color: imsSync?.status === 'failed' ? '#be123c' : imsSync?.status === 'success' ? '#166534' : '#475569',
+                    fontWeight: 600,
+                  }}
+                >
+                  {fetching ? 'IMS 싱크 상태를 불러오는 중입니다.' : buildImsSyncStatusText(imsSync)}
+                </p>
               </div>
             ) : null}
 

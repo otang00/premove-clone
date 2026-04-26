@@ -45,5 +45,6 @@ export async function getAdminBookings(session, params = {}) {
     pageSize: Number(result.pageSize || 20),
     total: Number(result.total || 0),
     filters: result.filters || {},
+    imsSync: result.imsSync || null,
   }
 }

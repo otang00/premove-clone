@@ -105,6 +105,37 @@ async function fetchFallbackCarNumbers({ supabaseClient, rows } = {}) {
   return new Map((Array.isArray(data) ? data : []).map((row) => [Number(row.id), String(row.car_number || '')]))
 }
 
+async function fetchLatestImsReservationSync({ supabaseClient } = {}) {
+  const { data, error } = await supabaseClient
+    .from('reservation_sync_runs')
+    .select('id, sync_type, status, started_at, finished_at, fetched_count, upserted_count, failed_count, error_summary')
+    .eq('sync_type', 'ims_reservations')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  if (!data) {
+    return null
+  }
+
+  return {
+    id: data.id,
+    syncType: data.sync_type,
+    status: data.status || 'unknown',
+    startedAt: data.started_at || null,
+    finishedAt: data.finished_at || null,
+    updatedAt: data.finished_at || data.started_at || null,
+    fetchedCount: Number(data.fetched_count || 0),
+    upsertedCount: Number(data.upserted_count || 0),
+    failedCount: Number(data.failed_count || 0),
+    errorSummary: data.error_summary || '',
+  }
+}
+
 async function handleList(req, res, supabaseClient) {
   const tab = normalizeTab(req.query?.tab)
   const q = String(req.query?.q || '').trim()
@@ -124,7 +155,10 @@ async function handleList(req, res, supabaseClient) {
     throw error
   }
 
-  const fallbackCarNumberById = await fetchFallbackCarNumbers({ supabaseClient, rows: data })
+  const [fallbackCarNumberById, latestImsSync] = await Promise.all([
+    fetchFallbackCarNumbers({ supabaseClient, rows: data }),
+    fetchLatestImsReservationSync({ supabaseClient }),
+  ])
 
   const items = (Array.isArray(data) ? data : [])
     .map((row) => toAdminBookingItem(row, fallbackCarNumberById))
@@ -149,6 +183,7 @@ async function handleList(req, res, supabaseClient) {
       q,
       qField,
     },
+    imsSync: latestImsSync,
   })
 }
 

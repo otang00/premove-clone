@@ -75,6 +75,16 @@ function SearchGuardModal({ open, onClose, onOpenLocation }) {
   )
 }
 
+function scrollToSearchResults() {
+  if (typeof window === 'undefined') return
+
+  window.requestAnimationFrame(() => {
+    const target = document.getElementById('search-results')
+    if (!target) return
+    target.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  })
+}
+
 export default function SearchBox({ compact = false }) {
   const navigate = useNavigate()
   const location = useLocation()
@@ -200,6 +210,7 @@ export default function SearchBox({ compact = false }) {
 
     const nextQuery = buildSearchQuery({ ...searchState, pickupOption: 'delivery' })
     navigate(`/?${nextQuery}`)
+    scrollToSearchResults()
   }
 
   const openLocationModalFromGuard = () => {
