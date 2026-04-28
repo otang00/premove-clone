@@ -801,62 +801,38 @@
 }
 
 .footer-company-block{
+  width:min(100%,760px);
   display:grid;
-  gap:4px;
-}
-
-.footer-support-block{
-  width:min(100%,720px);
-  display:grid;
-  gap:16px;
-  padding:18px 20px;
+  justify-items:start;
   text-align:left;
-  background:#fbfdff;
+  gap:14px;
 }
 
-.footer-support-block__header{
+.footer-text-groups{
+  display:grid;
+  gap:18px;
+  width:100%;
+}
+
+.footer-text-group{
   display:grid;
   gap:4px;
 }
 
-.footer-support-block__header strong{
-  font-size:var(--fs-m);
-}
-
-.footer-support-block__header p{
-  margin:0;
-  color:var(--muted);
-  font-size:var(--fs-s);
-  line-height:1.6;
-}
-
-.footer-support-grid{
-  display:grid;
-  grid-template-columns:repeat(2,minmax(0,1fr));
-  gap:10px;
-}
-
-.footer-support-item,
-.footer-support-address{
-  border:1px solid var(--border);
-  border-radius:12px;
-  background:#fff;
-  padding:14px;
-  display:grid;
-  gap:6px;
-}
-
-.footer-support-item span,
-.footer-support-address span{
-  font-size:var(--fs-s);
-  color:#6b7c8f;
-}
-
-.footer-support-item strong,
-.footer-support-address strong{
-  font-size:var(--fs-m);
-  line-height:1.5;
+.footer-section-title{
+  display:block;
+  margin-bottom:6px;
+  font-size:15px;
+  font-weight:700;
   color:var(--text);
+}
+
+.footer-text-group p{
+  margin:0;
+  color:#7a8491;
+  font-size:13px;
+  line-height:1.7;
+  word-break:keep-all;
 }
 
 .delivery-region-list{
@@ -868,8 +844,8 @@
 }
 
 @media (max-width: 960px){
-  .footer-support-grid{
-    grid-template-columns:1fr;
+  .footer-company-block{
+    justify-items:start;
   }
 
   .driver-info-card__header .btn{

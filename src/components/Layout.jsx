@@ -49,12 +49,6 @@ export function Header({ brandName, showGuestBookingAction = true } = {}) {
 
 export function Footer() {
   const company = getMockCompany()
-  const supportItems = [
-    { label: '전화상담', value: landingNotice.phone },
-    { label: '카카오톡', value: landingNotice.kakaoId },
-    { label: '운영시간', value: '평일 09:00 - 18:00' },
-    { label: '점심시간', value: '12:00 - 13:00' },
-  ]
 
   return (
     <footer className="footer minimal-footer">
@@ -66,27 +60,30 @@ export function Footer() {
         </div>
         <div className="footer-copy compact-copy centered-copy footer-company-block">
           <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
-          <strong>{company.name}</strong>
-          <p>대표: {company.representative} | 사업자등록번호: {company.businessNumber}</p>
-          <p>주소: {company.address}</p>
-          <p className="footer-phone">{company.phone}</p>
-        </div>
-        <div className="footer-support-block panel-sub">
-          <div className="footer-support-block__header">
-            <strong>문의 안내</strong>
-            <p>상담과 방문 전 확인이 필요한 정보를 정리했습니다.</p>
-          </div>
-          <div className="footer-support-grid">
-            {supportItems.map((item) => (
-              <div key={item.label} className="footer-support-item">
-                <span>{item.label}</span>
-                <strong>{item.value}</strong>
-              </div>
-            ))}
-          </div>
-          <div className="footer-support-address">
-            <span>방문 주소</span>
-            <strong>{company.address}</strong>
+          <div className="footer-text-groups">
+            <section className="footer-text-group">
+              <strong className="footer-section-title">쇼핑몰 기본정보</strong>
+              <p>상호명 {company.name}</p>
+              <p>대표자명 {company.representative}</p>
+              <p>사업장 주소 {company.address}</p>
+              <p>사업자등록번호 {company.businessNumber}</p>
+            </section>
+
+            <section className="footer-text-group">
+              <strong className="footer-section-title">고객센터 정보</strong>
+              <p>회사 대표전화 {company.phone}</p>
+              <p>상담/주문전화 {landingNotice.phone}</p>
+              <p>카카오톡 {landingNotice.kakaoId}</p>
+              <p>운영시간 평일 오전 9시 - 오후 6시</p>
+              <p>점심시간 오후 12시 - 오후 1시</p>
+              <p>공휴일 휴무</p>
+            </section>
+
+            <section className="footer-text-group">
+              <strong className="footer-section-title">결제 정보</strong>
+              <p>무통장 계좌정보</p>
+              <p>하나은행 360-890004-02504 빵빵카(주)</p>
+            </section>
           </div>
         </div>
       </div>
