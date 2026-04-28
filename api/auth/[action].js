@@ -5,7 +5,12 @@ const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenF
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { ensureProfileForUser, serializeProfile } = require('../../server/auth/ensureProfileForUser')
 const { buildAuthEmailAlias } = require('../../server/auth/authEmailAlias')
-const { hashOtpValue, isValidMobilePhone, normalizePhoneNumber } = require('../../server/auth/phoneOtp')
+const { hashOtpValue, normalizePhoneNumber } = require('../../server/auth/phoneOtp')
+const {
+  validatePersonName,
+  validateBirthDate,
+  validateMobilePhoneNumber,
+} = require('../../server/auth/identityValidation')
 
 function getBody(req) {
   return typeof req.body === 'object' && req.body !== null ? req.body : {}
@@ -85,12 +90,14 @@ async function handleSignup(req, res) {
   const agreeRental = Boolean(payload.agreeRental)
   const agreeMarketing = Boolean(payload.agreeMarketing)
 
-  if (name.length < 2) {
-    return res.status(400).json({ error: 'invalid_name', message: '이름을 2자 이상 입력해 주세요.' })
+  const nameValidation = validatePersonName(name)
+  if (!nameValidation.isValid) {
+    return res.status(400).json({ error: 'invalid_name', message: nameValidation.message })
   }
 
-  if (!/^\d{8}$/.test(birthDate)) {
-    return res.status(400).json({ error: 'invalid_birth_date', message: '생년월일 8자리를 입력해 주세요.' })
+  const birthValidation = validateBirthDate(birthDate)
+  if (!birthValidation.isValid) {
+    return res.status(400).json({ error: 'invalid_birth_date', message: birthValidation.message })
   }
 
   const passwordChecks = getPasswordChecks(password, email)
@@ -101,8 +108,9 @@ async function handleSignup(req, res) {
     return res.status(400).json({ error: 'invalid_password', message: '비밀번호 조건을 확인해 주세요.' })
   }
 
-  if (!isValidMobilePhone(phone)) {
-    return res.status(400).json({ error: 'invalid_phone', message: '휴대폰 번호를 확인해 주세요.' })
+  const phoneValidation = validateMobilePhoneNumber(phone)
+  if (!phoneValidation.isValid) {
+    return res.status(400).json({ error: 'invalid_phone', message: phoneValidation.message })
   }
 
   if (!authEmailAlias) {

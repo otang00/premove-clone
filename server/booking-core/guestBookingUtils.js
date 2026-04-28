@@ -5,6 +5,11 @@ const {
   normalizeCustomerPhone,
   normalizeCustomerBirth,
 } = require('./bookingIdentity')
+const {
+  validatePersonName,
+  validateBirthDate,
+  validateMobilePhoneNumber,
+} = require('../auth/identityValidation')
 
 function normalizeReservationCode(value) {
   return String(value || '').trim().toUpperCase()
@@ -18,14 +23,21 @@ function validateGuestLookupInput(input = {}) {
 
   if (!customerName) {
     errors.customerName = '이름을 입력해 주세요.'
+  } else {
+    const nameValidation = validatePersonName(customerName)
+    if (!nameValidation.isValid) {
+      errors.customerName = nameValidation.message
+    }
   }
 
-  if (!/^\d{10,11}$/.test(customerPhone)) {
-    errors.customerPhone = '휴대폰번호를 확인해 주세요.'
+  const phoneValidation = validateMobilePhoneNumber(customerPhone)
+  if (!phoneValidation.isValid) {
+    errors.customerPhone = phoneValidation.message
   }
 
-  if (!/^\d{8}$/.test(customerBirth)) {
-    errors.customerBirth = '생년월일 8자리를 입력해 주세요.'
+  const birthValidation = validateBirthDate(customerBirth)
+  if (!birthValidation.isValid) {
+    errors.customerBirth = birthValidation.message
   }
 
   return {
@@ -44,10 +56,18 @@ function validateGuestBookingCreateInput(input = {}) {
   const customerPhone = normalizeCustomerPhone(input.customerPhone)
   const customerBirth = normalizeCustomerBirth(input.customerBirth)
   const deliveryAddressDetail = String(input.deliveryAddressDetail || '').trim()
+  const detailToken = String(input.detailToken || '').trim()
+  const phoneVerificationId = String(input.phoneVerificationId || '').trim()
+  const phoneVerificationToken = String(input.phoneVerificationToken || '').trim()
+  const reservationAuthMode = String(input.reservationAuthMode || '').trim() || 'guest_editable'
   const errors = {}
 
   if (!input.carId || Number.isNaN(Number(input.carId))) {
     errors.carId = '차량 정보가 올바르지 않습니다.'
+  }
+
+  if (!detailToken) {
+    errors.detailToken = '예약 상세 접근 정보가 올바르지 않습니다.'
   }
 
   if (!/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$/.test(String(input.deliveryDateTime || ''))) {
@@ -72,14 +92,25 @@ function validateGuestBookingCreateInput(input = {}) {
 
   if (!customerName) {
     errors.customerName = '이름을 입력해 주세요.'
+  } else {
+    const nameValidation = validatePersonName(customerName)
+    if (!nameValidation.isValid) {
+      errors.customerName = nameValidation.message
+    }
   }
 
-  if (!/^\d{10,11}$/.test(customerPhone)) {
-    errors.customerPhone = '휴대폰번호를 확인해 주세요.'
+  const phoneValidation = validateMobilePhoneNumber(customerPhone)
+  if (!phoneValidation.isValid) {
+    errors.customerPhone = phoneValidation.message
   }
 
-  if (!/^\d{8}$/.test(customerBirth)) {
-    errors.customerBirth = '생년월일 8자리를 입력해 주세요.'
+  const birthValidation = validateBirthDate(customerBirth)
+  if (!birthValidation.isValid) {
+    errors.customerBirth = birthValidation.message
+  }
+
+  if (!['guest_editable', 'member_profile_locked', 'verified_locked', 'member_editable'].includes(reservationAuthMode)) {
+    errors.reservationAuthMode = '예약 인증 상태를 확인해 주세요.'
   }
 
   return {
@@ -98,9 +129,13 @@ function validateGuestBookingCreateInput(input = {}) {
       deliveryAmount: Number(input.deliveryAmount || 0),
       finalAmount: Number(input.finalAmount || input.quotedTotalAmount || 0),
       paymentMethod: String(input.paymentMethod || '').trim(),
+      detailToken,
       customerName,
       customerPhone,
       customerBirth,
+      phoneVerificationId,
+      phoneVerificationToken,
+      reservationAuthMode,
     },
   }
 }

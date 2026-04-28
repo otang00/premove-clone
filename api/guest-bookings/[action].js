@@ -6,12 +6,75 @@ const { recordReservationStatusEvent } = require('../../server/booking-core/book
 const { validateGuestBookingCreateInput, validateGuestLookupInput } = require('../../server/booking-core/guestBookingUtils')
 const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
+const { ensureProfileForUser } = require('../../server/auth/ensureProfileForUser')
 const { sendBookingConfirmationEmail } = require('../../server/email/sendBookingConfirmationEmail')
 const { createBookingCompleteToken, verifyBookingCompleteToken } = require('../../server/security/bookingCompleteToken')
 const { checkGuestLookupProtection, applyRetryAfter, delayFailureResponse } = require('../../server/security/guestLookupProtection')
+const { hashOtpValue } = require('../../server/auth/phoneOtp')
+const { createBookingOtpContextHash } = require('../../server/auth/bookingOtpContext')
+const { normalizeCustomerName, normalizeCustomerPhone, normalizeCustomerBirth } = require('../../server/booking-core/bookingIdentity')
 
 function getBody(req) {
   return typeof req.body === 'object' && req.body !== null ? req.body : {}
+}
+
+function buildReservationOtpContext(payload = {}) {
+  return {
+    phone: payload.customerPhone,
+    carId: payload.carId,
+    detailToken: payload.detailToken,
+    deliveryDateTime: payload.deliveryDateTime,
+    returnDateTime: payload.returnDateTime,
+    pickupOption: payload.pickupOption,
+    quotedTotalAmount: payload.quotedTotalAmount,
+    finalAmount: payload.finalAmount,
+  }
+}
+
+function isProfileLockedSubmission({ authUser, profile, bookingInput }) {
+  if (!authUser?.id || bookingInput.reservationAuthMode !== 'member_profile_locked') {
+    return false
+  }
+
+  return normalizeCustomerName(bookingInput.customerName) === normalizeCustomerName(profile?.name)
+    && normalizeCustomerPhone(bookingInput.customerPhone) === normalizeCustomerPhone(profile?.phone)
+    && normalizeCustomerBirth(bookingInput.customerBirth) === normalizeCustomerBirth(profile?.birthDate)
+}
+
+async function verifyReservationOtp({ supabaseClient, bookingInput }) {
+  const verificationId = String(bookingInput.phoneVerificationId || '').trim()
+  const verificationToken = String(bookingInput.phoneVerificationToken || '').trim()
+  if (!verificationId || !verificationToken) {
+    return { ok: false, status: 400, message: '전화번호 인증을 완료해 주세요.' }
+  }
+
+  const { data: verification, error } = await supabaseClient
+    .from('phone_verifications')
+    .select('*')
+    .eq('id', verificationId)
+    .maybeSingle()
+
+  if (error) {
+    throw error
+  }
+
+  const tokenHash = hashOtpValue(`verify:${verificationToken}`)
+  const nowIso = new Date().toISOString()
+  const expectedContextHash = createBookingOtpContextHash(buildReservationOtpContext(bookingInput))
+
+  if (!verification
+    || verification.phone !== normalizeCustomerPhone(bookingInput.customerPhone)
+    || verification.purpose !== 'guest_booking'
+    || verification.status !== 'verified'
+    || !verification.verified_at
+    || verification.consumed_at
+    || verification.verification_token_hash !== tokenHash
+    || verification.context_hash !== expectedContextHash
+    || (verification.expires_at && verification.expires_at < nowIso)) {
+    return { ok: false, status: 400, message: '전화번호 인증을 다시 진행해 주세요.' }
+  }
+
+  return { ok: true, verification }
 }
 
 async function handleCreate(req, res) {
@@ -40,6 +103,27 @@ async function handleCreate(req, res) {
       ? await getUserFromAccessToken({ supabaseClient, accessToken })
       : null
 
+    const profile = authUser
+      ? await ensureProfileForUser({ supabaseClient, authUser })
+      : null
+
+    const allowWithoutOtp = isProfileLockedSubmission({ authUser, profile, bookingInput: validation.normalized })
+    let reservationVerification = null
+
+    if (!allowWithoutOtp) {
+      reservationVerification = await verifyReservationOtp({
+        supabaseClient,
+        bookingInput: validation.normalized,
+      })
+
+      if (!reservationVerification.ok) {
+        return res.status(reservationVerification.status || 400).json({
+          error: 'reservation_phone_verification_required',
+          message: reservationVerification.message,
+        })
+      }
+    }
+
     const result = await createGuestBooking({
       supabaseClient,
       bookingInput: validation.normalized,
@@ -53,6 +137,16 @@ async function handleCreate(req, res) {
         message: result.message || '예약 생성에 실패했습니다.',
         conflicts: result.conflicts || null,
       })
+    }
+
+    if (reservationVerification?.verification?.id) {
+      await supabaseClient
+        .from('phone_verifications')
+        .update({
+          status: 'consumed',
+          consumed_at: new Date().toISOString(),
+        })
+        .eq('id', reservationVerification.verification.id)
     }
 
     let emailMeta = null

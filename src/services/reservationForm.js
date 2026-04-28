@@ -1,3 +1,10 @@
+import {
+  normalizePersonName,
+  validateBirthDate,
+  validateMobilePhoneNumber,
+  validatePersonName,
+} from '../utils/identityValidation'
+
 export const DEFAULT_RESERVATION_FORM = {
   customerName: '',
   customerPhone: '',
@@ -14,7 +21,7 @@ export function normalizeBirth(value) {
 
 export function normalizeReservationForm(form = {}) {
   return {
-    customerName: String(form.customerName || '').trim(),
+    customerName: normalizePersonName(form.customerName),
     customerPhone: normalizePhone(form.customerPhone),
     customerBirth: normalizeBirth(form.customerBirth),
   }
@@ -26,14 +33,21 @@ export function validateReservationForm(form = {}) {
 
   if (!normalized.customerName) {
     errors.customerName = '이름을 입력해 주세요.'
+  } else {
+    const nameValidation = validatePersonName(normalized.customerName)
+    if (!nameValidation.isValid) {
+      errors.customerName = nameValidation.message
+    }
   }
 
-  if (!/^\d{10,11}$/.test(normalized.customerPhone)) {
-    errors.customerPhone = '휴대폰번호를 확인해 주세요.'
+  const phoneValidation = validateMobilePhoneNumber(normalized.customerPhone)
+  if (!phoneValidation.isValid) {
+    errors.customerPhone = phoneValidation.message
   }
 
-  if (!/^\d{8}$/.test(normalized.customerBirth)) {
-    errors.customerBirth = '생년월일 8자리를 입력해 주세요.'
+  const birthValidation = validateBirthDate(normalized.customerBirth)
+  if (!birthValidation.isValid) {
+    errors.customerBirth = birthValidation.message
   }
 
   return {

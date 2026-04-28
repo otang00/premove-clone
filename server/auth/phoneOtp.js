@@ -7,6 +7,7 @@ const OTP_TTL_SECONDS = 180
 const OTP_COOLDOWN_SECONDS = 60
 const OTP_MAX_ATTEMPTS = 5
 const VERIFIED_TOKEN_TTL_SECONDS = 1800
+const GUEST_BOOKING_VERIFIED_TOKEN_TTL_SECONDS = 600
 
 function normalizePhoneNumber(value) {
   const digits = String(value || '').replace(/\D/g, '')
@@ -83,6 +84,7 @@ module.exports = {
   OTP_COOLDOWN_SECONDS,
   OTP_MAX_ATTEMPTS,
   VERIFIED_TOKEN_TTL_SECONDS,
+  GUEST_BOOKING_VERIFIED_TOKEN_TTL_SECONDS,
   normalizePhoneNumber,
   toE164PhoneNumber,
   isValidMobilePhone,

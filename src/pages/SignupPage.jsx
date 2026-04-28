@@ -4,6 +4,7 @@ import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { parseApiResponse } from '../utils/apiResponse'
 import { formatPhoneNumber, normalizePhoneNumber } from '../utils/phone'
+import { validateBirthDate, validateMobilePhoneNumber, validatePersonName } from '../utils/identityValidation'
 import termsContent from '../../docs/legal/service-terms.md?raw'
 import privacyContent from '../../docs/legal/privacy-policy.md?raw'
 import rentalTermsContent from '../../docs/legal/rental-terms.md?raw'
@@ -169,16 +170,19 @@ export default function SignupPage() {
   const isPasswordConfirmed = passwordConfirm.length > 0 && password === passwordConfirm
   const requiredTermsAgreed = agreeTerms && agreePrivacy && agreeRental
   const normalizedPhone = useMemo(() => normalizePhoneNumber(phone), [phone])
+  const nameValidation = useMemo(() => validatePersonName(name), [name])
+  const birthValidation = useMemo(() => validateBirthDate(birthDate), [birthDate])
+  const phoneValidation = useMemo(() => validateMobilePhoneNumber(normalizedPhone), [normalizedPhone])
   const isOtpVerified = Boolean(verificationId && verificationToken && verifiedPhone && verifiedPhone === normalizedPhone)
   const otpSecondsLeft = otpExpiresAt ? Math.max(0, Math.ceil((otpExpiresAt - nowMs) / 1000)) : 0
   const otpCooldownLeft = otpCooldownUntil ? Math.max(0, Math.ceil((otpCooldownUntil - nowMs) / 1000)) : 0
   const activeTermsContent = activeTermsModal ? TERMS_MODAL_CONTENT[activeTermsModal] : null
   const canSubmitCurrentSignup = Boolean(
-    name.trim().length >= 2
-    && /^\d{8}$/.test(birthDate)
+    nameValidation.isValid
+    && birthValidation.isValid
     && passwordValid
     && isPasswordConfirmed
-    && /^01\d{8,9}$/.test(normalizedPhone)
+    && phoneValidation.isValid
     && /^\d{5}$/.test(postalCode)
     && addressMain.trim()
     && addressDetail.trim()
@@ -243,8 +247,8 @@ export default function SignupPage() {
   }
 
   async function handleOtpRequest() {
-    if (!/^01\d{8,9}$/.test(normalizedPhone)) {
-      setOtpMessage('휴대폰 번호를 먼저 정확히 입력해 주세요.')
+    if (!phoneValidation.isValid) {
+      setOtpMessage(phoneValidation.message || '휴대폰 번호를 먼저 정확히 입력해 주세요.')
       return
     }
 
@@ -423,6 +427,7 @@ export default function SignupPage() {
                       disabled={submitting}
                       required
                     />
+                    {name && !nameValidation.isValid ? <FieldNote color="#9f1239">{nameValidation.message}</FieldNote> : null}
                   </div>
 
                   <div className="field-group">
@@ -439,6 +444,7 @@ export default function SignupPage() {
                       required
                     />
                     <FieldNote>숫자 8자리로 입력해 주세요.</FieldNote>
+                    {birthDate && !birthValidation.isValid ? <FieldNote color="#9f1239">{birthValidation.message}</FieldNote> : null}
                   </div>
 
                   <div className="field-group">
@@ -555,6 +561,7 @@ export default function SignupPage() {
                         {otpRequesting ? '발송 중...' : otpCooldownLeft > 0 ? `재전송 ${otpCooldownLeft}s` : '인증번호 받기'}
                       </button>
                     </div>
+                    {phone && !phoneValidation.isValid ? <FieldNote color="#9f1239">{phoneValidation.message}</FieldNote> : null}
                   </div>
 
                   <div className="field-group">

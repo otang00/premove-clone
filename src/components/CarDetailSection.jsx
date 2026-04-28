@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { parseSearchQuery, validateSearchState } from '../utils/searchQuery'
 import { fetchCarDetail } from '../services/carDetail'
+import { parseApiResponse } from '../utils/apiResponse'
 import {
   DEFAULT_RESERVATION_FORM,
   normalizeBirth,
@@ -35,6 +36,19 @@ const TERMS_MODAL_CONTENT = {
     title: '개인정보 수집 및 이용 동의',
     content: privacyContent,
   },
+}
+
+function buildReservationOtpContextInput({ carId, detailToken, parsedSearchState, pricing, customerPhone }) {
+  return {
+    phone: customerPhone,
+    carId: Number(carId || 0),
+    detailToken,
+    deliveryDateTime: parsedSearchState.deliveryDateTime,
+    returnDateTime: parsedSearchState.returnDateTime,
+    pickupOption: parsedSearchState.pickupOption,
+    quotedTotalAmount: pricing?.raw?.finalPrice || 0,
+    finalAmount: pricing?.raw?.finalPrice || 0,
+  }
 }
 
 function formatDisplay(dateText) {
@@ -160,6 +174,19 @@ export default function CarDetailSection() {
   const [reservationSubmitError, setReservationSubmitError] = useState('')
   const [isCreatingReservation, setIsCreatingReservation] = useState(false)
   const [activeTermsModal, setActiveTermsModal] = useState('')
+  const [isDriverFormLocked, setIsDriverFormLocked] = useState(Boolean(isAuthenticated))
+  const [driverFormLockReason, setDriverFormLockReason] = useState(isAuthenticated ? 'member_profile' : '')
+  const [isDriverEditConfirmOpen, setIsDriverEditConfirmOpen] = useState(false)
+  const [reservationOtpCode, setReservationOtpCode] = useState('')
+  const [reservationVerificationId, setReservationVerificationId] = useState('')
+  const [reservationVerificationToken, setReservationVerificationToken] = useState('')
+  const [reservationVerifiedContextKey, setReservationVerifiedContextKey] = useState('')
+  const [reservationOtpMessage, setReservationOtpMessage] = useState('전화번호 인증을 완료해 주세요.')
+  const [reservationOtpExpiresAt, setReservationOtpExpiresAt] = useState(null)
+  const [reservationOtpCooldownUntil, setReservationOtpCooldownUntil] = useState(null)
+  const [reservationOtpNowMs, setReservationOtpNowMs] = useState(Date.now())
+  const [isReservationOtpRequesting, setIsReservationOtpRequesting] = useState(false)
+  const [isReservationOtpVerifying, setIsReservationOtpVerifying] = useState(false)
   const paymentSummaryRef = useRef(null)
   const summaryCardRef = useRef(null)
   const appliedProfilePrefillKeyRef = useRef('')
@@ -167,6 +194,17 @@ export default function CarDetailSection() {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
   }, [parsedSearchState.deliveryAddressDetail])
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setIsDriverFormLocked(true)
+      setDriverFormLockReason('member_profile')
+      return
+    }
+
+    setIsDriverFormLocked(false)
+    setDriverFormLockReason('')
+  }, [isAuthenticated])
 
   useEffect(() => {
     if (!car || !pricing || !insurance || isLoading || fetchError) return undefined
@@ -195,6 +233,14 @@ export default function CarDetailSection() {
   }, [activeTermsModal])
 
   useEffect(() => {
+    const timer = window.setInterval(() => {
+      setReservationOtpNowMs(Date.now())
+    }, 1000)
+
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
     if (!isAuthenticated || !profile?.id) return
 
     const prefillKey = `${profile.id}:${profile.updatedAt || ''}`
@@ -213,11 +259,43 @@ export default function CarDetailSection() {
     () => validateReservationForm(reservationForm),
     [reservationForm],
   )
+  const reservationOtpContext = useMemo(
+    () => buildReservationOtpContextInput({
+      carId: car?.id,
+      detailToken,
+      parsedSearchState,
+      pricing,
+      customerPhone: reservationValidation.normalized.customerPhone,
+    }),
+    [car?.id, detailToken, parsedSearchState, pricing, reservationValidation.normalized.customerPhone],
+  )
+  const reservationOtpContextKey = useMemo(
+    () => JSON.stringify(reservationOtpContext),
+    [reservationOtpContext],
+  )
   const termsValidation = useMemo(() => validateTermsState(termsState), [termsState])
   const submitValidation = useMemo(
     () => validateReservationSubmission({ reservationValidation, termsValidation, paymentMethod }),
     [reservationValidation, termsValidation, paymentMethod],
   )
+  const reservationOtpSecondsLeft = reservationOtpExpiresAt
+    ? Math.max(0, Math.ceil((reservationOtpExpiresAt - reservationOtpNowMs) / 1000))
+    : 0
+  const reservationOtpCooldownLeft = reservationOtpCooldownUntil
+    ? Math.max(0, Math.ceil((reservationOtpCooldownUntil - reservationOtpNowMs) / 1000))
+    : 0
+  const hasActiveReservationVerification = Boolean(
+    reservationVerificationId
+    && reservationVerificationToken
+    && reservationVerifiedContextKey
+    && reservationVerifiedContextKey === reservationOtpContextKey,
+  )
+  const reservationAuthMode = useMemo(() => {
+    if (isAuthenticated && isDriverFormLocked && driverFormLockReason === 'member_profile') return 'member_profile_locked'
+    if (isDriverFormLocked && driverFormLockReason === 'verified') return 'verified_locked'
+    if (isAuthenticated) return 'member_editable'
+    return 'guest_editable'
+  }, [driverFormLockReason, isAuthenticated, isDriverFormLocked])
 
   const isDeliveryAddressDetailValid = parsedSearchState.pickupOption !== 'delivery' || Boolean(deliveryAddressDetail.trim())
   const isReservationActionEnabled = submitValidation.isValid && isDeliveryAddressDetailValid
@@ -285,7 +363,39 @@ export default function CarDetailSection() {
     }
   }, [carId, detailToken, hasSearchContext, validation, parsedSearchState])
 
+  useEffect(() => {
+    if (!reservationVerifiedContextKey) return
+    if (reservationVerifiedContextKey === reservationOtpContextKey) return
+
+    setReservationVerificationId('')
+    setReservationVerificationToken('')
+    setReservationVerifiedContextKey('')
+    setReservationOtpCode('')
+    setReservationOtpMessage('입력값이 변경되어 전화번호 인증이 초기화되었습니다. 다시 인증해 주세요.')
+
+    if (driverFormLockReason === 'verified') {
+      setIsDriverFormLocked(false)
+      setDriverFormLockReason('')
+    }
+  }, [driverFormLockReason, reservationOtpContextKey, reservationVerifiedContextKey])
+
+  const resetReservationOtpState = (message = '전화번호 인증을 완료해 주세요.') => {
+    setReservationVerificationId('')
+    setReservationVerificationToken('')
+    setReservationVerifiedContextKey('')
+    setReservationOtpCode('')
+    setReservationOtpExpiresAt(null)
+    setReservationOtpCooldownUntil(null)
+    setReservationOtpMessage(message)
+  }
+
   const updateReservationForm = (field, value) => {
+    if (isDriverFormLocked) return
+
+    if (hasActiveReservationVerification) {
+      resetReservationOtpState('입력값이 변경되어 전화번호 인증이 초기화되었습니다. 다시 인증해 주세요.')
+    }
+
     setReservationForm((current) => {
       if (field === 'customerPhone') {
         return { ...current, customerPhone: normalizePhone(value) }
@@ -299,9 +409,108 @@ export default function CarDetailSection() {
     })
   }
 
+  const handleStartDriverEdit = () => {
+    setIsDriverEditConfirmOpen(true)
+  }
+
+  const handleConfirmDriverEdit = () => {
+    setIsDriverEditConfirmOpen(false)
+    setReservationForm(DEFAULT_RESERVATION_FORM)
+    setIsDriverFormLocked(false)
+    setDriverFormLockReason('')
+    resetReservationOtpState('전화번호 인증을 진행해 주세요.')
+  }
+
+  const handleCancelDriverEdit = () => {
+    setIsDriverEditConfirmOpen(false)
+  }
+
   const handleDeliveryAddressDetailChange = (value) => {
     setDeliveryAddressDetail(value)
     setDeliveryAddressDetailError('')
+  }
+
+  const handleReservationOtpRequest = async () => {
+    if (isDriverFormLocked) return
+
+    if (!reservationValidation.isValid) {
+      setHasReservationSubmitAttempted(true)
+      setReservationOtpMessage(Object.values(reservationValidation.errors)[0] || '운전자 정보를 먼저 확인해 주세요.')
+      return
+    }
+
+    setIsReservationOtpRequesting(true)
+    setReservationSubmitError('')
+
+    try {
+      const response = await fetch('/api/auth/otp/send', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          phone: reservationValidation.normalized.customerPhone,
+          purpose: 'guest_booking',
+          context: reservationOtpContext,
+        }),
+      })
+
+      const result = await parseApiResponse(response, '인증번호 발송에 실패했습니다.')
+      setReservationVerificationId(result.verificationId || '')
+      setReservationVerificationToken('')
+      setReservationVerifiedContextKey('')
+      setReservationOtpCode('')
+      setReservationOtpExpiresAt(Date.now() + Number(result.expiresInSeconds || 180) * 1000)
+      setReservationOtpCooldownUntil(Date.now() + Number(result.cooldownSeconds || 60) * 1000)
+      setReservationOtpMessage(result.message || '인증번호를 발송했습니다.')
+    } catch (error) {
+      setReservationOtpMessage(error.message || '인증번호 발송에 실패했습니다.')
+    } finally {
+      setIsReservationOtpRequesting(false)
+    }
+  }
+
+  const handleReservationOtpVerify = async () => {
+    if (!reservationVerificationId) {
+      setReservationOtpMessage('먼저 인증번호를 요청해 주세요.')
+      return
+    }
+
+    if (reservationOtpCode.length !== 6) {
+      setReservationOtpMessage('인증번호 6자리를 입력해 주세요.')
+      return
+    }
+
+    setIsReservationOtpVerifying(true)
+    setReservationSubmitError('')
+
+    try {
+      const response = await fetch('/api/auth/otp/verify', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          verificationId: reservationVerificationId,
+          phone: reservationValidation.normalized.customerPhone,
+          code: reservationOtpCode,
+          purpose: 'guest_booking',
+        }),
+      })
+
+      const result = await parseApiResponse(response, '휴대폰 인증에 실패했습니다.')
+      setReservationVerificationToken(result.verificationToken || '')
+      setReservationVerifiedContextKey(reservationOtpContextKey)
+      setReservationOtpMessage(result.message || '휴대폰 인증이 완료되었습니다.')
+      setIsDriverFormLocked(true)
+      setDriverFormLockReason('verified')
+    } catch (error) {
+      setReservationVerificationToken('')
+      setReservationVerifiedContextKey('')
+      setReservationOtpMessage(error.message || '휴대폰 인증에 실패했습니다.')
+    } finally {
+      setIsReservationOtpVerifying(false)
+    }
   }
 
   const handleToggleAllTerms = (checked) => {
@@ -321,6 +530,14 @@ export default function CarDetailSection() {
     }
 
     if (!car || !pricing || !isReservationActionEnabled) {
+      requestAnimationFrame(() => {
+        paymentSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+      return
+    }
+
+    if (!isDriverFormLocked || (reservationAuthMode !== 'member_profile_locked' && !hasActiveReservationVerification)) {
+      setReservationSubmitError('전화번호 인증을 완료해 주세요.')
       requestAnimationFrame(() => {
         paymentSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       })
@@ -352,9 +569,13 @@ export default function CarDetailSection() {
         deliveryAmount: pricing.raw?.deliveryPrice || 0,
         finalAmount: pricing.raw?.finalPrice || 0,
         paymentMethod,
+        detailToken,
         customerName: reservationValidation.normalized.customerName,
         customerPhone: reservationValidation.normalized.customerPhone,
         customerBirth: reservationValidation.normalized.customerBirth,
+        phoneVerificationId: reservationVerificationId,
+        phoneVerificationToken: reservationVerificationToken,
+        reservationAuthMode,
       }, {
         session,
       })
@@ -451,6 +672,25 @@ export default function CarDetailSection() {
 
               <article className="detail-card panel">
                 <h2>운전자 정보</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap' }}>
+                  <p className="muted small-note" style={{ margin: 0 }}>
+                    {isDriverFormLocked
+                      ? '현재 입력된 운전자 정보가 잠금 상태입니다.'
+                      : '운전자 정보를 입력한 뒤 전화번호 인증을 완료해 주세요.'}
+                  </p>
+                  {isDriverFormLocked ? (
+                    <button type="button" className="btn btn-outline btn-sm" onClick={handleStartDriverEdit}>수정</button>
+                  ) : (
+                    <button
+                      type="button"
+                      className="btn btn-outline btn-sm"
+                      onClick={handleReservationOtpRequest}
+                      disabled={isReservationOtpRequesting || isReservationOtpVerifying || reservationOtpCooldownLeft > 0}
+                    >
+                      {isReservationOtpRequesting ? '발송 중...' : reservationOtpCooldownLeft > 0 ? `재전송 ${reservationOtpCooldownLeft}s` : '전화번호 인증'}
+                    </button>
+                  )}
+                </div>
                 <div className="stack-form stack-form-centered">
                   <div>
                     <input
@@ -458,6 +698,7 @@ export default function CarDetailSection() {
                       placeholder="예: 홍길동"
                       value={reservationForm.customerName}
                       onChange={(e) => updateReservationForm('customerName', e.target.value)}
+                      disabled={isDriverFormLocked}
                     />
                     {(shouldShowReservationErrors || reservationForm.customerName) && reservationValidation.errors.customerName && (
                       <p className="muted small-note">{reservationValidation.errors.customerName}</p>
@@ -470,6 +711,7 @@ export default function CarDetailSection() {
                       inputMode="numeric"
                       value={reservationForm.customerBirth}
                       onChange={(e) => updateReservationForm('customerBirth', e.target.value)}
+                      disabled={isDriverFormLocked}
                     />
                     {(shouldShowReservationErrors || reservationForm.customerBirth) && reservationValidation.errors.customerBirth && (
                       <p className="muted small-note">{reservationValidation.errors.customerBirth}</p>
@@ -482,12 +724,44 @@ export default function CarDetailSection() {
                       inputMode="tel"
                       value={reservationForm.customerPhone}
                       onChange={(e) => updateReservationForm('customerPhone', e.target.value)}
+                      disabled={isDriverFormLocked}
                     />
                     {(shouldShowReservationErrors || reservationForm.customerPhone) && reservationValidation.errors.customerPhone && (
                       <p className="muted small-note">{reservationValidation.errors.customerPhone}</p>
                     )}
                   </div>
                 </div>
+                {!isDriverFormLocked && (
+                  <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                      <input
+                        className="field-input"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="인증번호 6자리 입력"
+                        value={reservationOtpCode}
+                        onChange={(event) => setReservationOtpCode(event.target.value.replace(/\D/g, '').slice(0, 6))}
+                        disabled={isReservationOtpVerifying || !reservationVerificationId || hasActiveReservationVerification}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-md"
+                        onClick={handleReservationOtpVerify}
+                        disabled={isReservationOtpVerifying || !reservationVerificationId || reservationOtpCode.length !== 6 || hasActiveReservationVerification}
+                      >
+                        {hasActiveReservationVerification ? '인증완료' : isReservationOtpVerifying ? '확인 중...' : '확인'}
+                      </button>
+                    </div>
+                    <p className="muted small-note" style={{ margin: 0 }}>
+                      {hasActiveReservationVerification
+                        ? '휴대폰 인증이 완료되었습니다.'
+                        : reservationVerificationId
+                          ? `남은 시간 ${String(Math.floor(reservationOtpSecondsLeft / 60)).padStart(2, '0')}:${String(reservationOtpSecondsLeft % 60).padStart(2, '0')}`
+                          : '인증번호를 먼저 요청해 주세요.'}
+                    </p>
+                    <p className="muted small-note" style={{ margin: 0, color: hasActiveReservationVerification ? '#166534' : '#6b7280' }}>{reservationOtpMessage}</p>
+                  </div>
+                )}
               </article>
 
               <article className="detail-card panel">
@@ -609,6 +883,19 @@ export default function CarDetailSection() {
             </div>
           </div>
         )}
+
+        {isDriverEditConfirmOpen ? (
+          <div className="delivery-modal-backdrop" onClick={handleCancelDriverEdit}>
+            <div className="search-guard-modal" onClick={(event) => event.stopPropagation()}>
+              <strong>휴대폰 인증이 필요합니다. 진행하시겠습니까?</strong>
+              <p className="field-note">확인 후 운전자 정보 입력이 초기화되며, 다시 입력한 뒤 전화번호 인증을 완료해야 예약 접수가 가능합니다.</p>
+              <div className="search-guard-actions">
+                <button type="button" className="btn btn-outline btn-md" onClick={handleCancelDriverEdit}>취소</button>
+                <button type="button" className="btn btn-dark btn-md" onClick={handleConfirmDriverEdit}>확인</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         {activeTermsContent ? (
           <div className="delivery-modal-backdrop" onClick={() => setActiveTermsModal('')}>

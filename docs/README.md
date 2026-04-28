@@ -13,6 +13,17 @@
 - 제품/보안/API/회원/운영 기준처럼 계속 참고할 문서는 `policies/` 에 둔다.
 - 상태 문서가 아니라 기준 문서다.
 
+## 1-1. present
+실행 중인 작업에 한해 임시 current 문서를 둘 수 있다.
+
+현재 active present:
+- `present/2026-04-28_RENTCAR00_GUEST_PHONE_VERIFY_AND_INPUT_VALIDATION_CURRENT.md`
+
+원칙:
+- present 는 실행 중인 작업이 있을 때만 사용한다.
+- 작업이 끝나면 `past/` 로 내린다.
+- 정책 자체는 `policies/` 에 남기고, 진행 상태는 `present/` 에만 둔다.
+
 ## 2. past
 현재 기준에서 내려온 문서와 과거 실행 기록.
 

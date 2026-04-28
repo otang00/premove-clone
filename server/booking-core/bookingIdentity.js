@@ -1,9 +1,13 @@
 'use strict'
 
 const crypto = require('crypto')
+const {
+  normalizePersonName,
+  normalizeBirthDate,
+} = require('../auth/identityValidation')
 
 function normalizeCustomerName(value) {
-  return String(value || '').trim()
+  return normalizePersonName(value)
 }
 
 function normalizeCustomerPhone(value) {
@@ -11,7 +15,7 @@ function normalizeCustomerPhone(value) {
 }
 
 function normalizeCustomerBirth(value) {
-  return String(value || '').replace(/\D/g, '').slice(0, 8)
+  return normalizeBirthDate(value)
 }
 
 function hashLookupValue(value) {

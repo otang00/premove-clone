@@ -7,17 +7,26 @@ const {
   OTP_MAX_ATTEMPTS,
   OTP_TTL_SECONDS,
   VERIFIED_TOKEN_TTL_SECONDS,
+  GUEST_BOOKING_VERIFIED_TOKEN_TTL_SECONDS,
   generateOtpCode,
   generateVerificationToken,
   getPhoneLast4,
   hashOtpValue,
   isSolapiConfigured,
-  isValidMobilePhone,
   normalizePhoneNumber,
 } = require('../../../server/auth/phoneOtp')
+const { validateMobilePhoneNumber } = require('../../../server/auth/identityValidation')
+const {
+  validateBookingOtpContext,
+  createBookingOtpContextHash,
+} = require('../../../server/auth/bookingOtpContext')
 
 function getBody(req) {
   return typeof req.body === 'object' && req.body !== null ? req.body : {}
+}
+
+function isSupportedPurpose(purpose) {
+  return ['signup', 'guest_booking'].includes(purpose)
 }
 
 async function handleOtpSend(req, res) {
@@ -36,13 +45,24 @@ async function handleOtpSend(req, res) {
   const payload = getBody(req)
   const purpose = String(payload.purpose || 'signup').trim() || 'signup'
   const phone = normalizePhoneNumber(payload.phone)
+  const contextPayload = typeof payload.context === 'object' && payload.context !== null ? payload.context : {}
 
-  if (purpose !== 'signup') {
+  if (!isSupportedPurpose(purpose)) {
     return res.status(400).json({ error: 'invalid_purpose', message: '지원하지 않는 인증 목적입니다.' })
   }
 
-  if (!isValidMobilePhone(phone)) {
-    return res.status(400).json({ error: 'invalid_phone', message: '휴대폰 번호를 확인해 주세요.' })
+  const phoneValidation = validateMobilePhoneNumber(phone)
+  if (!phoneValidation.isValid) {
+    return res.status(400).json({ error: 'invalid_phone', message: phoneValidation.message })
+  }
+
+  let contextHash = null
+  if (purpose === 'guest_booking') {
+    const contextValidation = validateBookingOtpContext({ ...contextPayload, phone })
+    if (!contextValidation.isValid) {
+      return res.status(400).json({ error: 'invalid_booking_context', message: contextValidation.message })
+    }
+    contextHash = createBookingOtpContextHash(contextValidation.normalized)
   }
 
   const supabaseClient = createServerPrivilegedClient()
@@ -95,6 +115,7 @@ async function handleOtpSend(req, res) {
         max_attempts: OTP_MAX_ATTEMPTS,
         cooldown_until: cooldownUntil,
         expires_at: expiresAt,
+        context_hash: contextHash,
         requested_at: nowIso,
         message_id: smsResult.messageId,
       })
@@ -135,12 +156,13 @@ async function handleOtpVerify(req, res) {
     return res.status(400).json({ error: 'missing_verification_id', message: '인증 요청을 먼저 진행해 주세요.' })
   }
 
-  if (purpose !== 'signup') {
+  if (!isSupportedPurpose(purpose)) {
     return res.status(400).json({ error: 'invalid_purpose', message: '지원하지 않는 인증 목적입니다.' })
   }
 
-  if (!isValidMobilePhone(phone)) {
-    return res.status(400).json({ error: 'invalid_phone', message: '휴대폰 번호를 확인해 주세요.' })
+  const phoneValidation = validateMobilePhoneNumber(phone)
+  if (!phoneValidation.isValid) {
+    return res.status(400).json({ error: 'invalid_phone', message: phoneValidation.message })
   }
 
   if (code.length !== 6) {
@@ -198,7 +220,10 @@ async function handleOtpVerify(req, res) {
 
   const verificationToken = generateVerificationToken()
   const verifiedAt = new Date().toISOString()
-  const expiresAt = new Date(Date.now() + VERIFIED_TOKEN_TTL_SECONDS * 1000).toISOString()
+  const verifiedTokenTtlSeconds = purpose === 'guest_booking'
+    ? GUEST_BOOKING_VERIFIED_TOKEN_TTL_SECONDS
+    : VERIFIED_TOKEN_TTL_SECONDS
+  const expiresAt = new Date(Date.now() + verifiedTokenTtlSeconds * 1000).toISOString()
 
   const { error: updateError } = await supabaseClient
     .from('phone_verifications')
@@ -217,6 +242,7 @@ async function handleOtpVerify(req, res) {
   return res.status(200).json({
     verificationId: verification.id,
     verificationToken,
+    verifiedTokenExpiresInSeconds: verifiedTokenTtlSeconds,
     message: '휴대폰 인증이 완료되었습니다.',
   })
 }
