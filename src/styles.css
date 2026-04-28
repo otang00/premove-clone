@@ -816,29 +816,29 @@
 
 .footer-company-main{
   display:grid;
-  grid-template-columns:minmax(0,1.1fr) minmax(280px,.9fr);
-  gap:48px;
+  gap:30px;
+  justify-items:center;
+  text-align:center;
+}
+
+.footer-company-bottom{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:28px;
+  width:100%;
   align-items:start;
 }
 
-.footer-company-left,
-.footer-company-right{
-  display:grid;
-  align-content:start;
-}
-
-.footer-company-left{
-  gap:26px;
-}
-
-.footer-company-right{
-  gap:28px;
+.footer-logo-row{
+  display:flex;
+  justify-content:center;
+  width:100%;
 }
 
 .footer-logo{
-  height:60px;
+  height:132px;
   width:auto;
-  max-width:220px;
+  max-width:132px;
   margin:0;
 }
 
@@ -874,6 +874,7 @@
 .footer-info-list p{
   display:flex;
   flex-wrap:wrap;
+  justify-content:center;
   gap:6px;
 }
 
@@ -897,7 +898,7 @@
 }
 
 @media (max-width: 960px){
-  .footer-company-main{
+  .footer-company-bottom{
     grid-template-columns:1fr;
     gap:24px;
   }
@@ -911,7 +912,8 @@
   }
 
   .footer-logo{
-    max-width:180px;
+    height:108px;
+    max-width:108px;
   }
 
   .driver-info-card__header .btn{

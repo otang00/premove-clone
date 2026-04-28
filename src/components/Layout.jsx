@@ -60,21 +60,21 @@ export function Footer() {
         </div>
         <div className="footer-copy compact-copy footer-company-block">
           <div className="footer-company-main">
-            <section className="footer-company-left">
-              <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
-
-              <div className="footer-text-group footer-info-group">
-                <strong className="footer-section-title">쇼핑몰 기본정보</strong>
-                <div className="footer-info-list">
-                  <p><span className="footer-label">상호명</span><span>{company.name}</span></p>
-                  <p><span className="footer-label">대표자명</span><span>{company.representative}</span></p>
-                  <p><span className="footer-label">사업장 주소</span><span>{company.address}</span></p>
-                  <p><span className="footer-label">사업자등록번호</span><span>{company.businessNumber}</span></p>
-                </div>
+            <section className="footer-text-group footer-info-group footer-info-group--top">
+              <strong className="footer-section-title">쇼핑몰 기본정보</strong>
+              <div className="footer-info-list">
+                <p><span className="footer-label">상호명</span><span>{company.name}</span></p>
+                <p><span className="footer-label">대표자명</span><span>{company.representative}</span></p>
+                <p><span className="footer-label">사업장 주소</span><span>{company.address}</span></p>
+                <p><span className="footer-label">사업자등록번호</span><span>{company.businessNumber}</span></p>
               </div>
             </section>
 
-            <section className="footer-company-right">
+            <div className="footer-logo-row">
+              <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
+            </div>
+
+            <section className="footer-company-bottom">
               <div className="footer-text-group">
                 <strong className="footer-section-title">고객센터 정보</strong>
                 <p><strong>회사 대표전화</strong> {company.phone}</p>
