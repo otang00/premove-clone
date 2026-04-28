@@ -1,135 +1,145 @@
 # RENTCAR00_POLICY
 
 ## 역할
-이 문서는 rentcar00 예약 서비스의 운영 정책과 구현 기준을 고정하는 정책 파일이다.
+이 문서는 rentcar00 예약 서비스의 **혼동 방지용 기준서**다.
 
-- 작업 상태 문서가 아니다.
-- `current`, `past` 같은 상태 꼬리표를 붙이지 않는다.
-- 완료된 실행 기록은 `docs/past/` 로 보낸다.
-- 오래된 설계/작업 메모는 `docs/archive/` 로 보낸다.
+## 정책 문서 원칙
+- 이 문서는 **기준을 잠그는 파일**이다.
+- 정책이 바뀌면 이 파일을 **애매하게 덧대지 말고 분명하게 고친다.**
+- 과거 기준은 미련 두지 말고 `docs/past/` 로 내리거나 과감히 버린다.
+- 이미 끝난 작업 과정, 임시 판단, 중간 메모는 이 파일에 남기지 않는다.
+- 다음 세션이 헷갈릴 수 있는 결정사항만 남긴다.
 
----
+목적은 현상을 길게 설명하는 것이 아니라,
+새 세션이 아래를 헷갈리지 않게 만드는 것이다.
 
-## 1. 제품 운영 기준
+- 지금 구조가 왜 이렇게 잠겨 있는지
+- 무엇을 함부로 바꾸면 안 되는지
+- 다음 수정 전에 어디를 먼저 확인해야 하는지
 
-### 서비스 범위
-- 프론트는 렌터카 검색 → 상세 → 예약 접수 흐름을 제공한다.
-- 프론트는 외부 IMS/partner를 직접 호출하지 않는다.
-- 프론트는 내부 API만 호출한다.
-- 상세 페이지는 검색 결과에서 발급된 `detailToken` 검증 통과 시에만 열린다.
-
-### 핵심 사용자 흐름
-1. 검색
-2. 차량 상세 진입
-3. 운전자 정보 입력
-4. 약관 동의
-5. 예약 접수
-6. 예약 완료 화면 확인
-7. 비회원 예약조회 또는 회원 예약내역 조회
-
-### 상세페이지 UX 기준
-- 로그인 회원이 상세페이지에 들어오면 운전자 정보는 회원 프로필 기준으로 미리 채운다.
-- 단, 운전자를 바꿀 수 있으므로 수정은 가능해야 한다.
-- 운전자 입력 placeholder 는 예시형으로 유지한다.
-  - 이름: `예: 홍길동`
-  - 생년월일: `예: 19900101`
-  - 휴대폰번호: `예: 010-1234-5678`
-- 약관 동의는 체크와 보기 동작을 분리한다.
-  - 체크박스/라벨 클릭: 동의 체크
-  - `보기` 버튼: 약관 내용 열람
-
-### 회원가입 UX 기준
-- 회원가입 전 휴대폰 OTP 인증이 필요하다.
-- 주소는 우편번호 검색 popup 으로 입력한다.
-- 약관 동의는 체크와 보기 동작을 분리한다.
-  - 체크박스/라벨 클릭: 동의 체크
-  - `보기` 버튼: 약관 내용 열람
+상태 문서가 아니므로 `current`, `past` 같은 꼬리표를 붙이지 않는다.
+완료된 실행 기록은 `docs/past/` 에 둔다.
 
 ---
 
-## 2. 인증 / 회원 정책
+## 1. 먼저 알아야 하는 사실
+
+### 1-1. 이 서비스는 아직 “예약 확정”보다 “예약 접수”에 가깝다
+- 상세페이지 CTA와 완료 화면 문구는 현재 **예약 접수** 기준이다.
+- 실제 생성 시 기본 상태는 아래로 들어간다.
+  - `booking_status = confirmation_pending`
+  - `payment_status = pending`
+- 즉, 지금 구조를 **즉시 확정 완료형 결제 서비스로 착각하면 안 된다.**
+- 예약/결제 UX를 바꿀 때는 화면 문구, 상태값, 관리자 확인 흐름을 같이 봐야 한다.
+
+### 1-2. 상세페이지는 아무나 바로 열 수 있는 구조가 아니다
+- 검색 결과에서 차량별 `detailToken` 이 발급된다.
+- 상세 진입과 상세 API는 이 `detailToken` 검증을 전제로 한다.
+- 그래서 상세페이지 링크/라우팅/API를 고칠 때는 아래 3개를 같이 봐야 한다.
+  1. `api/search-cars.js`
+  2. `api/car-detail.js`
+  3. `server/security/detailToken.js`
+- **차량 ID만으로 상세를 열리게 되돌리면 안 된다.**
+
+### 1-3. 로그인 UX와 실제 Auth 식별자는 다르다
+- 사용자에게 보이는 로그인 값은 **전화번호 + 비밀번호** 다.
+- 하지만 Supabase Auth 내부 식별자는 **전화번호 기반 internal email alias** 다.
+- 즉 “전화번호 로그인”처럼 보이지만 실제로는 아래 구조다.
+  - signup: `auth.admin.createUser({ email: alias, password, ... })`
+  - login: `signInWithPassword({ email: alias, password })`
+- 새 세션에서 이걸 모르고 `phone/password` 경로로 되돌리면 `phone_provider_disabled` 류 장애를 다시 밟을 수 있다.
+
+### 1-4. 계정 신뢰 기준은 `phone_verified` 다
+- 이 프로젝트는 Supabase phone provider를 쓰지 않는다.
+- 연락처 검증은 **Solapi OTP** 로 하고,
+- 프로필 활성 판단은 결국 `phone_verified = true` 중심이다.
+- 회원 관련 로직을 손볼 때는 아래를 같이 본다.
+  1. `api/auth/[action].js`
+  2. `server/auth/ensureProfileForUser.js`
+  3. `server/auth/authEmailAlias.js`
+
+---
+
+## 2. 인증 / 회원 기준
 
 ### 로그인 구조
-- 사용자 UX 로그인 값: **전화번호 + 비밀번호**
-- 연락처 검증: **Solapi OTP**
-- Supabase Auth 실제 경로: **email/password**
+- 사용자 UX: **전화번호 + 비밀번호**
+- 실제 Auth 경로: **email/password**
 - 내부 식별자: **전화번호 기반 internal email alias**
+- 연락처 검증: **Solapi OTP**
 - Supabase phone provider: **사용하지 않음**
 - 이메일 인증 메일: **필수 아님**
 
 예시 alias
 - `01026107114@bbangbbangcar.local`
 
-### 회원가입 필수값
-1. 이름
-2. 생년월일
-3. 비밀번호
-4. 비밀번호 확인
-5. 휴대폰 번호
-6. OTP 인증 완료
-7. 우편번호
-8. 기본주소
-9. 상세주소
-10. 필수 약관 동의
+### 회원가입에서 서버가 확정해야 하는 값
+- `phone_verified = true`
+- `phone_verified_at = verification.verified_at`
+- `profiles.phone`
+- `profiles.birth_date`
+- `profiles.name`
+- 주소 필드
 
-선택값
-- 실제 연락용 이메일
-- 마케팅 동의
+### 회원가입/로그인 수정 시 주의
+- 프론트 인증완료 상태만 믿으면 안 된다.
+- signup 서버에서 OTP 검증 상태를 다시 확인해야 한다.
+- alias 생성 규칙은 프론트/서버에서 따로 놀면 안 된다.
+- 로그인 UX를 바꾸더라도 내부 Auth 식별자 구조까지 같이 바꾸는지 먼저 판단해야 한다.
 
-### 프로필 기준 필드
-- `name`
-- `birthDate`
-- `phone`
-- `postalCode`
-- `addressMain`
-- `addressDetail`
-- `phoneVerified`
-- `profileStatus`
+### 상세페이지 프리필 기준
+- 로그인 회원 상세 진입 시
+  - `profile.name`
+  - `profile.birthDate`
+  - `profile.phone`
+  기준으로 운전자 정보 프리필한다.
+- 단, 사용자가 수정할 수 있어야 하고 재렌더가 사용자 입력을 덮어쓰면 안 된다.
 
 ---
 
-## 3. 보안 / 외부 서비스 연동 정책
+## 3. 외부 서비스 / CSP 기준
 
-### 보안 우선순위
-- 예약/결제/고객정보가 연결된 민감 시스템으로 본다.
-- 치명적 위험 0개를 목표로 한다.
-- PII 직접 노출, 권한 우회, 자동화 악용 가능성은 운영 전 우선 차단 대상이다.
+### 가장 중요한 원칙
+외부 SDK, 결제창, 지도, 주소검색, 인증 위젯은
+**기능 코드보다 CSP/실제 로딩 경로를 먼저 확인**한다.
 
-### 외부 서비스 연동 공통 원칙
-새 외부 서비스(Toss, Stripe, Kakao, 지도, 인증, 주소검색 등)를 붙일 때는 코드보다 먼저 아래를 잠근다.
+### 새 세션이 자주 착각하는 부분
+- 1차 로더 도메인만 허용하면 끝나는 경우가 거의 없다.
+- popup 이 뜨는 것과 기능이 실제 동작하는 것은 다르다.
+- popup 기반 서비스도 내부적으로 iframe 을 쓸 수 있다.
+- 그래서 `script-src`, `connect-src`, `frame-src` 를 분리해서 봐야 한다.
+
+### 외부 서비스 추가 전 체크 순서
 1. 로더 도메인 (`script-src`)
 2. 실제 API 호출 도메인 (`connect-src`)
 3. iframe 문서 도메인 (`frame-src`)
-4. 이미지/스타일/폰트 추가 도메인 (`img-src`, `style-src`, `font-src`)
+4. 이미지/스타일/폰트 도메인
 5. redirect/callback 경로
-6. popup/iframe/postMessage 사용 여부
+6. popup / iframe / redirect / postMessage 중 실제 동작 방식
 
-### CSP 검증 원칙
-- 허용은 서비스 단위가 아니라 실제 브라우저 동작 단위로 연다.
-- popup 이 뜬다고 완료가 아니다.
-- popup 기반 서비스도 내부적으로 iframe 을 쓸 수 있으므로 `frame-src` 검토를 빼면 안 된다.
-- 운영 반영 전 최소 검증:
-  1. 실제 하위 도메인까지 포함한 CSP 허용 목록 확정
-  2. preview + prod 도메인 각각 검증
-  3. Safari 포함 실제 브라우저 검증
-  4. popup/iframe/redirect/postMessage 성공 여부 확인
-  5. 콘솔 CSP violation 0건 확인
+### 완료 기준
+- 버튼이 보인다 = 완료 아님
+- 창이 뜬다 = 완료 아님
+- 아래까지 확인해야 완료다.
+  1. 외부 문서가 실제 로드됨
+  2. 필요한 리소스가 차단되지 않음
+  3. 사용자 입력 후 콜백/복귀 흐름이 정상 동작함
+  4. 콘솔 CSP violation 이 없음
 
-### Kakao postcode 기준
+### Kakao postcode 고정 기준
 - 회원가입 주소검색은 popup 방식 유지
 - 운영 CSP는 아래를 포함해야 한다.
   - `frame-src 'self' https://postcode.map.kakao.com;`
-- 검증은 새 창 생성 여부가 아니라 popup 내부 실제 로드까지 본다.
-
-### 보안 후속 우선순위
-1. URL/로그/응답 경로의 PII 최소화 유지
-2. guest 예약조회/취소 abuse 방어 강화
-3. OTP 운영 보강(rate limit, 로그/응답 정리)
-4. 결제/외부 연동 추가 시 CSP 재점검
+- 이유:
+  - popup 이어도 내부 iframe 이 막히면 “창만 뜨고 내용이 안 뜨는” 상태가 생긴다.
+- 그래서 주소검색 관련 수정 시에는 항상 아래를 같이 본다.
+  1. `vercel.json`
+  2. `src/pages/SignupPage.jsx`
+  3. 필요 시 `src/pages/PostcodeTestPage.jsx`
 
 ---
 
-## 4. API 정책
+## 4. API / 경로 기준
 
 ### 현재 API 구조
 - `api/search-cars.js`
@@ -140,23 +150,79 @@
 - `api/member/bookings.js`
 - `api/admin/bookings.js`
 
-### API 원칙
-- member 예약 API는 `api/member/bookings.js` 하나로 통일
-- admin 예약 API는 `api/admin/bookings.js` 하나로 통일
-- 상세 API는 `detailToken` 검증 기반
-- auth/me, signup, OTP send/verify 는 auth 축에서 관리
+### 이 구조에서 헷갈리면 안 되는 점
+- member 예약 API는 `api/member/bookings.js` 하나로 통일되어 있다.
+- admin 예약 API도 `api/admin/bookings.js` 하나로 통일되어 있다.
+- auth 축은 `me`, `signup`, `otp send/verify` 로 나뉜다.
+- 상세 API는 `detailToken` 검증 전제다.
+
+### 예약 상태 관련 혼동 방지
+- 생성 직후: `confirmation_pending + pending`
+- 관리자 확인 이후: `confirmed_pending_sync` 또는 이후 확정 상태로 간다.
+- 취소/환불 로직은 `booking_status` 와 `payment_status` 를 같이 봐야 한다.
+- 그래서 예약 상태를 바꿀 때는 화면 라벨만 바꾸지 말고 서버 상태전이와 관리자 탭 기준까지 같이 확인해야 한다.
 
 ---
 
-## 5. 관리자 정책
+## 5. 약관 / 법무 기준 중 정책에 남겨야 하는 것만
 
-### 이미 완료된 것
-- 관리자 목록 보호
-- 관리자 상세 조회/확정 보호
-- 관리자 취소 보호
-- 메일 링크 → 로그인 → 원래 상세 복귀
-- 관리자 시작 후 취소 허용
+### 계약 구조
+- 빵빵카 주식회사가 직접 계약 당사자다.
+- 예약 흐름은 예약 요청 → 결제/접수 → 회사 확인 및 후속 처리 구조를 전제로 한다.
 
-### 남은 후속 개선 방향
-- `/admin/booking-confirm?token=...` 중심 구조를 줄이고 보호형 상세 경로로 정리
-- 관리자 시스템 URL 구조와 권한 모델 일치화
+### 이용 제한 / 취소 사유
+아래 사유가 있으면 예약 요청 거절 또는 예약 취소가 가능하다.
+- 면허 또는 연령 조건 미충족
+- 예약자 본인 확인 실패
+- 결제 이상 또는 승인 실패
+- 허위정보 입력
+- 차량 부족, 고장, 사고, 정비 필요 등으로 정상 배차가 어려운 경우
+- 연락두절
+- 과거 이용/사고/약관 위반 이력 또는 회사의 운영상·안전상 판단이 필요한 경우
+- 천재지변, 재난, 교통통제, 행정명령 등 불가항력
+
+### 환불 / 취소에서 새 세션이 잊기 쉬운 것
+- 본인 확인 실패 / 면허 확인 실패 / 노쇼는 환불 불가 기준이 이미 잠겨 있다.
+- 회사 사유 취소는 전액 환불 기준이다.
+- 조기반납 환불 없음 기준이 있다.
+
+### 개인정보 범위에서 기억해야 하는 것
+- 수집항목은 단순 연락처만이 아니다.
+- 주소, 면허 정보, 결제 정보, 차량 이용/반납 정보, 상담 기록까지 이어진다.
+- 따라서 PII 최소화 정책과 URL/로그/응답 노출 통제는 계속 우선순위다.
+
+---
+
+## 6. 새 세션에서 먼저 확인할 파일
+
+### 인증/회원 수정
+1. `docs/policies/RENTCAR00_POLICY.md`
+2. `api/auth/[action].js`
+3. `server/auth/ensureProfileForUser.js`
+4. `server/auth/authEmailAlias.js`
+5. `src/pages/LoginPage.jsx`
+6. `src/pages/SignupPage.jsx`
+
+### 상세/예약 수정
+1. `docs/policies/RENTCAR00_POLICY.md`
+2. `src/components/CarDetailSection.jsx`
+3. `api/search-cars.js`
+4. `api/car-detail.js`
+5. `server/security/detailToken.js`
+6. `server/booking-core/*`
+
+### 외부 서비스/CSP 수정
+1. `docs/policies/RENTCAR00_POLICY.md`
+2. `vercel.json`
+3. 실제 연동 페이지
+4. 필요 시 `src/pages/PostcodeTestPage.jsx`
+
+---
+
+## 7. 정책 파일에 굳이 안 넣은 것
+- 이미 화면만 보면 알 수 있는 현상 설명
+- 임시 작업 순서
+- 끝난 phase 체크리스트
+- 날짜 의존 진행 로그
+
+그런 건 정책이 아니라 기록이므로 `docs/past/` 에 남긴다.
