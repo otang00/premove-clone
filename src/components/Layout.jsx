@@ -1,15 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 import { getMockCompany } from '../services/company'
-import { isAdminEmail } from '../utils/adminAccess'
+import { isAdminUser } from '../utils/adminAccess'
 
 export function Header({ brandName, showGuestBookingAction = true } = {}) {
   const navigate = useNavigate()
   const company = getMockCompany()
   const { isAuthenticated, signOut, user, profile } = useAuth()
   const resolvedBrandName = brandName || company.name
-  const accountEmail = user?.email || profile?.email || ''
-  const isAdmin = isAuthenticated && isAdminEmail(accountEmail)
+  const isAdmin = isAuthenticated && (isAdminUser(user) || isAdminUser(profile))
 
   async function handleSignOut() {
     await signOut()

@@ -80,7 +80,7 @@ async function handleOtpSend(req, res) {
   try {
     const smsResult = await sendSolapiMessage({
       to: phone,
-      text: `[00렌트카] 인증번호는 ${code} 입니다. 3분 내에 입력해 주세요.`,
+      text: `[빵빵카(주)] 인증번호는 ${code} 입니다. 3분 내에 입력해 주세요.`,
     })
 
     const { data, error } = await supabaseClient

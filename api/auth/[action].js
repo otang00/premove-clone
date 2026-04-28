@@ -4,7 +4,8 @@ const { createServerPrivilegedClient } = require('../../server/supabase/createSe
 const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { ensureProfileForUser, serializeProfile } = require('../../server/auth/ensureProfileForUser')
-const { hashOtpValue, isValidMobilePhone, normalizePhoneNumber, toE164PhoneNumber } = require('../../server/auth/phoneOtp')
+const { buildAuthEmailAlias } = require('../../server/auth/authEmailAlias')
+const { hashOtpValue, isValidMobilePhone, normalizePhoneNumber } = require('../../server/auth/phoneOtp')
 
 function getBody(req) {
   return typeof req.body === 'object' && req.body !== null ? req.body : {}
@@ -73,7 +74,7 @@ async function handleSignup(req, res) {
   const password = String(payload.password || '')
   const passwordConfirm = String(payload.passwordConfirm || '')
   const phone = normalizePhoneNumber(payload.phone)
-  const authPhone = toE164PhoneNumber(phone)
+  const authEmailAlias = buildAuthEmailAlias(phone)
   const postalCode = String(payload.postalCode || '').replace(/\D/g, '').slice(0, 5)
   const addressMain = String(payload.addressMain || '').trim()
   const addressDetail = String(payload.addressDetail || '').trim()
@@ -105,7 +106,7 @@ async function handleSignup(req, res) {
     return res.status(400).json({ error: 'invalid_phone', message: '휴대폰 번호를 확인해 주세요.' })
   }
 
-  if (!authPhone) {
+  if (!authEmailAlias) {
     return res.status(400).json({ error: 'invalid_phone_format', message: '휴대폰 번호 형식을 다시 확인해 주세요.' })
   }
 
@@ -181,9 +182,9 @@ async function handleSignup(req, res) {
   }
 
   const { data, error } = await privilegedClient.auth.admin.createUser({
-    phone: authPhone,
+    email: authEmailAlias,
     password,
-    phone_confirm: true,
+    email_confirm: true,
     user_metadata: userMetadata,
   })
 

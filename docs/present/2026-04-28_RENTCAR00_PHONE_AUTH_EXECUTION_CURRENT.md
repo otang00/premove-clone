@@ -1,343 +1,195 @@
-# 2026-04-28 RENTCAR00 전화번호 인증 전환 실행 문서
+# 2026-04-28 RENTCAR00 AUTH 전환 실행 문서
 
 ## 문서 상태
 - 상태: active current
-- 용도: 전화번호 로그인 전환의 실제 실행 단계/검증/승인 게이트 관리
+- 용도: `internal email alias` 전환 작업의 실행 순서/종료 조건/검증 기준
 - 기준 브랜치: `feat/db-preview-home`
 - 관련 문서:
   - `docs/present/2026-04-28_RENTCAR00_PHONE_AUTH_MASTER_CURRENT.md`
 
 ---
 
-## 0. 목적
+## 0. 목표
 
-이 문서는 아래 전환을 실제 작업 단위로 쪼갠다.
+목표는 아래 3개를 동시에 만족하는 것이다.
 
-- 회원 식별자: 이메일 → 전화번호
-- 로그인: 이메일+비밀번호 → 전화번호+비밀번호
-- 가입 전 검증: Solapi OTP 완료 필수
-- 계정 생성: 서버 `admin.createUser({ phone, password, phone_confirm: true })`
+1. 사용자 UX는 `전화번호 + 비밀번호` 유지
+2. OTP는 Solapi 단일 경로 유지
+3. Supabase Auth는 `email/password` 경로로만 사용
 
 ---
 
 ## 1. 기준점
 
-현재 코드 기준 핵심 축
+현재 확인된 사실
+- 실제 signup 데이터는 정상 생성된다.
+- 현재 login 실패 원인은 `phone_provider_disabled` 다.
+- `ensureProfileForUser.js` 는 이미 `phone_verified` 중심 계산에 가깝다.
+- 현재 forgot/reset 화면은 email 기반이라 새 구조와 충돌한다.
+
+---
+
+## 2. 구현 파일 범위
+
+### 직접 수정 대상
 - `api/auth/[action].js`
-  - 현재 email signup 기준
-  - signup 후 `profile_status='pending_email_verification'`
 - `src/pages/LoginPage.jsx`
-  - 현재 email/password 로그인
 - `src/pages/SignupPage.jsx`
-  - 현재 email 필수 가입 폼
-- `server/auth/ensureProfileForUser.js`
-  - 현재 email confirmation 의존 상태 계산
-- `supabase/migrations/20260425175500_add_signup_phone_verification.sql`
-  - 현재 `pending_email_verification` 상태값 포함
+- `src/utils/phone.js`
+- `src/pages/ForgotPasswordPage.jsx`
+- `src/App.jsx`
+- 필요 시 `server/auth/ensureProfileForUser.js`
+
+### 검토 대상
+- `docs/present/LOGIN_SYSTEM_CURRENT.md`
+- `docs/present/RENTCAR00_SIGNUP_PROFILE_CURRENT.md`
+- migration files for `profiles.email` / `profile_status`
 
 ---
 
-## 2. 서버 signup 목표 플로우
+## 3. Phase plan
 
-최종 플로우
-1. 사용자 phone 입력
-2. `/api/auth/otp/send`
-3. `/api/auth/otp/verify`
-4. verified token 발급 확인
-5. `/api/auth/signup` 호출
-6. 서버가 verification row 재검증
-7. 서버가 중복 phone 검사
-8. 서버가 `admin.createUser({ phone, password, phone_confirm: true, user_metadata })`
-9. 서버가 `profiles` upsert
-10. 서버가 verification consume 처리
-11. 가입 성공 응답
-12. 이후 `/login` 에서 `signInWithPassword({ phone, password })`
-
-핵심 원칙
-- `createUser()` 는 OTP 재검증 통과 후에만 호출
-- 브라우저는 service role 에 접근하지 않음
-- `phone_confirm: true` 는 서버 검증 완료를 근거로만 설정
-
----
-
-## 3. 실행 단계
-
-## Phase 0. 문서 정렬
+## Phase 1. alias 유틸 잠금
 ### 목적
-현재 기준 문서를 전화번호 로그인 체계로 통일한다.
+전화번호 -> internal email alias 변환 규칙을 단일 함수로 고정한다.
 
 ### 범위
-- `LOGIN_SYSTEM_CURRENT.md`
-- `RENTCAR00_SIGNUP_PROFILE_CURRENT.md`
-- 긴급수정 문서
-- 마스터 문서와의 충돌 제거
+- `buildAuthEmailAlias(normalizedPhone)` 신규 도입
+- signup/login 공용 사용
+- 도메인 상수 분리 여부 결정
 
 ### 종료 조건
-- 이메일 로그인/이메일 인증이 현 current 기준이 아님이 문서상 명확함
+- 동일 전화번호는 항상 동일 alias로 변환된다.
 
 ### 검증
-- current 문서끼리 상충 문구 없음
-
-### 승인대기
-- 문서 기준 확인 후 다음 단계 진행
+- 예시 3건 문자열 테스트 가능
 
 ---
 
-## Phase 1. 기술 경로 잠금
+## Phase 2. signup API 전환
 ### 목적
-서버 생성 방식으로 구현 경로를 확정한다.
+auth user 생성을 `phone auth` 에서 `email alias auth` 로 교체한다.
 
 ### 범위
-- signup은 `publicClient.auth.signUp()` 제거
-- signup은 `privilegedClient.auth.admin.createUser()` 기준으로 재정의
-- login은 `supabase.auth.signInWithPassword({ phone, password })` 기준으로 잠금
+- `admin.createUser({ phone ... })` 제거
+- `admin.createUser({ email: alias, password, email_confirm: true ... })` 로 변경
+- `profiles.phone` 중복 검사 유지
+- 가능하면 auth user alias 중복 검사 메시지 보강
+- `user_metadata` 에 실제 phone/email/verified 정보 유지
 
 ### 종료 조건
-- signup/login 호출 책임이 프론트/서버 기준으로 명확함
+- OTP 완료 번호로 가입 시 email alias auth user 생성
+- `profiles` 에는 실제 phone 저장
 
 ### 검증
-- 요청/응답 흐름을 단계도로 설명 가능
-
-### 승인대기
-- 구현 방식 확정 후 다음 단계 진행
+- signup 요청 payload/응답 점검
+- duplicate phone 차단
 
 ---
 
-## Phase 2. 데이터 계약 수정
+## Phase 3. login 화면/호출 전환
 ### 목적
-phone canonical ID 기준으로 DB 상태를 정리한다.
+전화번호 입력 UX는 유지하면서 실제 auth 호출만 alias email로 바꾼다.
 
 ### 범위
-- `profiles.phone` unique 기준 확인/보강
-- `profiles.email` 필수성 재정의
-- `profile_status` 허용값 재정의
-- 신규 저장에서 `pending_email_verification` 제거
-
-### 종료 조건
-- 신규 가입자는 email 상태와 무관하게 phone 기준으로 active 판단 가능
-
-### 검증
-- migration 계획이 문서 기준과 일치
-
-### 승인대기
-- DB 계약 검토 후 진행
-
----
-
-## Phase 3. signup API 재설계
-### 목적
-가입 API를 phone 중심 서버 생성 구조로 바꾼다.
-
-### 범위
-- 입력 payload 재정의
-- OTP verification 재검증 강화
-- `admin.createUser()` 호출 추가
-- `profiles` upsert payload 재정의
-- verification consume 시점 유지
-
-### 상세 순서
-1. body parse
-2. 이름/생년월일/비밀번호/전화번호/주소/약관 검증
-3. verification row 조회
-4. `phone`, `purpose`, `status`, `verified_at`, `consumed_at`, `verification_token_hash`, `expires_at` 검증
-5. `profiles` 중복 phone 검사
-6. `auth admin` 쪽 phone 중복/기존 유저 충돌 처리
-7. `admin.createUser({ phone, password, phone_confirm: true, user_metadata })`
-8. `profiles.upsert({ id:userId, phone, ... , profile_status:'active' 또는 규칙값 })`
-9. `phone_verifications` consume
-10. 성공 응답
-
-### 종료 조건
-- OTP 완료 번호만 가입 가능
-- 가입 즉시 phone confirmed auth user 생성 가능
-
-### 검증
-- API 입력/출력 샘플로 설명 가능
-- 실패 케이스 목록 정의 가능
-
-### 승인대기
-- signup 계약 승인 후 구현 진행
-
----
-
-## Phase 4. signup 화면 재작업
-### 목적
-회원가입 UI를 phone-first 기준으로 전환한다.
-
-### 범위
-- email 필수 제거
-- 설명 문구를 phone 기준으로 수정
-- password 설명 수정
-- 성공 후 이동 동선 정리
-
-### 종료 조건
-- 회원가입 폼이 현재 정책과 일치
-
-### 검증
-- 필수값/버튼활성/에러 문구가 문서와 일치
-
-### 승인대기
-- UI 기준 확인 후 진행
-
----
-
-## Phase 5. login 화면 재작업
-### 목적
-로그인을 phone + password 기준으로 바꾼다.
-
-### 범위
-- 입력 필드: email → phone
-- `signInWithPassword({ phone, password })` 적용
+- login input은 그대로 phone 사용
+- submit 시 normalizedPhone -> alias 변환
+- `signInWithPassword({ email: alias, password })`
 - 에러 문구 일반화
-- 현재 사용자 표시 기준 보정
 
 ### 종료 조건
-- 전화번호로 로그인 가능
-- Email not confirmed 문구 제거
+- 가입한 번호로 로그인 가능
+- phone provider 비활성 상태에서도 로그인 성공
 
 ### 검증
-- 전화번호 형식/정규화/실패 케이스 점검
-
-### 승인대기
-- login UX 확인 후 진행
+- 정상 번호 + 정상 비밀번호 성공
+- 정상 번호 + 오입력 비밀번호 실패
+- 잘못된 번호 형식 차단
 
 ---
 
-## Phase 6. profile 상태 계산 전환
+## Phase 4. signup UI 정책 정리
 ### 목적
-서버 프로필 상태를 email confirmation 과 분리한다.
+현재 회원가입 UI를 새 auth 구조와 맞춘다.
 
 ### 범위
-- `ensureProfileForUser.js` 수정
-- `email_confirmed_at` 의존 제거
-- `phone_verified` + 필수 필드 기준 상태 계산
+- 이메일 필드를 선택값으로 낮출지 확정
+- 안내 문구에서 phone auth/provider 오해 제거
+- success 후 `/login?phone=` 흐름 유지
 
 ### 종료 조건
-- `phone_verified=true` 중심 active 판정
-- `pending_email_verification` 신규 미사용
+- UI 문구와 실제 auth 구조가 충돌하지 않음
 
 ### 검증
-- auth/me 응답 예시로 상태 설명 가능
-
-### 승인대기
-- 상태 규칙 확인 후 진행
+- 폼 필수값과 서버 계약 일치
 
 ---
 
-## Phase 7. 부가 동선 정리
+## Phase 5. reset-password 임시 정리
 ### 목적
-기존 이메일 중심 흔적을 최소화한다.
+이메일 기반 reset UI가 사용자 정책과 충돌하지 않게 정리한다.
 
 ### 범위
-- forgot/reset-password 노출 유지 여부 결정
-- email 관련 잔여 카피 제거
+- 1차는 forgot/reset 진입 링크 제거 또는 route 비노출
 - 후속 TODO 문서화
 
 ### 종료 조건
-- 사용자에게 보이는 정책이 충돌하지 않음
+- 사용자에게 내부 alias email 개념이 노출되지 않음
 
 ### 검증
-- 로그인/가입 화면 문구 일관성 확인
-
-### 승인대기
-- 노출 정책 승인 후 진행
+- `/login` 화면 정책 일관성 확인
 
 ---
 
-## Phase 8. 검증
+## Phase 6. 회귀 검증
 ### 목적
-핵심 인증 플로우 회귀를 막는다.
+인증 핵심 플로우가 실제로 복구됐는지 확인한다.
 
 ### 체크리스트
 - OTP 발송 성공
-- OTP 확인 성공
-- 잘못된 OTP 차단
-- 만료 OTP 차단
-- 가입 시 phone 중복 차단
-- 가입 성공 후 login 성공
-- auth/me profile 응답 정상
+- OTP 검증 성공
+- signup 성공
+- login 성공
+- `auth/me` 성공
+- member 예약 페이지 진입 성공
 - build 통과
-
-### 종료 조건
-- 신규 회원의 phone-first 흐름을 실제로 설명 가능
-
-### 승인대기
-- 검증 결과 보고 후 최종 승인 대기
+- production deploy 후 실사용 확인
 
 ---
 
-## 4. 구현 순서 추천
+## 4. 구현 세부 메모
 
-실제 작업 순서
-1. 문서 정렬
-2. signup API 재설계
-3. login 화면 전환
-4. profile 상태 계산 전환
-5. migration/상태값 정리
-6. 회귀 검증
-7. 최종 승인 대기
+### 4.1 alias 함수 예시
+```js
+function buildAuthEmailAlias(normalizedPhone) {
+  return `${normalizedPhone}@bbangbbangcar.local`
+}
+```
 
-이 순서가 좋은 이유
-- 인증 핵심은 signup API 가 기준점이다.
-- login UI 는 그 다음에 맞추는 편이 안전하다.
-- 상태값/migration 은 새 흐름이 잠긴 뒤 정리하는 게 덜 흔들린다.
+### 4.2 signup payload 원칙
+- 브라우저는 실제 연락용 이메일만 optional로 보낸다.
+- 서버는 auth 식별용 email alias를 직접 생성한다.
+- 브라우저가 auth email alias를 결정하지 않는다.
 
----
-
-## 5. 이번 실행에서 건드릴 가능성이 높은 파일
-
-### 문서
-- `docs/present/LOGIN_SYSTEM_CURRENT.md`
-- `docs/present/RENTCAR00_SIGNUP_PROFILE_CURRENT.md`
-- `docs/present/2026-04-28_RENTCAR00_AUTH_EMERGENCY_PHASE_CURRENT.md`
-
-### 서버
-- `api/auth/[action].js`
-- `server/auth/ensureProfileForUser.js`
-- 필요 시 auth helper
-
-### 프론트
-- `src/pages/SignupPage.jsx`
-- `src/pages/LoginPage.jsx`
-
-### DB
-- `supabase/migrations/*`
+### 4.3 existing phone auth user 처리
+- 방금 생성된 phone auth 테스트 계정은 새 구조 적용 전 정리 또는 재생성 검토
+- 혼재 상태로 두면 중복/로그인 혼선 가능
 
 ---
 
-## 6. 최종 원칙
+## 5. 승인 후 바로 수정할 항목
 
-- 각 phase 는
-  1. 범위 고정
-  2. 수정
-  3. 검증
-  4. 승인대기
-  순서로 닫는다.
-- 다음 phase 는 직전 phase 검증/보고 후에만 진행한다.
-- 최종 commit 은 사장님 승인 전 미실행.
-
----
-
-## 7. 리스크 요약
-
-1. signup 선행 검증 누락
-- verification row 재검증 없이 `createUser()` 를 치면 가장 크게 꼬인다.
-
-2. auth/profile 이중 충돌
-- `profiles` 와 auth user 양쪽에서 phone 중복을 동시에 확인해야 한다.
-
-3. 상태 계산 순서 문제
-- signup API 수정 후 바로 `ensureProfileForUser` 를 맞추지 않으면 active 판정이 꼬일 수 있다.
-
-4. 화면 문구 충돌
-- SignupPage/LoginPage 의 email 중심 카피와 forgot-password 노출을 그대로 두면 사용자 혼란이 생긴다.
-
-5. 범위 확장 위험
-- guest, kakao, reset-password 까지 같이 건드리면 이번 phase 가 불필요하게 커진다.
+수정 순서 권장
+1. alias 유틸 추가
+2. signup API 수정
+3. login 호출 수정
+4. forgot/reset 임시 비노출
+5. build
+6. production deploy
+7. 실가입/실로그인 재검증
 
 ---
 
-## 8. 한 줄 결론
+## 6. 한 줄 실행 기준
 
-이번 실행의 핵심은
-**기존 이메일 signup 을 억지 보수하는 것이 아니라, Solapi OTP로 번호를 먼저 검증한 뒤 서버가 확인된 phone 계정을 직접 생성하도록 인증 기준축을 재배치하는 것**이다.
+**phone provider를 고치지 말고, auth 식별자만 internal email alias로 바꿔서 로그인 장애를 제거한다.**

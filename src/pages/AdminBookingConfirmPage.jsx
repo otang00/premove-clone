@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate, useSearchParams } from 'react-router-do
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { cancelAdminBooking, confirmAdminBooking, fetchAdminBookingConfirm } from '../services/adminBookingConfirmApi'
-import { isAdminEmail } from '../utils/adminAccess'
+import { isAdminUser } from '../utils/adminAccess'
 
 export default function AdminBookingConfirmPage() {
   const navigate = useNavigate()
@@ -16,8 +16,7 @@ export default function AdminBookingConfirmPage() {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [resultMessage, setResultMessage] = useState('')
-  const adminEmail = user?.email || profile?.email || ''
-  const hasAdminHint = useMemo(() => isAdminEmail(adminEmail), [adminEmail])
+  const hasAdminHint = useMemo(() => isAdminUser(user) || isAdminUser(profile), [profile, user])
   const redirectTo = `${location.pathname}${location.search}`
   const canAdminCancel = hasAdminHint && ['confirmation_pending', 'confirmed_pending_sync', 'confirmed', 'in_use'].includes(String(booking?.bookingStatus || ''))
 

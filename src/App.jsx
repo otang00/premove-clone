@@ -7,7 +7,6 @@ import GuestBookingsPage from './pages/GuestBookingsPage'
 import ReservationCompletePage from './pages/ReservationCompletePage'
 import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
-import ForgotPasswordPage from './pages/ForgotPasswordPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import MemberReservationsPage from './pages/MemberReservationsPage'
 import MemberReservationDetailPage from './pages/MemberReservationDetailPage'
@@ -27,7 +26,7 @@ export default function App() {
       <Route path="/reservation-complete" element={<ReservationCompletePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+      <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/admin/booking-confirm" element={<AdminBookingConfirmPage />} />
       <Route path="/admin/bookings" element={<AdminBookingsPage />} />

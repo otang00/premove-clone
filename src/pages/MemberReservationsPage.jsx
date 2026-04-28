@@ -63,7 +63,7 @@ export default function MemberReservationsPage() {
             </div>
 
             <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-              <div className="reservation-result-row"><span>회원 이메일</span><strong>{profile?.email || '-'}</strong></div>
+              <div className="reservation-result-row"><span>회원 휴대폰번호</span><strong>{profile?.phone || '-'}</strong></div>
               <div className="reservation-result-row"><span>회원 이름</span><strong>{profile?.name || '-'}</strong></div>
               <div className="reservation-result-row"><span>예약 수</span><strong>{fetching ? '불러오는 중' : `${bookings.length}건`}</strong></div>
             </div>

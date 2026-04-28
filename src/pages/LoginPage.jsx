@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabaseClient'
-import { formatPhoneNumber, normalizePhoneNumber, toE164PhoneNumber } from '../utils/phone'
+import { buildAuthEmailAlias, formatPhoneNumber, normalizePhoneNumber } from '../utils/phone'
 
 function resolveRedirectTo(search) {
   const params = new URLSearchParams(search)
@@ -50,16 +50,16 @@ export default function LoginPage() {
     setErrorMessage('')
 
     const normalizedPhone = normalizePhoneNumber(phone)
-    const authPhone = toE164PhoneNumber(normalizedPhone)
+    const authEmailAlias = buildAuthEmailAlias(normalizedPhone)
 
-    if (!authPhone) {
+    if (!authEmailAlias) {
       setErrorMessage('휴대폰 번호 형식을 확인해 주세요.')
       setSubmitting(false)
       return
     }
 
     const { error } = await supabase.auth.signInWithPassword({
-      phone: authPhone,
+      email: authEmailAlias,
       password,
     })
 

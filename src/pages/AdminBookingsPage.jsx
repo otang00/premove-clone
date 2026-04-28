@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { getAdminBookings } from '../services/adminBookingsApi'
-import { isAdminEmail } from '../utils/adminAccess'
+import { isAdminUser } from '../utils/adminAccess'
 
 const TAB_OPTIONS = [
   { key: 'pending', label: '확정대기' },
@@ -63,8 +63,8 @@ export default function AdminBookingsPage() {
   const qField = searchParams.get('qField') || 'carNumber'
   const q = searchParams.get('q') || ''
 
-  const adminEmail = user?.email || profile?.email || ''
-  const hasAdminHint = useMemo(() => isAdminEmail(adminEmail), [adminEmail])
+  const adminLabel = profile?.phone || user?.user_metadata?.phone || user?.phone || profile?.email || user?.email || ''
+  const hasAdminHint = useMemo(() => isAdminUser(user) || isAdminUser(profile), [profile, user])
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -150,7 +150,7 @@ export default function AdminBookingsPage() {
 
             {hasAdminHint ? (
               <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
-                <div className="reservation-result-row"><span>관리자 계정</span><strong>{adminEmail || '-'}</strong></div>
+                <div className="reservation-result-row"><span>관리자 계정</span><strong>{adminLabel || '-'}</strong></div>
                 <div className="reservation-result-row"><span>표시 건수</span><strong>{fetching ? '불러오는 중' : `${total}건`}</strong></div>
               </div>
             ) : null}

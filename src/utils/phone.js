@@ -1,3 +1,5 @@
+export const AUTH_EMAIL_ALIAS_DOMAIN = 'bbangbbangcar.local'
+
 export function formatPhoneNumber(value) {
   const digits = String(value || '').replace(/\D/g, '').slice(0, 11)
 
@@ -17,4 +19,10 @@ export function toE164PhoneNumber(value) {
   const phone = normalizePhoneNumber(value)
   if (!/^01\d{8,9}$/.test(phone)) return ''
   return `+82${phone.slice(1)}`
+}
+
+export function buildAuthEmailAlias(value) {
+  const phone = normalizePhoneNumber(value)
+  if (!/^01\d{8,9}$/.test(phone)) return ''
+  return `${phone}@${AUTH_EMAIL_ALIAS_DOMAIN}`
 }
