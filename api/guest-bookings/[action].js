@@ -36,9 +36,31 @@ function isProfileLockedSubmission({ authUser, profile, bookingInput }) {
     return false
   }
 
-  return normalizeCustomerName(bookingInput.customerName) === normalizeCustomerName(profile?.name)
-    && normalizeCustomerPhone(bookingInput.customerPhone) === normalizeCustomerPhone(profile?.phone)
-    && normalizeCustomerBirth(bookingInput.customerBirth) === normalizeCustomerBirth(profile?.birthDate)
+  const candidateNames = [
+    profile?.name,
+    authUser?.user_metadata?.name,
+    authUser?.user_metadata?.full_name,
+  ]
+  const candidatePhones = [
+    profile?.phone,
+    authUser?.phone,
+    authUser?.user_metadata?.phone,
+  ]
+  const candidateBirthDates = [
+    profile?.birthDate,
+    profile?.birth_date,
+    authUser?.user_metadata?.birth_date,
+  ]
+
+  const normalizedName = normalizeCustomerName(bookingInput.customerName)
+  const normalizedPhone = normalizeCustomerPhone(bookingInput.customerPhone)
+  const normalizedBirth = normalizeCustomerBirth(bookingInput.customerBirth)
+
+  const nameMatches = candidateNames.some((value) => normalizeCustomerName(value) === normalizedName)
+  const phoneMatches = candidatePhones.some((value) => normalizeCustomerPhone(value) === normalizedPhone)
+  const birthMatches = candidateBirthDates.some((value) => normalizeCustomerBirth(value) === normalizedBirth)
+
+  return nameMatches && phoneMatches && birthMatches
 }
 
 async function verifyReservationOtp({ supabaseClient, bookingInput }) {

@@ -743,18 +743,20 @@
 }
 
 .driver-info-card__status.is-locked::before{
-  content:'잠금';
+  content:'';
   display:inline-flex;
   align-items:center;
   justify-content:center;
-  min-width:40px;
-  min-height:24px;
-  padding:0 8px;
+  width:0;
+  min-height:0;
+  padding:0;
   border-radius:999px;
-  background:#e7eef5;
-  color:#304456;
-  font-size:12px;
-  font-weight:800;
+  background:transparent;
+}
+
+.driver-info-card__edit-button{
+  width:auto;
+  flex:0 0 auto;
 }
 
 .driver-info-form.is-locked .driver-info-form__input{
@@ -980,8 +982,9 @@
     line-height:1.7;
   }
 
-  .driver-info-card__header .btn{
-    width:100%;
+  .driver-info-card__edit-button{
+    width:auto;
+    align-self:flex-start;
   }
 
   .driver-edit-confirm-modal .search-guard-actions{

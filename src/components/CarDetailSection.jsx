@@ -686,14 +686,10 @@ export default function CarDetailSection() {
                 <h2>운전자 정보</h2>
                 <div className="driver-info-card__header">
                   <p className={`muted small-note driver-info-card__status ${isDriverFormLocked ? 'is-locked' : 'is-editing'}`} style={{ margin: 0 }}>
-                    {authLoading
-                      ? '로그인 상태를 확인하는 중입니다.'
-                      : isDriverFormLocked
-                      ? '회원 정보 기준으로 잠금되어 있습니다. 그대로 예약하거나 수정 후 다시 인증할 수 있습니다.'
-                      : '운전자 정보를 입력한 뒤 전화번호 인증을 완료해 주세요.'}
+                    {authLoading ? '확인 중' : isDriverFormLocked ? '잠금' : '인증 필요'}
                   </p>
                   {!authLoading && isDriverFormLocked ? (
-                    <button type="button" className="btn btn-outline btn-sm" onClick={handleStartDriverEdit}>수정</button>
+                    <button type="button" className="btn btn-outline btn-sm driver-info-card__edit-button" onClick={handleStartDriverEdit}>수정</button>
                   ) : null}
                 </div>
                 <div className={`stack-form stack-form-centered driver-info-form ${isDriverFormLocked ? 'is-locked' : ''}`}>
@@ -903,9 +899,9 @@ export default function CarDetailSection() {
           <div className="delivery-modal-backdrop" onClick={handleCancelDriverEdit}>
             <div className="search-guard-modal driver-edit-confirm-modal" onClick={(event) => event.stopPropagation()}>
               <strong>운전자 정보를 수정하시겠습니까?</strong>
-              <p className="field-note">수정을 시작하면 현재 잠금 상태가 해제되고, 입력값을 다시 확인한 뒤 휴대폰 인증을 새로 완료해야 합니다.</p>
+              <p className="field-note">수정하면 잠금이 해제됩니다.</p>
               <div className="driver-edit-confirm-modal__notice">
-                <strong>변경 시 안내</strong>
+                <strong>안내</strong>
                 <ul>
                   <li>현재 운전자 정보 입력값이 초기화됩니다.</li>
                   <li>수정 후 인증을 완료해야 예약 접수가 가능합니다.</li>
