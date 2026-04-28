@@ -140,7 +140,7 @@ export default function CarDetailSection() {
   const { carId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { session, isAuthenticated, profile } = useAuth()
+  const { session, isAuthenticated, profile, loading: authLoading } = useAuth()
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const detailToken = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -176,8 +176,8 @@ export default function CarDetailSection() {
   const [reservationSubmitError, setReservationSubmitError] = useState('')
   const [isCreatingReservation, setIsCreatingReservation] = useState(false)
   const [activeTermsModal, setActiveTermsModal] = useState('')
-  const [isDriverFormLocked, setIsDriverFormLocked] = useState(Boolean(isAuthenticated))
-  const [driverFormLockReason, setDriverFormLockReason] = useState(isAuthenticated ? 'member_profile' : '')
+  const [isDriverFormLocked, setIsDriverFormLocked] = useState(true)
+  const [driverFormLockReason, setDriverFormLockReason] = useState('auth_pending')
   const [isDriverEditConfirmOpen, setIsDriverEditConfirmOpen] = useState(false)
   const [reservationOtpCode, setReservationOtpCode] = useState('')
   const [reservationVerificationId, setReservationVerificationId] = useState('')
@@ -198,6 +198,8 @@ export default function CarDetailSection() {
   }, [parsedSearchState.deliveryAddressDetail])
 
   useEffect(() => {
+    if (authLoading) return
+
     if (isAuthenticated) {
       setIsDriverFormLocked(true)
       setDriverFormLockReason('member_profile')
@@ -206,7 +208,7 @@ export default function CarDetailSection() {
 
     setIsDriverFormLocked(false)
     setDriverFormLockReason('')
-  }, [isAuthenticated])
+  }, [authLoading, isAuthenticated])
 
   useEffect(() => {
     if (!car || !pricing || !insurance || isLoading || fetchError) return undefined
@@ -243,19 +245,19 @@ export default function CarDetailSection() {
   }, [])
 
   useEffect(() => {
-    if (!isAuthenticated || !profile?.id) return
+    if (authLoading || !isAuthenticated || !profile?.id || driverFormLockReason !== 'member_profile') return
 
     const prefillKey = `${profile.id}:${profile.updatedAt || ''}`
     if (appliedProfilePrefillKeyRef.current === prefillKey) return
 
     appliedProfilePrefillKeyRef.current = prefillKey
 
-    setReservationForm((current) => ({
-      customerName: current.customerName || String(profile.name || ''),
-      customerPhone: current.customerPhone || normalizePhone(String(profile.phone || '')),
-      customerBirth: current.customerBirth || normalizeBirth(String(profile.birthDate || '')),
-    }))
-  }, [isAuthenticated, profile])
+    setReservationForm({
+      customerName: String(profile.name || ''),
+      customerPhone: normalizePhone(String(profile.phone || '')),
+      customerBirth: normalizeBirth(String(profile.birthDate || '')),
+    })
+  }, [authLoading, driverFormLockReason, isAuthenticated, profile])
 
   const reservationValidation = useMemo(
     () => validateReservationForm(reservationForm),
@@ -527,6 +529,14 @@ export default function CarDetailSection() {
     setHasReservationSubmitAttempted(true)
     setReservationSubmitError('')
 
+    if (authLoading) {
+      setReservationSubmitError('로그인 상태를 확인하는 중입니다. 잠시 후 다시 시도해 주세요.')
+      requestAnimationFrame(() => {
+        paymentSummaryRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      })
+      return
+    }
+
     if (parsedSearchState.pickupOption === 'delivery' && !deliveryAddressDetail.trim()) {
       setDeliveryAddressDetailError('상세주소를 입력해 주세요.')
     }
@@ -676,11 +686,13 @@ export default function CarDetailSection() {
                 <h2>운전자 정보</h2>
                 <div className="driver-info-card__header">
                   <p className={`muted small-note driver-info-card__status ${isDriverFormLocked ? 'is-locked' : 'is-editing'}`} style={{ margin: 0 }}>
-                    {isDriverFormLocked
+                    {authLoading
+                      ? '로그인 상태를 확인하는 중입니다.'
+                      : isDriverFormLocked
                       ? '회원 정보 기준으로 잠금되어 있습니다. 그대로 예약하거나 수정 후 다시 인증할 수 있습니다.'
                       : '운전자 정보를 입력한 뒤 전화번호 인증을 완료해 주세요.'}
                   </p>
-                  {isDriverFormLocked ? (
+                  {!authLoading && isDriverFormLocked ? (
                     <button type="button" className="btn btn-outline btn-sm" onClick={handleStartDriverEdit}>수정</button>
                   ) : null}
                 </div>
@@ -724,7 +736,7 @@ export default function CarDetailSection() {
                     )}
                   </div>
                 </div>
-                {!isDriverFormLocked && (
+                {!authLoading && !isDriverFormLocked && (
                   <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
                     <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) auto auto', gap: 8, alignItems: 'center' }}>
                       <input
