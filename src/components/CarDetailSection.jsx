@@ -91,6 +91,8 @@ function TermsCheckRow({ checked, onChange, label, onOpen }) {
   )
 }
 
+const ERROR_NOTE_STYLE = { margin: 0, color: '#be123c' }
+
 const INSURANCE_SUMMARY_ITEMS = [
   { label: '대인 보상한도', value: '무한' },
   { label: '대인 면책금', value: '50만원' },
@@ -663,7 +665,7 @@ export default function CarDetailSection() {
                       onChange={(e) => handleDeliveryAddressDetailChange(e.target.value)}
                     />
                     {deliveryAddressDetailError && (
-                      <p className="muted small-note">{deliveryAddressDetailError}</p>
+                      <p className="field-note" style={ERROR_NOTE_STYLE}>{deliveryAddressDetailError}</p>
                     )}
                     <p className="muted small-note">배차를 위해 동, 호수, 건물명 등 상세주소를 입력해 주세요.</p>
                   </div>
@@ -680,16 +682,7 @@ export default function CarDetailSection() {
                   </p>
                   {isDriverFormLocked ? (
                     <button type="button" className="btn btn-outline btn-sm" onClick={handleStartDriverEdit}>수정</button>
-                  ) : (
-                    <button
-                      type="button"
-                      className="btn btn-outline btn-sm"
-                      onClick={handleReservationOtpRequest}
-                      disabled={isReservationOtpRequesting || isReservationOtpVerifying || reservationOtpCooldownLeft > 0}
-                    >
-                      {isReservationOtpRequesting ? '발송 중...' : reservationOtpCooldownLeft > 0 ? `재전송 ${reservationOtpCooldownLeft}s` : '전화번호 인증'}
-                    </button>
-                  )}
+                  ) : null}
                 </div>
                 <div className="stack-form stack-form-centered">
                   <div>
@@ -701,7 +694,7 @@ export default function CarDetailSection() {
                       disabled={isDriverFormLocked}
                     />
                     {(shouldShowReservationErrors || reservationForm.customerName) && reservationValidation.errors.customerName && (
-                      <p className="muted small-note">{reservationValidation.errors.customerName}</p>
+                      <p className="field-note" style={ERROR_NOTE_STYLE}>{reservationValidation.errors.customerName}</p>
                     )}
                   </div>
                   <div>
@@ -714,7 +707,7 @@ export default function CarDetailSection() {
                       disabled={isDriverFormLocked}
                     />
                     {(shouldShowReservationErrors || reservationForm.customerBirth) && reservationValidation.errors.customerBirth && (
-                      <p className="muted small-note">{reservationValidation.errors.customerBirth}</p>
+                      <p className="field-note" style={ERROR_NOTE_STYLE}>{reservationValidation.errors.customerBirth}</p>
                     )}
                   </div>
                   <div>
@@ -727,13 +720,13 @@ export default function CarDetailSection() {
                       disabled={isDriverFormLocked}
                     />
                     {(shouldShowReservationErrors || reservationForm.customerPhone) && reservationValidation.errors.customerPhone && (
-                      <p className="muted small-note">{reservationValidation.errors.customerPhone}</p>
+                      <p className="field-note" style={ERROR_NOTE_STYLE}>{reservationValidation.errors.customerPhone}</p>
                     )}
                   </div>
                 </div>
                 {!isDriverFormLocked && (
                   <div style={{ display: 'grid', gap: 8, marginTop: 16 }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.6fr) auto auto', gap: 8, alignItems: 'center' }}>
                       <input
                         className="field-input"
                         type="text"
@@ -746,20 +739,30 @@ export default function CarDetailSection() {
                       <button
                         type="button"
                         className="btn btn-outline btn-md"
+                        onClick={handleReservationOtpRequest}
+                        disabled={isReservationOtpRequesting || isReservationOtpVerifying || reservationOtpCooldownLeft > 0}
+                        style={{ whiteSpace: 'nowrap' }}
+                      >
+                        {isReservationOtpRequesting ? '발송 중...' : reservationOtpCooldownLeft > 0 ? `재전송 ${reservationOtpCooldownLeft}s` : '인증번호 발송'}
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-md"
                         onClick={handleReservationOtpVerify}
                         disabled={isReservationOtpVerifying || !reservationVerificationId || reservationOtpCode.length !== 6 || hasActiveReservationVerification}
+                        style={{ whiteSpace: 'nowrap' }}
                       >
                         {hasActiveReservationVerification ? '인증완료' : isReservationOtpVerifying ? '확인 중...' : '확인'}
                       </button>
                     </div>
-                    <p className="muted small-note" style={{ margin: 0 }}>
+                    <p className="field-note" style={{ margin: 0, color: hasActiveReservationVerification ? '#166534' : '#6b7280' }}>
                       {hasActiveReservationVerification
                         ? '휴대폰 인증이 완료되었습니다.'
                         : reservationVerificationId
                           ? `남은 시간 ${String(Math.floor(reservationOtpSecondsLeft / 60)).padStart(2, '0')}:${String(reservationOtpSecondsLeft % 60).padStart(2, '0')}`
                           : '인증번호를 먼저 요청해 주세요.'}
                     </p>
-                    <p className="muted small-note" style={{ margin: 0, color: hasActiveReservationVerification ? '#166534' : '#6b7280' }}>{reservationOtpMessage}</p>
+                    <p className="field-note" style={{ margin: 0, color: hasActiveReservationVerification ? '#166534' : '#be123c' }}>{reservationOtpMessage}</p>
                   </div>
                 )}
               </article>
@@ -773,7 +776,7 @@ export default function CarDetailSection() {
                   <TermsCheckRow checked={termsState.privacyAgreed} onChange={(checked) => handleToggleSingleTerm('privacyAgreed', checked)} label="개인정보 수집 및 이용 동의" onOpen={() => setActiveTermsModal('privacy')} />
                 </div>
                 {!termsValidation.isValid && (
-                  <p className="muted small-note">{Object.values(termsValidation.errors)[0]}</p>
+                  <p className="field-note" style={ERROR_NOTE_STYLE}>{Object.values(termsValidation.errors)[0]}</p>
                 )}
                 <div className="legal-note">
                   빵빵카 주식회사는 본 렌터카 계약 서비스를 직접 제공합니다. 결제가 정상적으로 완료된 예약에 한해 예약이 확정되며, 운전자 자격 미충족, 본인 확인 실패, 면허 확인 실패, 결제 확인 실패, 차량 상태 이상, 회사 사정으로 인한 배차 불가 등 회사가 고지한 사유가 있으면 예약이 거절되거나 취소될 수 있습니다.
