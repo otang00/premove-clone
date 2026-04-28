@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { supabase } from '../lib/supabaseClient'
+import { formatPhoneNumber, normalizePhoneNumber, toE164PhoneNumber } from '../utils/phone'
 
 function resolveRedirectTo(search) {
   const params = new URLSearchParams(search)
@@ -10,19 +11,23 @@ function resolveRedirectTo(search) {
   return redirectTo.startsWith('/') ? redirectTo : '/reservations'
 }
 
+function resolvePhone(search) {
+  const params = new URLSearchParams(search)
+  return formatPhoneNumber(params.get('phone') || '')
+}
+
 function getErrorMessage(error) {
   if (!error) return '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.'
-  if (error.message?.includes('Invalid login credentials')) return '이메일 또는 비밀번호가 올바르지 않습니다.'
-  if (error.message?.includes('Email not confirmed')) return '이메일 인증이 아직 완료되지 않았습니다.'
+  if (error.message?.includes('Invalid login credentials')) return '휴대폰 번호 또는 비밀번호가 올바르지 않습니다.'
   return error.message || '로그인에 실패했습니다. 잠시 후 다시 시도해주세요.'
 }
 
 export default function LoginPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { loading, isAuthenticated, isSupabaseClientReady, user } = useAuth()
+  const { loading, isAuthenticated, isSupabaseClientReady, user, profile } = useAuth()
   const redirectTo = useMemo(() => resolveRedirectTo(location.search), [location.search])
-  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState(() => resolvePhone(location.search))
   const [password, setPassword] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
@@ -44,8 +49,17 @@ export default function LoginPage() {
     setSubmitting(true)
     setErrorMessage('')
 
+    const normalizedPhone = normalizePhoneNumber(phone)
+    const authPhone = toE164PhoneNumber(normalizedPhone)
+
+    if (!authPhone) {
+      setErrorMessage('휴대폰 번호 형식을 확인해 주세요.')
+      setSubmitting(false)
+      return
+    }
+
     const { error } = await supabase.auth.signInWithPassword({
-      email: email.trim(),
+      phone: authPhone,
       password,
     })
 
@@ -66,7 +80,7 @@ export default function LoginPage() {
             <div>
               <h1 style={{ margin: 0 }}>로그인</h1>
               <p className="small-note" style={{ marginTop: 8 }}>
-                이메일과 비밀번호로 로그인합니다. 로그인 후에는 예약내역 페이지로 이동합니다.
+                휴대폰 번호와 비밀번호로 로그인합니다. 로그인 후에는 예약내역 페이지로 이동합니다.
               </p>
               <p className="field-note" style={{ marginTop: 8 }}>
                 계정이 없으면 아래 회원가입 버튼으로 바로 가입할 수 있습니다.
@@ -75,20 +89,21 @@ export default function LoginPage() {
 
             <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
               <div className="reservation-result-row"><span>상태</span><strong>{loading ? '세션 확인 중' : isAuthenticated ? '로그인됨' : '비로그인'}</strong></div>
-              <div className="reservation-result-row"><span>현재 사용자</span><strong>{user?.email || '-'}</strong></div>
+              <div className="reservation-result-row"><span>현재 사용자</span><strong>{profile?.phone || user?.phone || user?.email || '-'}</strong></div>
             </div>
 
             <form className="stack-form stack-form-centered" onSubmit={handleSubmit}>
               <div className="field-group">
-                <label className="field-label" htmlFor="login-email">이메일</label>
+                <label className="field-label" htmlFor="login-phone">휴대폰 번호</label>
                 <input
-                  id="login-email"
+                  id="login-phone"
                   className="field-input"
-                  type="email"
-                  autoComplete="email"
-                  placeholder="example@email.com"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="tel"
+                  placeholder="010-0000-0000"
+                  value={phone}
+                  onChange={(event) => setPhone(formatPhoneNumber(event.target.value))}
                   disabled={submitting || !isSupabaseClientReady}
                   required
                 />
@@ -117,7 +132,6 @@ export default function LoginPage() {
 
             <div style={{ width: 'min(100%, 420px)', margin: '0 auto', display: 'grid', gap: 8 }}>
               <Link className="btn btn-outline btn-md btn-block" to={`/signup?redirectTo=${encodeURIComponent(redirectTo)}`}>회원가입</Link>
-              <Link className="btn btn-outline btn-md btn-block" to={`/forgot-password?redirectTo=${encodeURIComponent(redirectTo)}`}>비밀번호 재설정</Link>
               <Link className="btn btn-outline btn-md btn-block" to="/">메인으로</Link>
             </div>
           </article>

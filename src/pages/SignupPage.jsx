@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { parseApiResponse } from '../utils/apiResponse'
+import { formatPhoneNumber, normalizePhoneNumber } from '../utils/phone'
 
 function resolveRedirectTo(search) {
   const params = new URLSearchParams(search)
@@ -12,23 +13,9 @@ function resolveRedirectTo(search) {
 
 function getErrorMessage(error) {
   if (!error) return '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
-  if (error.message?.includes('User already registered')) return '이미 가입된 이메일입니다. 로그인으로 진행해주세요.'
+  if (error.message?.includes('already')) return '이미 가입된 휴대폰 번호입니다. 로그인으로 진행해 주세요.'
   if (error.message?.includes('Password should be at least')) return '비밀번호는 최소 8자 이상이어야 합니다.'
   return error.message || '회원가입에 실패했습니다. 잠시 후 다시 시도해주세요.'
-}
-
-function formatPhoneNumber(value) {
-  const digits = value.replace(/\D/g, '').slice(0, 11)
-
-  if (digits.length <= 3) return digits
-  if (digits.length <= 7) return `${digits.slice(0, 3)}-${digits.slice(3)}`
-  return `${digits.slice(0, 3)}-${digits.slice(3, 7)}-${digits.slice(7)}`
-}
-
-function normalizePhoneNumber(value) {
-  const digits = value.replace(/\D/g, '')
-  if (digits.startsWith('82')) return `0${digits.slice(2)}`
-  return digits
 }
 
 function formatBirthDate(value) {
@@ -68,7 +55,7 @@ function FieldNote({ children, color = '#6b7280' }) {
 export default function SignupPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { loading, isAuthenticated, isSupabaseClientReady } = useAuth()
+  const { loading, isAuthenticated } = useAuth()
   const redirectTo = useMemo(() => resolveRedirectTo(location.search), [location.search])
 
   const [name, setName] = useState('')
@@ -114,7 +101,6 @@ export default function SignupPage() {
   const canSubmitCurrentSignup = Boolean(
     name.trim().length >= 2
     && /^\d{8}$/.test(birthDate)
-    && email.trim()
     && passwordValid
     && isPasswordConfirmed
     && /^01\d{8,9}$/.test(normalizedPhone)
@@ -123,7 +109,6 @@ export default function SignupPage() {
     && addressDetail.trim()
     && requiredTermsAgreed
     && isOtpVerified
-    && isSupabaseClientReady
     && !submitting
     && !loading
   )
@@ -254,11 +239,6 @@ export default function SignupPage() {
   async function handleSubmit(event) {
     event.preventDefault()
 
-    if (!isSupabaseClientReady) {
-      setErrorMessage('Supabase 설정이 준비되지 않았습니다.')
-      return
-    }
-
     if (!isOtpVerified) {
       setErrorMessage('휴대폰 인증을 완료해 주세요.')
       return
@@ -284,7 +264,6 @@ export default function SignupPage() {
           postalCode,
           addressMain,
           addressDetail,
-          redirectTo: `${window.location.origin}/login?redirectTo=${encodeURIComponent(redirectTo)}`,
           phoneVerificationId: verificationId,
           phoneVerificationToken: verificationToken,
           agreeTerms,
@@ -298,10 +277,7 @@ export default function SignupPage() {
       const result = await parseApiResponse(response, '회원가입에 실패했습니다.')
       setSuccessMessage(result.message || '회원가입이 완료되었습니다.')
       setOtpMessage('휴대폰 인증이 완료된 상태로 가입이 처리되었습니다.')
-
-      if (!result.requiresEmailVerification) {
-        navigate(redirectTo, { replace: true })
-      }
+      navigate(`/login?redirectTo=${encodeURIComponent(redirectTo)}&phone=${encodeURIComponent(normalizedPhone)}`, { replace: true })
     } catch (error) {
       setErrorMessage(getErrorMessage(error))
     } finally {
@@ -317,7 +293,7 @@ export default function SignupPage() {
             <div>
               <h1 style={{ margin: 0 }}>회원가입</h1>
               <p className="small-note" style={{ marginTop: 8 }}>
-                이메일 인증은 유지하고, 가입 전 휴대폰 인증을 먼저 완료하는 구조로 연결했습니다.
+                가입 전 휴대폰 인증을 먼저 완료하고, 이후 휴대폰 번호와 비밀번호로 로그인합니다.
               </p>
             </div>
 
@@ -357,7 +333,7 @@ export default function SignupPage() {
                   </div>
 
                   <div className="field-group">
-                    <label className="field-label" htmlFor="signup-email">이메일</label>
+                    <label className="field-label" htmlFor="signup-email">이메일 (선택)</label>
                     <input
                       id="signup-email"
                       className="field-input"
@@ -366,14 +342,14 @@ export default function SignupPage() {
                       placeholder="example@email.com"
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
-                      disabled={submitting || !isSupabaseClientReady}
-                      required
+                      disabled={submitting}
                     />
+                    <FieldNote>예약 안내나 추가 연락이 필요할 때 사용할 수 있습니다.</FieldNote>
                   </div>
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="비밀번호" description="이메일 로그인 비밀번호를 설정합니다." />
+                  <SectionTitle title="비밀번호" description="휴대폰 번호 로그인에 사용할 비밀번호를 설정합니다." />
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-password">비밀번호</label>
@@ -387,7 +363,7 @@ export default function SignupPage() {
                           placeholder="영문, 숫자를 포함해 8자 이상"
                           value={password}
                           onChange={(event) => setPassword(event.target.value)}
-                          disabled={submitting || !isSupabaseClientReady}
+                          disabled={submitting}
                           required
                           minLength={8}
                         />
@@ -395,7 +371,7 @@ export default function SignupPage() {
                           type="button"
                           className="btn btn-outline btn-md"
                           onClick={() => setShowPassword((prev) => !prev)}
-                          disabled={submitting || !isSupabaseClientReady}
+                          disabled={submitting}
                         >
                           {showPassword ? '숨기기' : '보기'}
                         </button>
@@ -415,7 +391,7 @@ export default function SignupPage() {
                           placeholder="비밀번호 다시 입력"
                           value={passwordConfirm}
                           onChange={(event) => setPasswordConfirm(event.target.value)}
-                          disabled={submitting || !isSupabaseClientReady}
+                          disabled={submitting}
                           required
                           minLength={8}
                         />
@@ -423,7 +399,7 @@ export default function SignupPage() {
                           type="button"
                           className="btn btn-outline btn-md"
                           onClick={() => setShowPasswordConfirm((prev) => !prev)}
-                          disabled={submitting || !isSupabaseClientReady}
+                          disabled={submitting}
                         >
                           {showPasswordConfirm ? '숨기기' : '보기'}
                         </button>
@@ -438,7 +414,7 @@ export default function SignupPage() {
                         <FieldNote color={passwordChecks.english ? '#166534' : '#6b7280'}>{passwordChecks.english ? '✓' : '○'} 영문 포함</FieldNote>
                         <FieldNote color={passwordChecks.number ? '#166534' : '#6b7280'}>{passwordChecks.number ? '✓' : '○'} 숫자 포함</FieldNote>
                         <FieldNote color={passwordChecks.noSpace ? '#166534' : '#be123c'}>{passwordChecks.noSpace ? '✓' : '○'} 공백 없음</FieldNote>
-                        <FieldNote color={passwordChecks.notEmail ? '#166534' : '#be123c'}>{passwordChecks.notEmail ? '✓' : '○'} 이메일과 동일하지 않음</FieldNote>
+                        <FieldNote color={passwordChecks.notEmail ? '#166534' : '#be123c'}>{passwordChecks.notEmail ? '✓' : '○'} 이메일 입력 시 동일값 금지</FieldNote>
                       </div>
                     </div>
                   </div>
@@ -608,7 +584,7 @@ export default function SignupPage() {
               </button>
 
               <FieldNote>
-                휴대폰 인증 완료 후 가입되며, 가입 뒤에는 이메일 인증 메일을 확인해야 로그인할 수 있습니다.
+                휴대폰 인증 완료 후 가입되며, 가입 뒤에는 휴대폰 번호와 비밀번호로 바로 로그인할 수 있습니다.
               </FieldNote>
             </form>
 

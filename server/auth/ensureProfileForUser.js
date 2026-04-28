@@ -6,13 +6,29 @@ function resolveProfileStatus({ existingProfile, authUser } = {}) {
   }
 
   const phoneVerified = Boolean(existingProfile?.phone_verified || authUser?.user_metadata?.phone_verified)
-  const emailConfirmed = Boolean(authUser?.email_confirmed_at)
+  const profileFields = {
+    name: existingProfile?.name || authUser?.user_metadata?.name || authUser?.user_metadata?.full_name,
+    birthDate: existingProfile?.birth_date || authUser?.user_metadata?.birth_date,
+    phone: existingProfile?.phone || authUser?.user_metadata?.phone || authUser?.phone,
+    postalCode: existingProfile?.postal_code || authUser?.user_metadata?.postal_code,
+    addressMain: existingProfile?.address_main || authUser?.user_metadata?.address_main,
+    addressDetail: existingProfile?.address_detail || authUser?.user_metadata?.address_detail,
+  }
+  const hasRequiredProfile = Object.values(profileFields).every(Boolean)
 
-  if (phoneVerified && emailConfirmed) {
+  if (!hasRequiredProfile) {
+    return 'incomplete'
+  }
+
+  if (!phoneVerified) {
+    return 'phone_unverified'
+  }
+
+  if (phoneVerified) {
     return 'active'
   }
 
-  return existingProfile?.profile_status || 'pending_email_verification'
+  return existingProfile?.profile_status || 'incomplete'
 }
 
 async function ensureProfileForUser({ supabaseClient, authUser } = {}) {
@@ -63,6 +79,7 @@ function serializeProfile(profile = {}) {
   return {
     id: profile.id || null,
     email: profile.email || null,
+    authPhone: profile.phone || null,
     name: profile.name || null,
     birthDate: profile.birth_date || null,
     phone: profile.phone || null,

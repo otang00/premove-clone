@@ -19,6 +19,12 @@ function normalizePhoneNumber(value) {
   return digits
 }
 
+function toE164PhoneNumber(value) {
+  const phone = normalizePhoneNumber(value)
+  if (!/^01\d{8,9}$/.test(phone)) return ''
+  return `+82${phone.slice(1)}`
+}
+
 function isValidMobilePhone(value) {
   return /^01\d{8,9}$/.test(normalizePhoneNumber(value))
 }
@@ -78,6 +84,7 @@ module.exports = {
   OTP_MAX_ATTEMPTS,
   VERIFIED_TOKEN_TTL_SECONDS,
   normalizePhoneNumber,
+  toE164PhoneNumber,
   isValidMobilePhone,
   maskPhoneNumber,
   getPhoneLast4,
