@@ -170,10 +170,7 @@ export default function SignupPage() {
   const [otpExpiresAt, setOtpExpiresAt] = useState(null)
   const [otpCooldownUntil, setOtpCooldownUntil] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
-  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
-  const [addressModalError, setAddressModalError] = useState('')
   const [activeTermsModal, setActiveTermsModal] = useState('')
-  const postcodeLayerRef = useRef(null)
   const addressDetailInputRef = useRef(null)
 
   const passwordChecks = useMemo(() => getPasswordChecks(password, email), [password, email])
@@ -222,6 +219,10 @@ export default function SignupPage() {
   }, [])
 
   useEffect(() => {
+    loadDaumPostcodeScript().catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
     if (!verifiedPhone) return
     if (verifiedPhone === normalizedPhone) return
 
@@ -232,51 +233,7 @@ export default function SignupPage() {
   }, [normalizedPhone, verifiedPhone])
 
   useEffect(() => {
-    if (!isAddressModalOpen || !postcodeLayerRef.current) return undefined
-
-    let postcodeInstance = null
-    let cancelled = false
-
-    loadDaumPostcodeScript()
-      .then((Postcode) => {
-        if (cancelled || !postcodeLayerRef.current) return
-
-        postcodeLayerRef.current.innerHTML = ''
-        postcodeInstance = new Postcode({
-          oncomplete: (data) => {
-            const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
-            setPostalCode(data.zonecode || '')
-            setAddressMain(baseAddress)
-            setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
-            setAddressModalError('')
-            setIsAddressModalOpen(false)
-            window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
-          },
-          onresize: (size) => {
-            if (!postcodeLayerRef.current) return
-            postcodeLayerRef.current.style.height = `${Math.max(size?.height || 0, 400)}px`
-          },
-          width: '100%',
-          height: '100%',
-        })
-
-        postcodeInstance.embed(postcodeLayerRef.current, { autoClose: true })
-      })
-      .catch(() => {
-        if (cancelled) return
-        setAddressModalError('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
-      })
-
-    return () => {
-      cancelled = true
-      if (postcodeLayerRef.current) {
-        postcodeLayerRef.current.innerHTML = ''
-      }
-    }
-  }, [isAddressModalOpen])
-
-  useEffect(() => {
-    if (!isAddressModalOpen && !activeTermsModal) return undefined
+    if (!activeTermsModal) return undefined
 
     const previousOverflow = document.body.style.overflow
     document.body.style.overflow = 'hidden'
@@ -284,7 +241,7 @@ export default function SignupPage() {
     return () => {
       document.body.style.overflow = previousOverflow
     }
-  }, [activeTermsModal, isAddressModalOpen])
+  }, [activeTermsModal])
 
   function handleToggleAllTerms(nextChecked) {
     setAgreeAll(nextChecked)
@@ -373,9 +330,27 @@ export default function SignupPage() {
     }
   }
 
-  function handleFindAddress() {
-    setAddressModalError('')
-    setIsAddressModalOpen(true)
+  async function handleFindAddress() {
+    setAddressMessage('우편번호 서비스를 여는 중입니다.')
+
+    try {
+      const Postcode = await loadDaumPostcodeScript()
+      const postcode = new Postcode({
+        oncomplete: (data) => {
+          const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
+          setPostalCode(data.zonecode || '')
+          setAddressMain(baseAddress)
+          setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
+          window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
+        },
+      })
+
+      postcode.open({
+        popupTitle: '우편번호 찾기',
+      })
+    } catch {
+      setAddressMessage('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+    }
   }
 
   async function handleSubmit(event) {
@@ -726,29 +701,6 @@ export default function SignupPage() {
           </article>
         </div>
       </section>
-
-      {isAddressModalOpen ? (
-        <div className="delivery-modal-backdrop" onClick={() => setIsAddressModalOpen(false)}>
-          <div
-            className="search-guard-modal panel"
-            onClick={(event) => event.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-label="우편번호 찾기"
-            style={{ width: 'min(560px, 100%)', maxHeight: '90vh', padding: 18 }}
-          >
-            <div style={{ display: 'grid', gap: 6 }}>
-              <strong style={{ fontSize: 18 }}>우편번호 찾기</strong>
-              <p className="field-note" style={{ margin: 0 }}>카카오 주소검색에서 주소를 선택하면 우편번호와 기본주소가 자동 입력됩니다.</p>
-            </div>
-            {addressModalError ? <p className="field-note" style={{ color: '#be123c', margin: 0 }}>{addressModalError}</p> : null}
-            <div ref={postcodeLayerRef} style={{ width: '100%', minHeight: 420, border: '1px solid #dfe7ef', borderRadius: 12, overflow: 'hidden', background: '#fff' }} />
-            <div className="search-guard-actions">
-              <button type="button" className="btn btn-outline btn-md" onClick={() => setIsAddressModalOpen(false)}>닫기</button>
-            </div>
-          </div>
-        </div>
-      ) : null}
 
       {activeTermsContent ? (
         <div className="delivery-modal-backdrop" onClick={() => setActiveTermsModal('')}>
