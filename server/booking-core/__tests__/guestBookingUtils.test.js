@@ -4,7 +4,10 @@ const test = require('node:test')
 const assert = require('node:assert/strict')
 
 const {
+  ACTIVE_GUEST_LOOKUP_STATUSES,
+  filterActiveGuestLookupOrders,
   normalizeReservationCode,
+  validateGuestCancelInput,
   validateGuestLookupInput,
   validateGuestBookingCreateInput,
   canGuestCancelBooking,
@@ -51,6 +54,26 @@ test('validateGuestBookingCreateInput requires detail token and auth mode', () =
   assert.equal(result.isValid, false)
   assert.equal(result.errors.detailToken, '예약 상세 접근 정보가 올바르지 않습니다.')
   assert.equal(result.errors.reservationAuthMode, '예약 인증 상태를 확인해 주세요.')
+})
+
+test('validateGuestCancelInput requires reservation code', () => {
+  const result = validateGuestCancelInput({ customerName: '홍길동', customerPhone: '01012345678', customerBirth: '19900101' })
+
+  assert.equal(result.isValid, false)
+  assert.equal(result.errors.reservationCode, '예약번호를 확인해 주세요.')
+})
+
+test('filterActiveGuestLookupOrders keeps active statuses and sorts by pickup asc then created desc', () => {
+  assert.deepEqual(ACTIVE_GUEST_LOOKUP_STATUSES, ['confirmation_pending', 'confirmed_pending_sync', 'confirmed'])
+
+  const result = filterActiveGuestLookupOrders([
+    { id: 'done', booking_status: 'completed', pickup_at: '2026-05-03T09:00:00.000Z', created_at: '2026-04-01T00:00:00.000Z' },
+    { id: 'late', booking_status: 'confirmed', pickup_at: '2026-05-03T09:00:00.000Z', created_at: '2026-04-02T00:00:00.000Z' },
+    { id: 'early', booking_status: 'confirmation_pending', pickup_at: '2026-05-01T09:00:00.000Z', created_at: '2026-04-01T00:00:00.000Z' },
+    { id: 'newer', booking_status: 'confirmed_pending_sync', pickup_at: '2026-05-03T09:00:00.000Z', created_at: '2026-04-03T00:00:00.000Z' },
+  ])
+
+  assert.deepEqual(result.map((item) => item.id), ['early', 'newer', 'late'])
 })
 
 test('canGuestCancelBooking allows future paid confirmed booking', () => {

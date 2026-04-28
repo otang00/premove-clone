@@ -30,8 +30,7 @@ export async function lookupGuestBooking(payload) {
 
   const result = await parseApiResponse(response, '예약 조회에 실패했습니다.')
   return {
-    booking: toBookingViewModel(result.booking),
-    mapping: result.mapping || null,
+    bookings: Array.isArray(result.bookings) ? result.bookings.map((booking) => toBookingViewModel(booking)).filter(Boolean) : [],
   }
 }
 
@@ -61,6 +60,5 @@ export async function cancelGuestBooking(payload) {
   const result = await parseApiResponse(response, '예약 취소에 실패했습니다.')
   return {
     booking: toBookingViewModel(result.booking),
-    mapping: result.mapping || null,
   }
 }

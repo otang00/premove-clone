@@ -51,6 +51,25 @@ function validateGuestLookupInput(input = {}) {
   }
 }
 
+function validateGuestCancelInput(input = {}) {
+  const lookupValidation = validateGuestLookupInput(input)
+  const reservationCode = normalizeReservationCode(input.reservationCode)
+  const errors = { ...lookupValidation.errors }
+
+  if (!reservationCode) {
+    errors.reservationCode = '예약번호를 확인해 주세요.'
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+    normalized: {
+      ...lookupValidation.normalized,
+      reservationCode,
+    },
+  }
+}
+
 function validateGuestBookingCreateInput(input = {}) {
   const customerName = normalizeCustomerName(input.customerName)
   const customerPhone = normalizeCustomerPhone(input.customerPhone)
@@ -182,6 +201,25 @@ function serializeBookingOrder(order = {}) {
   }
 }
 
+const ACTIVE_GUEST_LOOKUP_STATUSES = ['confirmation_pending', 'confirmed_pending_sync', 'confirmed']
+
+function filterActiveGuestLookupOrders(orders = []) {
+  return (Array.isArray(orders) ? orders : [])
+    .filter((order) => ACTIVE_GUEST_LOOKUP_STATUSES.includes(String(order?.booking_status || '')))
+    .sort((a, b) => {
+      const pickupA = a?.pickup_at ? new Date(a.pickup_at).getTime() : Number.POSITIVE_INFINITY
+      const pickupB = b?.pickup_at ? new Date(b.pickup_at).getTime() : Number.POSITIVE_INFINITY
+
+      if (pickupA !== pickupB) {
+        return pickupA - pickupB
+      }
+
+      const createdA = a?.created_at ? new Date(a.created_at).getTime() : 0
+      const createdB = b?.created_at ? new Date(b.created_at).getTime() : 0
+      return createdB - createdA
+    })
+}
+
 function canGuestCancelBooking(order = {}, now = new Date(), options = {}) {
   const {
     allowStartedBooking = false,
@@ -249,7 +287,10 @@ function resolveCancelledPaymentStatus(order = {}) {
 }
 
 module.exports = {
+  ACTIVE_GUEST_LOOKUP_STATUSES,
+  filterActiveGuestLookupOrders,
   normalizeReservationCode,
+  validateGuestCancelInput,
   validateGuestLookupInput,
   validateGuestBookingCreateInput,
   serializeBookingOrder,

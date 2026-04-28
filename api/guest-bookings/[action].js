@@ -3,7 +3,7 @@
 const { createServerPrivilegedClient } = require('../../server/supabase/createServerClient')
 const { createGuestBooking, lookupGuestBooking, fetchBookingOrderByCompletionToken, cancelGuestBooking } = require('../../server/booking-core/guestBookingService')
 const { recordReservationStatusEvent } = require('../../server/booking-core/bookingConfirmationService')
-const { validateGuestBookingCreateInput, validateGuestLookupInput } = require('../../server/booking-core/guestBookingUtils')
+const { validateGuestBookingCreateInput, validateGuestLookupInput, validateGuestCancelInput } = require('../../server/booking-core/guestBookingUtils')
 const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
 const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
 const { ensureProfileForUser } = require('../../server/auth/ensureProfileForUser')
@@ -308,16 +308,6 @@ async function handleLookup(req, res) {
       customerBirth: validation.normalized.customerBirth,
     })
 
-    if (!result) {
-      const failure = protection.recordFailure()
-      await delayFailureResponse()
-      applyRetryAfter(res, failure.retryAfterSeconds)
-      return res.status(404).json({
-        error: 'booking_not_found',
-        message: '일치하는 예약을 찾을 수 없습니다.',
-      })
-    }
-
     if (result.blockedReason === 'member_booking_only') {
       const failure = protection.recordFailure()
       await delayFailureResponse()
@@ -346,7 +336,7 @@ async function handleCancel(req, res) {
   }
 
   const payload = getBody(req)
-  const validation = validateGuestLookupInput(payload)
+  const validation = validateGuestCancelInput(payload)
   if (!validation.isValid) {
     await delayFailureResponse()
     return res.status(400).json({
@@ -375,6 +365,7 @@ async function handleCancel(req, res) {
       customerName: validation.normalized.customerName,
       customerPhone: validation.normalized.customerPhone,
       customerBirth: validation.normalized.customerBirth,
+      reservationCode: validation.normalized.reservationCode,
       requestedBy: 'guest',
       reason: payload.reason || '',
     })
