@@ -17,7 +17,8 @@
 실행 중인 작업에 한해 임시 current 문서를 둘 수 있다.
 
 현재 active present:
-- 없음
+- `present/2026-04-28_RENTCAR00_CURRENT_STATUS.md`
+- `present/2026-04-28_RENTCAR00_NEXT_GOALS_CURRENT.md`
 
 원칙:
 - present 는 실행 중인 작업이 있을 때만 사용한다.
