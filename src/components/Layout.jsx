@@ -52,39 +52,55 @@ export function Footer() {
 
   return (
     <footer className="footer minimal-footer">
-      <div className="container footer-inner centered-footer">
-        <div className="footer-links small-links centered-links">
+      <div className="container footer-inner footer-cafe24-like">
+        <div className="footer-links small-links footer-policy-links">
           <Link className="footer-link-button" to="/terms">서비스 이용약관</Link>
           <Link className="footer-link-button" to="/privacy">개인정보 처리방침</Link>
           <Link className="footer-link-button" to="/special-terms">렌터카 이용약관</Link>
         </div>
-        <div className="footer-copy compact-copy centered-copy footer-company-block">
-          <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
-          <div className="footer-text-groups">
-            <section className="footer-text-group">
-              <strong className="footer-section-title">쇼핑몰 기본정보</strong>
-              <p>상호명 {company.name}</p>
-              <p>대표자명 {company.representative}</p>
-              <p>사업장 주소 {company.address}</p>
-              <p>사업자등록번호 {company.businessNumber}</p>
+        <div className="footer-copy compact-copy footer-company-block">
+          <div className="footer-company-main">
+            <section className="footer-company-left">
+              <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
+
+              <div className="footer-text-group footer-info-group">
+                <strong className="footer-section-title">쇼핑몰 기본정보</strong>
+                <div className="footer-info-list">
+                  <p><span className="footer-label">상호명</span><span>{company.name}</span></p>
+                  <p><span className="footer-label">대표자명</span><span>{company.representative}</span></p>
+                  <p><span className="footer-label">사업장 주소</span><span>{company.address}</span></p>
+                  <p><span className="footer-label">사업자등록번호</span><span>{company.businessNumber}</span></p>
+                </div>
+              </div>
             </section>
 
-            <section className="footer-text-group">
-              <strong className="footer-section-title">고객센터 정보</strong>
-              <p>회사 대표전화 {company.phone}</p>
-              <p>상담/주문전화 {landingNotice.phone}</p>
-              <p>카카오톡 {landingNotice.kakaoId}</p>
-              <p>운영시간 평일 오전 9시 - 오후 6시</p>
-              <p>점심시간 오후 12시 - 오후 1시</p>
-              <p>공휴일 휴무</p>
-            </section>
+            <section className="footer-company-right">
+              <div className="footer-text-group">
+                <strong className="footer-section-title">고객센터 정보</strong>
+                <p><strong>회사 대표전화</strong> {company.phone}</p>
+                <p><strong>상담/주문전화</strong> {landingNotice.phone}</p>
+                <p><strong>상담/주문 이메일</strong> rentcar00@daum.net</p>
+                <p><strong>카카오톡</strong> {landingNotice.kakaoId}</p>
+                <p><strong>CS운영시간</strong> 평일 오전 9시 - 오후 6시</p>
+                <p>점심시간 오후 12시 - 오후 1시</p>
+                <p>공휴일 휴무</p>
+              </div>
 
-            <section className="footer-text-group">
-              <strong className="footer-section-title">결제 정보</strong>
-              <p>무통장 계좌정보</p>
-              <p>하나은행 360-890004-02504 빵빵카(주)</p>
+              <div className="footer-text-group">
+                <strong className="footer-section-title">결제 정보</strong>
+                <p><strong>무통장 계좌정보</strong></p>
+                <p>하나은행 360-890004-02504 빵빵카(주)</p>
+              </div>
+
+              <div className="footer-text-group">
+                <strong className="footer-section-title">SNS</strong>
+                <p><a href="https://instagram.com/00rentcar" target="_blank" rel="noreferrer">instagram</a></p>
+                <p><a href="https://pf.kakao.com/_SZcVn/chat" target="_blank" rel="noreferrer">kakao</a></p>
+              </div>
             </section>
           </div>
+
+          <div className="footer-copyright">Copyright © 빵빵카(주). All Rights Reserved.</div>
         </div>
       </div>
     </footer>
