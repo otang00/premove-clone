@@ -170,7 +170,11 @@ export default function SignupPage() {
   const [otpCooldownUntil, setOtpCooldownUntil] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
   const [activeTermsModal, setActiveTermsModal] = useState('')
+  const [isAddressSearchOpen, setIsAddressSearchOpen] = useState(false)
+  const [addressSearchReady, setAddressSearchReady] = useState(false)
   const addressDetailInputRef = useRef(null)
+  const postcodeContainerRef = useRef(null)
+  const postcodeInstanceRef = useRef(null)
 
   const passwordChecks = useMemo(() => getPasswordChecks(password, email), [password, email])
   const passwordValid = useMemo(() => Object.values(passwordChecks).every(Boolean), [passwordChecks])
@@ -241,6 +245,54 @@ export default function SignupPage() {
       document.body.style.overflow = previousOverflow
     }
   }, [activeTermsModal])
+
+  useEffect(() => {
+    if (!isAddressSearchOpen || !postcodeContainerRef.current) return undefined
+
+    let cancelled = false
+
+    setAddressSearchReady(false)
+    setAddressMessage('우편번호 검색창을 불러오는 중입니다.')
+
+    loadDaumPostcodeScript()
+      .then((Postcode) => {
+        if (cancelled || !postcodeContainerRef.current) return
+
+        if (!postcodeInstanceRef.current) {
+          postcodeInstanceRef.current = new Postcode({
+            oncomplete: (data) => {
+              const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
+              setPostalCode(data.zonecode || '')
+              setAddressMain(baseAddress)
+              setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
+              setIsAddressSearchOpen(false)
+              window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
+            },
+            onresize: (size) => {
+              if (!postcodeContainerRef.current) return
+              postcodeContainerRef.current.style.height = `${Math.max(420, Number(size?.height || 0))}px`
+            },
+            width: '100%',
+            height: '100%',
+          })
+        }
+
+        postcodeContainerRef.current.innerHTML = ''
+        postcodeContainerRef.current.style.height = '480px'
+        postcodeInstanceRef.current.embed(postcodeContainerRef.current)
+        setAddressSearchReady(true)
+        setAddressMessage('우편번호 또는 도로명 주소를 검색해 주세요.')
+      })
+      .catch(() => {
+        if (cancelled) return
+        setAddressSearchReady(false)
+        setAddressMessage('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [isAddressSearchOpen])
 
   function handleToggleAllTerms(nextChecked) {
     setAgreeAll(nextChecked)
@@ -329,27 +381,8 @@ export default function SignupPage() {
     }
   }
 
-  async function handleFindAddress() {
-    setAddressMessage('우편번호 서비스를 여는 중입니다.')
-
-    try {
-      const Postcode = await loadDaumPostcodeScript()
-      const postcode = new Postcode({
-        oncomplete: (data) => {
-          const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
-          setPostalCode(data.zonecode || '')
-          setAddressMain(baseAddress)
-          setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
-          window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
-        },
-      })
-
-      postcode.open({
-        popupTitle: '우편번호 찾기',
-      })
-    } catch {
-      setAddressMessage('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
-    }
+  function handleFindAddress() {
+    setIsAddressSearchOpen((prev) => !prev)
   }
 
   async function handleSubmit(event) {
@@ -599,57 +632,79 @@ export default function SignupPage() {
                 <section style={{ display: 'grid', gap: 16 }}>
                   <SectionTitle title="주소" description="우편번호 찾기로 기본주소를 채우고 상세주소를 입력해 주세요." />
 
-                  <div className="field-group">
-                    <label className="field-label" htmlFor="signup-postal-code">우편번호</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                  <div className="panel-sub" style={{ display: 'grid', gap: 16 }}>
+                    <div className="field-group">
+                      <label className="field-label" htmlFor="signup-postal-code">우편번호</label>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 8 }}>
+                        <input
+                          id="signup-postal-code"
+                          className="field-input"
+                          type="text"
+                          inputMode="numeric"
+                          placeholder="우편번호"
+                          value={postalCode}
+                          onChange={(event) => setPostalCode(event.target.value.replace(/\D/g, '').slice(0, 5))}
+                          disabled={submitting}
+                          required
+                        />
+                        <button type="button" className="btn btn-outline btn-md" onClick={handleFindAddress} disabled={submitting}>
+                          {isAddressSearchOpen ? '검색 닫기' : '우편번호 찾기'}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="field-group">
+                      <label className="field-label" htmlFor="signup-address-main">기본주소</label>
                       <input
-                        id="signup-postal-code"
+                        id="signup-address-main"
                         className="field-input"
                         type="text"
-                        inputMode="numeric"
-                        placeholder="우편번호"
-                        value={postalCode}
-                        onChange={(event) => setPostalCode(event.target.value.replace(/\D/g, '').slice(0, 5))}
+                        placeholder="기본주소"
+                        value={addressMain}
+                        onChange={(event) => setAddressMain(event.target.value)}
+                        disabled={submitting}
+                        readOnly
+                        required
+                      />
+                      <FieldNote>기본주소는 아래 주소 검색 카드에서 선택됩니다.</FieldNote>
+                    </div>
+
+                    <div className="field-group">
+                      <label className="field-label" htmlFor="signup-address-detail">상세주소</label>
+                      <input
+                        ref={addressDetailInputRef}
+                        id="signup-address-detail"
+                        className="field-input"
+                        type="text"
+                        placeholder="상세주소"
+                        value={addressDetail}
+                        onChange={(event) => setAddressDetail(event.target.value)}
                         disabled={submitting}
                         required
                       />
-                      <button type="button" className="btn btn-outline btn-md" onClick={handleFindAddress} disabled={submitting}>
-                        우편번호 찾기
-                      </button>
+                      <FieldNote>{addressMessage}</FieldNote>
                     </div>
                   </div>
 
-                  <div className="field-group">
-                    <label className="field-label" htmlFor="signup-address-main">기본주소</label>
-                    <input
-                      id="signup-address-main"
-                      className="field-input"
-                      type="text"
-                      placeholder="기본주소"
-                      value={addressMain}
-                      onChange={(event) => setAddressMain(event.target.value)}
-                      disabled={submitting}
-                      readOnly
-                      required
-                    />
-                    <FieldNote>기본주소는 우편번호 찾기에서 선택됩니다.</FieldNote>
-                  </div>
-
-                  <div className="field-group">
-                    <label className="field-label" htmlFor="signup-address-detail">상세주소</label>
-                    <input
-                      ref={addressDetailInputRef}
-                      id="signup-address-detail"
-                      className="field-input"
-                      type="text"
-                      placeholder="상세주소"
-                      value={addressDetail}
-                      onChange={(event) => setAddressDetail(event.target.value)}
-                      disabled={submitting}
-                      required
-                    />
-                    <FieldNote>{addressMessage}</FieldNote>
-                  </div>
+                  {isAddressSearchOpen ? (
+                    <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
+                      <div style={{ display: 'grid', gap: 4 }}>
+                        <strong style={{ fontSize: 16 }}>주소 검색</strong>
+                        <p className="field-note" style={{ margin: 0 }}>카카오 공식 우편번호 검색창입니다. 주소를 선택하면 위 입력칸에 자동 반영됩니다.</p>
+                      </div>
+                      <div
+                        ref={postcodeContainerRef}
+                        style={{
+                          minHeight: 480,
+                          border: '1px solid #dfe7ef',
+                          borderRadius: 12,
+                          overflow: 'hidden',
+                          background: '#fff',
+                        }}
+                      />
+                      {!addressSearchReady ? <FieldNote>검색창을 준비 중입니다.</FieldNote> : null}
+                    </div>
+                  ) : null}
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
