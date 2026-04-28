@@ -834,6 +834,7 @@
   display:flex;
   gap:50px;
   justify-content:flex-end;
+  align-items:flex-start;
 }
 
 .footer-cafe24-logo-wrap{
@@ -857,6 +858,7 @@
 .footer-cafe24-section{
   display:grid;
   gap:8px;
+  align-content:start;
 }
 
 .footer-cafe24-info{
@@ -894,7 +896,7 @@
 .footer-cafe24-copy-list p{
   display:flex;
   flex-wrap:wrap;
-  gap:0;
+  gap:6px;
 }
 
 .footer-label,
