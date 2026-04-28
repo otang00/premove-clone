@@ -797,96 +797,140 @@
   margin-top:6px;
 }
 
-.footer-cafe24-like{
-  gap:28px;
+.footer.minimal-footer{
+  border-top:1px solid #eaeaea;
+  padding:0;
+  margin-top:100px;
 }
 
-.footer-policy-links{
-  justify-content:flex-start;
-  margin-bottom:0;
+.footer-cafe24-shell{
+  width:92%;
+  max-width:1680px;
+  margin:0 auto;
 }
 
-.footer-company-block{
-  width:100%;
+.footer-cafe24-block{
+  padding:60px 0;
   display:grid;
-  gap:24px;
-  font-family:'Noto Sans KR',Arial,sans-serif;
-  font-weight:400;
+  gap:34px;
+  font-family:"Poppins","Noto Sans KR",Arial,sans-serif;
 }
 
-.footer-company-main{
-  display:grid;
-  gap:30px;
-  justify-items:center;
-  text-align:center;
-}
-
-.footer-company-bottom{
-  display:grid;
-  grid-template-columns:repeat(3,minmax(0,1fr));
-  gap:28px;
-  width:100%;
-  align-items:start;
-}
-
-.footer-logo-row{
+.footer-cafe24-top{
   display:flex;
-  justify-content:center;
-  width:100%;
+  justify-content:space-between;
+  gap:50px;
+  align-items:flex-start;
 }
 
-.footer-logo{
-  height:132px;
+.footer-cafe24-left{
+  flex:1 1 50%;
+  min-width:0;
+}
+
+.footer-cafe24-right{
+  flex:1 1 50%;
+  min-width:0;
+  display:flex;
+  gap:50px;
+  justify-content:flex-end;
+}
+
+.footer-cafe24-logo-wrap{
+  margin-bottom:26px;
+}
+
+.footer-cafe24-logo-link{
+  display:inline-flex;
+  align-items:center;
+}
+
+.footer-cafe24-logo{
   width:auto;
-  max-width:132px;
+  height:60px;
+  max-width:400px;
   margin:0;
+  object-fit:contain;
 }
 
-.footer-text-group{
+.footer-text-group,
+.footer-cafe24-section{
   display:grid;
-  gap:10px;
+  gap:8px;
+}
+
+.footer-cafe24-info{
+  gap:12px;
 }
 
 .footer-section-title{
   display:block;
   margin:0;
+  color:#1a1a1a;
   font-size:16px;
   font-weight:500;
-  color:#000;
+  line-height:1.5;
 }
 
-.footer-info-list{
+.footer-info-list,
+.footer-cafe24-copy-list{
   display:grid;
-  gap:2px;
+  gap:4px;
 }
 
 .footer-info-list p,
-.footer-text-group p,
-.footer-text-group p a,
-.footer-copyright{
+.footer-cafe24-copy-list p,
+.footer-cafe24-sns a,
+.footer-cafe24-bottom,
+.footer-cafe24-policy-links a{
   margin:0;
-  font-size:13px;
-  line-height:1.6;
   color:#b3b3b3;
+  font-size:13px;
+  line-height:1.8;
   word-break:keep-all;
 }
 
-.footer-info-list p{
+.footer-info-list p,
+.footer-cafe24-copy-list p{
   display:flex;
   flex-wrap:wrap;
-  justify-content:center;
-  gap:6px;
+  gap:0;
 }
 
 .footer-label,
-.footer-text-group p strong{
+.footer-cafe24-copy-list strong,
+.footer-bank-title strong{
   color:#666;
-  font-weight:600;
+  font-weight:500;
 }
 
-.footer-copyright{
-  padding-top:4px;
+.footer-gap{
+  display:inline-block;
+  width:10px;
+}
+
+.footer-cafe24-sns a{
+  display:block;
+}
+
+.footer-cafe24-sns a:hover,
+.footer-cafe24-policy-links a:hover{
+  color:#1a1a1a;
+}
+
+.footer-cafe24-bottom{
+  display:flex;
+  justify-content:space-between;
+  gap:24px;
+  align-items:center;
   font-size:12px;
+}
+
+.footer-cafe24-policy-links{
+  display:flex;
+  gap:18px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
 }
 
 .delivery-region-list{
@@ -898,22 +942,40 @@
 }
 
 @media (max-width: 960px){
-  .footer-company-bottom{
-    grid-template-columns:1fr;
+  .footer.minimal-footer{
+    margin-top:60px;
+  }
+
+  .footer-cafe24-block{
+    padding:40px 0;
     gap:24px;
   }
 
-  .footer-company-block{
-    gap:18px;
+  .footer-cafe24-top,
+  .footer-cafe24-right,
+  .footer-cafe24-bottom{
+    display:grid;
+    gap:24px;
   }
 
-  .footer-policy-links{
-    gap:8px;
+  .footer-cafe24-right,
+  .footer-cafe24-bottom{
+    justify-content:stretch;
   }
 
-  .footer-logo{
-    height:108px;
-    max-width:108px;
+  .footer-cafe24-policy-links{
+    justify-content:flex-start;
+    gap:12px;
+  }
+
+  .footer-cafe24-logo{
+    height:42px;
+    max-width:min(280px,100%);
+  }
+
+  .footer-info-list p,
+  .footer-cafe24-copy-list p{
+    line-height:1.7;
   }
 
   .driver-info-card__header .btn{

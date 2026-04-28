@@ -52,55 +52,65 @@ export function Footer() {
 
   return (
     <footer className="footer minimal-footer">
-      <div className="container footer-inner footer-cafe24-like">
-        <div className="footer-links small-links footer-policy-links">
-          <Link className="footer-link-button" to="/terms">서비스 이용약관</Link>
-          <Link className="footer-link-button" to="/privacy">개인정보 처리방침</Link>
-          <Link className="footer-link-button" to="/special-terms">렌터카 이용약관</Link>
-        </div>
-        <div className="footer-copy compact-copy footer-company-block">
-          <div className="footer-company-main">
-            <section className="footer-text-group footer-info-group footer-info-group--top">
-              <strong className="footer-section-title">쇼핑몰 기본정보</strong>
-              <div className="footer-info-list">
-                <p><span className="footer-label">상호명</span><span>{company.name}</span></p>
-                <p><span className="footer-label">대표자명</span><span>{company.representative}</span></p>
-                <p><span className="footer-label">사업장 주소</span><span>{company.address}</span></p>
-                <p><span className="footer-label">사업자등록번호</span><span>{company.businessNumber}</span></p>
+      <div className="footer-inner footer-cafe24-shell">
+        <div className="footer-copy footer-company-block footer-cafe24-block">
+          <div className="footer-company-main footer-cafe24-top">
+            <div className="footer-cafe24-left">
+              <div className="footer-cafe24-logo-wrap">
+                <Link to="/" className="footer-cafe24-logo-link" aria-label={company.name}>
+                  <img src="/bbang-wordmark.png" alt={company.name} className="brand-logo footer-logo footer-cafe24-logo" />
+                </Link>
               </div>
-            </section>
 
-            <div className="footer-logo-row">
-              <img src="/bbang-logo-square.png" alt="빵빵카 로고" className="brand-logo footer-logo" />
+              <section className="footer-text-group footer-info-group footer-cafe24-info">
+                <strong className="footer-section-title">쇼핑몰 기본정보</strong>
+                <div className="footer-info-list">
+                  <p><span className="footer-label">상호명</span><span>{company.name}</span></p>
+                  <p><span className="footer-label">대표자명</span><span>{company.representative}</span></p>
+                  <p><span className="footer-label">사업장 주소</span><span>{company.address}</span></p>
+                  <p><span className="footer-label">대표 전화</span><span>{company.phone}</span></p>
+                  <p><span className="footer-label">사업자 등록번호</span><span>{company.businessNumber}</span></p>
+                </div>
+              </section>
             </div>
 
-            <section className="footer-company-bottom">
-              <div className="footer-text-group">
+            <div className="footer-company-bottom footer-cafe24-right">
+              <section className="footer-text-group footer-cafe24-section">
                 <strong className="footer-section-title">고객센터 정보</strong>
-                <p><strong>회사 대표전화</strong> {company.phone}</p>
-                <p><strong>상담/주문전화</strong> {landingNotice.phone}</p>
-                <p><strong>상담/주문 이메일</strong> rentcar00@daum.net</p>
-                <p><strong>카카오톡</strong> {landingNotice.kakaoId}</p>
-                <p><strong>CS운영시간</strong> 평일 오전 9시 - 오후 6시</p>
-                <p>점심시간 오후 12시 - 오후 1시</p>
-                <p>공휴일 휴무</p>
-              </div>
+                <div className="footer-cafe24-copy-list">
+                  <p><strong>상담/주문전화</strong><span className="footer-gap" />{landingNotice.phone}</p>
+                  <p><strong>상담/주문 이메일</strong> rentcar00@daum.net</p>
+                  <p><strong>카카오톡</strong> {landingNotice.kakaoId}</p>
+                  <p><strong>CS운영시간</strong> 평일 오전 9시~오후6시</p>
+                  <p>토요일 오전9시~오후3시</p>
+                  <p>공휴일 휴무</p>
+                </div>
+              </section>
 
-              <div className="footer-text-group">
+              <section className="footer-text-group footer-cafe24-section">
                 <strong className="footer-section-title">결제 정보</strong>
-                <p><strong>무통장 계좌정보</strong></p>
-                <p>하나은행 360-890004-02504 빵빵카(주)</p>
-              </div>
+                <div className="footer-cafe24-copy-list">
+                  <p className="footer-bank-title"><strong>무통장 계좌정보</strong></p>
+                  <p>하나은행 <span className="footer-gap" /> 360-890004-02504 <span className="footer-gap" /> 빵빵카(주)</p>
+                </div>
+              </section>
 
-              <div className="footer-text-group">
+              <section className="footer-text-group footer-cafe24-section footer-cafe24-sns">
                 <strong className="footer-section-title">SNS</strong>
-                <p><a href="https://instagram.com/00rentcar" target="_blank" rel="noreferrer">instagram</a></p>
-                <p><a href="https://pf.kakao.com/_SZcVn/chat" target="_blank" rel="noreferrer">kakao</a></p>
-              </div>
-            </section>
+                <a href="https://instagram.com/00rentcar" target="_blank" rel="noreferrer">instagram</a>
+                <a href="https://pf.kakao.com/_SZcVn/chat" target="_blank" rel="noreferrer">kakao</a>
+              </section>
+            </div>
           </div>
 
-          <div className="footer-copyright">Copyright © 빵빵카(주). All Rights Reserved.</div>
+          <div className="footer-copyright footer-cafe24-bottom">
+            <div>Copyright © 빵빵카(주). All Rights Reserved.</div>
+            <div className="footer-cafe24-policy-links">
+              <Link to="/terms">서비스 이용약관</Link>
+              <Link to="/privacy">개인정보 처리방침</Link>
+              <Link to="/special-terms">렌터카 이용약관</Link>
+            </div>
+          </div>
         </div>
       </div>
     </footer>
