@@ -7,7 +7,7 @@
 문서는 아래 순서로 본다.
 
 1. `docs/README.md`
-2. `docs/present/RENTCAR00_CURRENT.md`
+2. `docs/policies/RENTCAR00_POLICY.md`
 3. `docs/references/IMS_API_CALLS.md`
 
 ### 최우선 운영 규칙
@@ -15,7 +15,7 @@
 - 외부 서비스는 1차 로더 도메인만 보고 끝내지 말고 실제 하위 로딩 도메인, API 호출 도메인, iframe/popup 동작 경로까지 증거 기반으로 확인한다.
 - CSP 검토 시 `script-src`, `connect-src`, `frame-src`, 필요 시 `img-src`, `style-src`, `font-src` 를 각각 분리 점검한다.
 - popup 이 뜬다고 끝난 것이 아니다. popup, iframe, redirect, postMessage 중 실제 런타임 방식이 무엇인지 먼저 확인하고 그 방식에 맞는 CSP를 연다.
-- 현재 정책/예약/회원/보안/API 기준 문서는 항상 `docs/present/RENTCAR00_CURRENT.md` 를 기준으로 본다.
+- 현재 정책/예약/회원/보안/API 기준 문서는 항상 `docs/policies/RENTCAR00_POLICY.md` 를 기준으로 본다.
 
 ### 외부 서비스 연동 공통 원칙
 - 새 외부 서비스(Toss, Stripe, Kakao, 지도, 인증, 주소검색 등)를 붙일 때는 **코드 구현 전에 연동 방식 표를 먼저 잠근다.**
@@ -37,7 +37,8 @@
 
 ## 문서 정책
 - active current 목록과 문서 역할은 `docs/README.md` 를 기준으로 유지한다.
-- `docs/present/` 에는 current 문서 1개만 유지한다.
+- 정책 문서는 `docs/policies/` 에 suffix 없이 둔다.
+- 완료된 상태 문서는 `docs/past/` 로 내린다.
 - rename 관련 문서는 current 에 두지 않고 `docs/past/present-history/` 에 보관한다.
 - 단계별 설계/실행 문서는 `docs/archive/spec-history/` 로 이동했다.
 - 과거 작업 지시/빌드 규칙 문서는 `docs/archive/working-notes/` 로 이동했다.
