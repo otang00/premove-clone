@@ -107,28 +107,27 @@ function FieldNote({ children, color = '#6b7280' }) {
 function TermsRow({ checked, onChange, label, required = false, onOpen, disabled = false }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
-      <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
         <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} disabled={disabled} />
-        <span>{required ? '[필수]' : '[선택]'}</span>
+        <button
+          type="button"
+          onClick={onOpen}
+          disabled={disabled}
+          style={{
+            border: 0,
+            background: 'transparent',
+            padding: 0,
+            color: '#17212b',
+            textDecoration: 'underline',
+            cursor: disabled ? 'default' : 'pointer',
+            font: 'inherit',
+            textAlign: 'left',
+            lineHeight: 1.4,
+          }}
+        >
+          {required ? '[필수]' : '[선택]'} {label}
+        </button>
       </label>
-      <button
-        type="button"
-        onClick={onOpen}
-        disabled={disabled}
-        style={{
-          border: 0,
-          background: 'transparent',
-          padding: 0,
-          color: '#17212b',
-          textDecoration: 'underline',
-          cursor: disabled ? 'default' : 'pointer',
-          font: 'inherit',
-          textAlign: 'left',
-          flex: 1,
-        }}
-      >
-        {label}
-      </button>
       <button type="button" className="btn btn-outline btn-sm" onClick={onOpen} disabled={disabled}>보기</button>
     </div>
   )
