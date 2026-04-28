@@ -83,7 +83,6 @@ async function handleSignup(req, res) {
   const agreeTerms = Boolean(payload.agreeTerms)
   const agreePrivacy = Boolean(payload.agreePrivacy)
   const agreeRental = Boolean(payload.agreeRental)
-  const agreeAge = Boolean(payload.agreeAge)
   const agreeMarketing = Boolean(payload.agreeMarketing)
 
   if (name.length < 2) {
@@ -114,7 +113,7 @@ async function handleSignup(req, res) {
     return res.status(400).json({ error: 'invalid_address', message: '주소를 모두 입력해 주세요.' })
   }
 
-  if (!(agreeTerms && agreePrivacy && agreeRental && agreeAge)) {
+  if (!(agreeTerms && agreePrivacy && agreeRental)) {
     return res.status(400).json({ error: 'terms_required', message: '필수 약관 동의가 필요합니다.' })
   }
 

@@ -1,9 +1,61 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { parseApiResponse } from '../utils/apiResponse'
 import { formatPhoneNumber, normalizePhoneNumber } from '../utils/phone'
+import termsContent from '../../docs/legal/service-terms.md?raw'
+import privacyContent from '../../docs/legal/privacy-policy.md?raw'
+import rentalTermsContent from '../../docs/legal/rental-terms.md?raw'
+
+const DAUM_POSTCODE_SCRIPT_SRC = 'https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js'
+
+const TERMS_MODAL_CONTENT = {
+  terms: {
+    title: '서비스 이용약관',
+    content: termsContent,
+  },
+  privacy: {
+    title: '개인정보 수집 및 이용 동의',
+    content: privacyContent,
+  },
+  rental: {
+    title: '렌터카 예약 및 대여 조건',
+    content: rentalTermsContent,
+  },
+}
+
+function loadDaumPostcodeScript() {
+  if (window.daum?.Postcode) {
+    return Promise.resolve(window.daum.Postcode)
+  }
+
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-daum-postcode="true"]`)
+
+    function handleReady() {
+      if (window.daum?.Postcode) {
+        resolve(window.daum.Postcode)
+      } else {
+        reject(new Error('postcode_service_unavailable'))
+      }
+    }
+
+    if (existing) {
+      existing.addEventListener('load', handleReady, { once: true })
+      existing.addEventListener('error', () => reject(new Error('postcode_script_load_failed')), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = DAUM_POSTCODE_SCRIPT_SRC
+    script.async = true
+    script.dataset.daumPostcode = 'true'
+    script.onload = handleReady
+    script.onerror = () => reject(new Error('postcode_script_load_failed'))
+    document.head.appendChild(script)
+  })
+}
 
 function resolveRedirectTo(search) {
   const params = new URLSearchParams(search)
@@ -52,6 +104,36 @@ function FieldNote({ children, color = '#6b7280' }) {
   return <p className="field-note" style={{ color, marginTop: 6 }}>{children}</p>
 }
 
+function TermsRow({ checked, onChange, label, required = false, onOpen, disabled = false }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1 }}>
+        <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} disabled={disabled} />
+        <span>{required ? '[필수]' : '[선택]'}</span>
+      </label>
+      <button
+        type="button"
+        onClick={onOpen}
+        disabled={disabled}
+        style={{
+          border: 0,
+          background: 'transparent',
+          padding: 0,
+          color: '#17212b',
+          textDecoration: 'underline',
+          cursor: disabled ? 'default' : 'pointer',
+          font: 'inherit',
+          textAlign: 'left',
+          flex: 1,
+        }}
+      >
+        {label}
+      </button>
+      <button type="button" className="btn btn-outline btn-sm" onClick={onOpen} disabled={disabled}>보기</button>
+    </div>
+  )
+}
+
 export default function SignupPage() {
   const navigate = useNavigate()
   const location = useLocation()
@@ -72,7 +154,6 @@ export default function SignupPage() {
   const [agreeTerms, setAgreeTerms] = useState(false)
   const [agreePrivacy, setAgreePrivacy] = useState(false)
   const [agreeRental, setAgreeRental] = useState(false)
-  const [agreeAge, setAgreeAge] = useState(false)
   const [agreeMarketing, setAgreeMarketing] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [showPasswordConfirm, setShowPasswordConfirm] = useState(false)
@@ -82,22 +163,28 @@ export default function SignupPage() {
   const [errorMessage, setErrorMessage] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
   const [otpMessage, setOtpMessage] = useState('휴대폰 인증을 완료해야 회원가입할 수 있습니다.')
-  const [addressMessage, setAddressMessage] = useState('주소 검색 연동 전 단계입니다. 현재는 입력 영역과 버튼 자리만 먼저 구성했습니다.')
+  const [addressMessage, setAddressMessage] = useState('우편번호 찾기 버튼으로 주소를 검색해 주세요.')
   const [verificationId, setVerificationId] = useState('')
   const [verificationToken, setVerificationToken] = useState('')
   const [verifiedPhone, setVerifiedPhone] = useState('')
   const [otpExpiresAt, setOtpExpiresAt] = useState(null)
   const [otpCooldownUntil, setOtpCooldownUntil] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
+  const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
+  const [addressModalError, setAddressModalError] = useState('')
+  const [activeTermsModal, setActiveTermsModal] = useState('')
+  const postcodeLayerRef = useRef(null)
+  const addressDetailInputRef = useRef(null)
 
   const passwordChecks = useMemo(() => getPasswordChecks(password, email), [password, email])
   const passwordValid = useMemo(() => Object.values(passwordChecks).every(Boolean), [passwordChecks])
   const isPasswordConfirmed = passwordConfirm.length > 0 && password === passwordConfirm
-  const requiredTermsAgreed = agreeTerms && agreePrivacy && agreeRental && agreeAge
+  const requiredTermsAgreed = agreeTerms && agreePrivacy && agreeRental
   const normalizedPhone = useMemo(() => normalizePhoneNumber(phone), [phone])
   const isOtpVerified = Boolean(verificationId && verificationToken && verifiedPhone && verifiedPhone === normalizedPhone)
   const otpSecondsLeft = otpExpiresAt ? Math.max(0, Math.ceil((otpExpiresAt - nowMs) / 1000)) : 0
   const otpCooldownLeft = otpCooldownUntil ? Math.max(0, Math.ceil((otpCooldownUntil - nowMs) / 1000)) : 0
+  const activeTermsContent = activeTermsModal ? TERMS_MODAL_CONTENT[activeTermsModal] : null
   const canSubmitCurrentSignup = Boolean(
     name.trim().length >= 2
     && /^\d{8}$/.test(birthDate)
@@ -120,11 +207,11 @@ export default function SignupPage() {
   }, [loading, isAuthenticated, navigate, redirectTo])
 
   useEffect(() => {
-    const nextAll = agreeTerms && agreePrivacy && agreeRental && agreeAge && agreeMarketing
+    const nextAll = agreeTerms && agreePrivacy && agreeRental && agreeMarketing
     if (agreeAll !== nextAll) {
       setAgreeAll(nextAll)
     }
-  }, [agreeAge, agreeAll, agreeMarketing, agreePrivacy, agreeRental, agreeTerms])
+  }, [agreeAll, agreeMarketing, agreePrivacy, agreeRental, agreeTerms])
 
   useEffect(() => {
     const timer = window.setInterval(() => {
@@ -144,12 +231,66 @@ export default function SignupPage() {
     setOtpMessage('휴대폰 번호가 바뀌어 인증 상태가 초기화되었습니다. 다시 인증해 주세요.')
   }, [normalizedPhone, verifiedPhone])
 
+  useEffect(() => {
+    if (!isAddressModalOpen || !postcodeLayerRef.current) return undefined
+
+    let postcodeInstance = null
+    let cancelled = false
+
+    loadDaumPostcodeScript()
+      .then((Postcode) => {
+        if (cancelled || !postcodeLayerRef.current) return
+
+        postcodeLayerRef.current.innerHTML = ''
+        postcodeInstance = new Postcode({
+          oncomplete: (data) => {
+            const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
+            setPostalCode(data.zonecode || '')
+            setAddressMain(baseAddress)
+            setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
+            setAddressModalError('')
+            setIsAddressModalOpen(false)
+            window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
+          },
+          onresize: (size) => {
+            if (!postcodeLayerRef.current) return
+            postcodeLayerRef.current.style.height = `${Math.max(size?.height || 0, 400)}px`
+          },
+          width: '100%',
+          height: '100%',
+        })
+
+        postcodeInstance.embed(postcodeLayerRef.current, { autoClose: true })
+      })
+      .catch(() => {
+        if (cancelled) return
+        setAddressModalError('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      })
+
+    return () => {
+      cancelled = true
+      if (postcodeLayerRef.current) {
+        postcodeLayerRef.current.innerHTML = ''
+      }
+    }
+  }, [isAddressModalOpen])
+
+  useEffect(() => {
+    if (!isAddressModalOpen && !activeTermsModal) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [activeTermsModal, isAddressModalOpen])
+
   function handleToggleAllTerms(nextChecked) {
     setAgreeAll(nextChecked)
     setAgreeTerms(nextChecked)
     setAgreePrivacy(nextChecked)
     setAgreeRental(nextChecked)
-    setAgreeAge(nextChecked)
     setAgreeMarketing(nextChecked)
   }
 
@@ -233,7 +374,8 @@ export default function SignupPage() {
   }
 
   function handleFindAddress() {
-    setAddressMessage('주소 검색 기능은 다음 단계에서 연결됩니다. 현재는 수기 입력으로 진행 가능합니다.')
+    setAddressModalError('')
+    setIsAddressModalOpen(true)
   }
 
   async function handleSubmit(event) {
@@ -269,7 +411,6 @@ export default function SignupPage() {
           agreeTerms,
           agreePrivacy,
           agreeRental,
-          agreeAge,
           agreeMarketing,
         }),
       })
@@ -482,7 +623,7 @@ export default function SignupPage() {
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>
-                  <SectionTitle title="주소" description="주소 검색 연동 전이라 현재는 수기 입력으로 진행합니다." />
+                  <SectionTitle title="주소" description="우편번호 찾기로 기본주소를 채우고 상세주소를 입력해 주세요." />
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-postal-code">우편번호</label>
@@ -514,13 +655,16 @@ export default function SignupPage() {
                       value={addressMain}
                       onChange={(event) => setAddressMain(event.target.value)}
                       disabled={submitting}
+                      readOnly
                       required
                     />
+                    <FieldNote>기본주소는 우편번호 찾기에서 선택됩니다.</FieldNote>
                   </div>
 
                   <div className="field-group">
                     <label className="field-label" htmlFor="signup-address-detail">상세주소</label>
                     <input
+                      ref={addressDetailInputRef}
                       id="signup-address-detail"
                       className="field-input"
                       type="text"
@@ -548,22 +692,9 @@ export default function SignupPage() {
                   </label>
 
                   <div style={{ display: 'grid', gap: 10 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="checkbox" checked={agreeTerms} onChange={(event) => setAgreeTerms(event.target.checked)} disabled={submitting} />
-                      [필수] 서비스 이용약관 동의
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="checkbox" checked={agreePrivacy} onChange={(event) => setAgreePrivacy(event.target.checked)} disabled={submitting} />
-                      [필수] 개인정보 수집 및 이용 동의
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="checkbox" checked={agreeRental} onChange={(event) => setAgreeRental(event.target.checked)} disabled={submitting} />
-                      [필수] 렌터카 예약 및 대여 조건 동의
-                    </label>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="checkbox" checked={agreeAge} onChange={(event) => setAgreeAge(event.target.checked)} disabled={submitting} />
-                      [필수] 만 26세 이상 및 운전면허 보유 확인
-                    </label>
+                    <TermsRow checked={agreeTerms} onChange={setAgreeTerms} label="서비스 이용약관 동의" required onOpen={() => setActiveTermsModal('terms')} disabled={submitting} />
+                    <TermsRow checked={agreePrivacy} onChange={setAgreePrivacy} label="개인정보 수집 및 이용 동의" required onOpen={() => setActiveTermsModal('privacy')} disabled={submitting} />
+                    <TermsRow checked={agreeRental} onChange={setAgreeRental} label="렌터카 예약 및 대여 조건 동의" required onOpen={() => setActiveTermsModal('rental')} disabled={submitting} />
                     <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <input type="checkbox" checked={agreeMarketing} onChange={(event) => setAgreeMarketing(event.target.checked)} disabled={submitting} />
                       [선택] 마케팅 정보 수신 동의
@@ -595,6 +726,57 @@ export default function SignupPage() {
           </article>
         </div>
       </section>
+
+      {isAddressModalOpen ? (
+        <div className="delivery-modal-backdrop" onClick={() => setIsAddressModalOpen(false)}>
+          <div
+            className="search-guard-modal panel"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label="우편번호 찾기"
+            style={{ width: 'min(560px, 100%)', maxHeight: '90vh', padding: 18 }}
+          >
+            <div style={{ display: 'grid', gap: 6 }}>
+              <strong style={{ fontSize: 18 }}>우편번호 찾기</strong>
+              <p className="field-note" style={{ margin: 0 }}>카카오 주소검색에서 주소를 선택하면 우편번호와 기본주소가 자동 입력됩니다.</p>
+            </div>
+            {addressModalError ? <p className="field-note" style={{ color: '#be123c', margin: 0 }}>{addressModalError}</p> : null}
+            <div ref={postcodeLayerRef} style={{ width: '100%', minHeight: 420, border: '1px solid #dfe7ef', borderRadius: 12, overflow: 'hidden', background: '#fff' }} />
+            <div className="search-guard-actions">
+              <button type="button" className="btn btn-outline btn-md" onClick={() => setIsAddressModalOpen(false)}>닫기</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {activeTermsContent ? (
+        <div className="delivery-modal-backdrop" onClick={() => setActiveTermsModal('')}>
+          <div
+            className="panel"
+            onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-label={activeTermsContent.title}
+            style={{ width: 'min(760px, 100%)', maxHeight: '90vh', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr) auto', overflow: 'hidden' }}
+          >
+            <div style={{ padding: 18, borderBottom: '1px solid #dfe7ef', display: 'grid', gap: 6 }}>
+              <strong style={{ fontSize: 18 }}>{activeTermsContent.title}</strong>
+              <p className="field-note" style={{ margin: 0 }}>아래 내용을 확인한 뒤 동의해 주세요.</p>
+            </div>
+            <div style={{ overflowY: 'auto', padding: 18, background: '#fff' }}>
+              <div className="legal-content">
+                {activeTermsContent.content.split('\n').map((line, idx) => (
+                  <p key={`${activeTermsModal}-${idx}`}>{line || '\u00A0'}</p>
+                ))}
+              </div>
+            </div>
+            <div style={{ padding: 18, borderTop: '1px solid #dfe7ef', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+              <button type="button" className="btn btn-outline btn-md" onClick={() => setActiveTermsModal('')}>닫기</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </PageShell>
   )
 }
