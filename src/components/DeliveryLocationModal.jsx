@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
 function findSelectedPath(provinces, selectedDongId) {
   if (!selectedDongId) return null
@@ -29,6 +29,13 @@ export default function DeliveryLocationModal({
   const [selectedProvinceId, setSelectedProvinceId] = useState(null)
   const [selectedCityId, setSelectedCityId] = useState(null)
   const [mobileStep, setMobileStep] = useState('province')
+  const provinceButtonRefs = useRef(new Map())
+  const cityButtonRefs = useRef(new Map())
+  const dongCardRefs = useRef(new Map())
+  const desktopProvinceListRef = useRef(null)
+  const desktopCityListRef = useRef(null)
+  const desktopDongListRef = useRef(null)
+  const mobileListRef = useRef(null)
 
   const provinces = Array.isArray(company?.deliveryCostList) ? company.deliveryCostList : []
   const deliveryTimes = Array.isArray(company?.deliveryTimes) ? company.deliveryTimes : []
@@ -69,6 +76,33 @@ export default function DeliveryLocationModal({
     dong: '딜리버리 지역 선택',
   }
 
+  useEffect(() => {
+    if (!open) return
+
+    const rafId = window.requestAnimationFrame(() => {
+      const provinceButton = provinceButtonRefs.current.get(selectedProvince?.id)
+      const cityButton = cityButtonRefs.current.get(selectedCity?.id)
+      const dongCard = dongCardRefs.current.get(selectedDongId)
+
+      provinceButton?.scrollIntoView({ block: 'start' })
+      cityButton?.scrollIntoView({ block: 'start' })
+      dongCard?.scrollIntoView({ block: 'start' })
+
+      if (mobileListRef.current) {
+        mobileListRef.current.scrollTop = 0
+      }
+    })
+
+    return () => window.cancelAnimationFrame(rafId)
+  }, [open, selectedProvince?.id, selectedCity?.id, selectedDongId, mobileStep])
+
+  useEffect(() => {
+    if (!open) return
+    desktopProvinceListRef.current?.scrollTo({ top: 0 })
+    desktopCityListRef.current?.scrollTo({ top: 0 })
+    desktopDongListRef.current?.scrollTo({ top: 0 })
+  }, [open, selectedProvinceId, selectedCityId])
+
   if (!open) return null
 
   return (
@@ -94,11 +128,15 @@ export default function DeliveryLocationModal({
               <span className="field-label">시/도</span>
             </div>
             <div className="delivery-column-content">
-              <div className="delivery-option-list delivery-region-list">
+              <div className="delivery-option-list delivery-region-list" ref={desktopProvinceListRef}>
                 {provinces.map((province) => (
                   <button
                     key={province.id}
                     className={`delivery-option-button delivery-region-button ${selectedProvince?.id === province.id ? 'is-active' : ''}`}
+                    ref={(node) => {
+                      if (node) provinceButtonRefs.current.set(province.id, node)
+                      else provinceButtonRefs.current.delete(province.id)
+                    }}
                     onClick={() => {
                       setSelectedProvinceId(province.id)
                       setSelectedCityId(province.cities?.[0]?.id || null)
@@ -116,11 +154,15 @@ export default function DeliveryLocationModal({
               <span className="field-label">시/구/군</span>
             </div>
             <div className="delivery-column-content">
-              <div className="delivery-option-list delivery-region-list">
+              <div className="delivery-option-list delivery-region-list" ref={desktopCityListRef}>
                 {cities.map((city) => (
                   <button
                     key={city.id}
                     className={`delivery-option-button delivery-region-button ${selectedCity?.id === city.id ? 'is-active' : ''}`}
+                    ref={(node) => {
+                      if (node) cityButtonRefs.current.set(city.id, node)
+                      else cityButtonRefs.current.delete(city.id)
+                    }}
                     onClick={() => setSelectedCityId(city.id)}
                   >
                     {city.name}
@@ -135,11 +177,15 @@ export default function DeliveryLocationModal({
               <span className="field-label">딜리버리 지역</span>
             </div>
             <div className="delivery-column-content">
-              <div className="delivery-fee-list delivery-region-list">
+              <div className="delivery-fee-list delivery-region-list" ref={desktopDongListRef}>
                 {dongs.map((dong) => (
                   <button
                     key={dong.id}
                     className={`delivery-fee-card delivery-region-card ${selectedDongId === dong.id ? 'is-active' : ''}`}
+                    ref={(node) => {
+                      if (node) dongCardRefs.current.set(dong.id, node)
+                      else dongCardRefs.current.delete(dong.id)
+                    }}
                     onClick={() => {
                       onSelect({
                         dongId: dong.id,
@@ -204,7 +250,7 @@ export default function DeliveryLocationModal({
             </div>
 
             {mobileStep === 'province' && (
-              <div className="delivery-option-list delivery-region-list delivery-mobile-list">
+              <div className="delivery-option-list delivery-region-list delivery-mobile-list" ref={mobileListRef}>
                 {provinces.map((province) => (
                   <button
                     key={province.id}
@@ -222,7 +268,7 @@ export default function DeliveryLocationModal({
             )}
 
             {mobileStep === 'city' && (
-              <div className="delivery-option-list delivery-region-list delivery-mobile-list">
+              <div className="delivery-option-list delivery-region-list delivery-mobile-list" ref={mobileListRef}>
                 {cities.map((city) => (
                   <button
                     key={city.id}
@@ -242,7 +288,7 @@ export default function DeliveryLocationModal({
             )}
 
             {mobileStep === 'dong' && (
-              <div className="delivery-fee-list delivery-region-list delivery-mobile-list">
+              <div className="delivery-fee-list delivery-region-list delivery-mobile-list" ref={mobileListRef}>
                 {dongs.map((dong) => (
                   <button
                     key={dong.id}
