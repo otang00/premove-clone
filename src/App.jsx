@@ -9,6 +9,7 @@ import LoginPage from './pages/LoginPage'
 import SignupPage from './pages/SignupPage'
 import ResetPasswordPage from './pages/ResetPasswordPage'
 import MemberReservationsPage from './pages/MemberReservationsPage'
+import PostcodeTestPage from './pages/PostcodeTestPage'
 import MemberReservationDetailPage from './pages/MemberReservationDetailPage'
 import AdminBookingConfirmPage from './pages/AdminBookingConfirmPage'
 import AdminBookingsPage from './pages/AdminBookingsPage'
@@ -26,6 +27,7 @@ export default function App() {
       <Route path="/reservation-complete" element={<ReservationCompletePage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/postcode-test" element={<PostcodeTestPage />} />
       <Route path="/forgot-password" element={<Navigate to="/login" replace />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/admin/booking-confirm" element={<AdminBookingConfirmPage />} />

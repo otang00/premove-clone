@@ -8,7 +8,7 @@
   - `docs/past/present-history/2026-04-24_SECURITY_VERIFICATION_CHECKLIST_PAST.md`
   - `docs/present/RENTCAR00_RESERVATION_CURRENT.md`
   - `docs/present/LOGIN_SYSTEM_CURRENT.md`
-  - `docs/present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md`
+  - `docs/past/present-history/2026-04-28_RENTCAR00_SECURITY_EXECUTION_CURRENT_PAST.md`
 - 직전 보안 점검 근거 문서: `docs/past/present-history/2026-04-24_SECURITY_VERIFICATION_CHECKLIST_PAST.md`
 
 ---
@@ -44,6 +44,29 @@
 - 토큰은 목적별로 분리하고, 만료와 무효화 전략이 있어야 한다.
 - 환경변수와 공개키/비공개키 경계를 문서로 명확히 잠근다.
 - 보안 헤더와 운영 설정은 코드와 동일한 중요도로 다룬다.
+
+### 외부 SDK / CSP 최우선 규칙
+- 외부 SDK, 지도, 주소검색, 인증 위젯을 추가/변경할 때는 기능 코드보다 먼저 `vercel.json` 의 CSP와 보안 헤더를 검토한다.
+- CSP는 `script-src`, `connect-src`, `frame-src` 를 각각 분리해서 점검한다. 한 항목만 맞아도 통과로 보지 않는다.
+- 외부 SDK는 1차 로더 도메인만 보고 허용 정책을 작성하면 안 된다. 실제 하위 로딩 도메인과 런타임 동작을 증거 기반으로 확인한다.
+- 외부 서비스는 popup, iframe, redirect, postMessage 중 실제로 어떤 방식을 쓰는지 먼저 확인하고, 그 방식에 맞는 CSP를 연다.
+- 보안 헤더 변경 직후에는 최소 테스트 페이지 + 실제 화면 + Safari 기준 검증을 모두 통과해야 한다.
+
+### 외부 서비스 연동 확정 절차
+- 새 외부 서비스(Toss, Stripe, Kakao, 지도, 인증, 주소검색 등)를 붙일 때는 먼저 아래 표를 잠근다.
+  1. 로더 도메인 (`script-src`)
+  2. 실제 API 호출 도메인 (`connect-src`)
+  3. iframe 문서 도메인 (`frame-src`)
+  4. 이미지/스타일/폰트 추가 도메인 (`img-src`, `style-src`, `font-src`)
+  5. redirect/callback 경로
+  6. popup/iframe/postMessage 사용 여부
+- 허용 정책은 "서비스 이름" 단위가 아니라 "브라우저에서 실제 일어나는 동작" 단위로 설계한다.
+- popup 으로 열리는 서비스도 내부적으로 iframe 을 쓸 수 있으므로 popup 성공만으로 완료 처리하면 안 된다.
+- 최종 완료 기준은 아래 4개를 모두 만족하는 것이다.
+  - 창/레이어/iframe 이 실제 로드됨
+  - 필요한 외부 리소스가 차단되지 않음
+  - 사용자 입력 후 콜백/완료 흐름이 정상 복귀함
+  - 콘솔에 CSP violation 이 남지 않음
 
 ---
 
@@ -221,6 +244,10 @@
 재발 방지 메모
 - 외부 SDK는 1차 로더 도메인만 보고 CSP를 작성하면 안 된다.
 - 특히 Kakao Maps는 `dapi.kakao.com` 외에 `t1.daumcdn.net` 하위 스크립트 로딩까지 함께 검증해야 한다.
+- popup 기반 서비스도 내부적으로 iframe 을 쓸 수 있으므로 `frame-src` 검토를 빼면 안 된다.
+- redirect/callback/postMessage 흐름은 CSP와 별개로 복귀 경로와 origin 검증까지 같이 확인한다.
+- 특정 서비스가 한 번 됐다고 같은 계열 서비스도 자동으로 된다고 가정하면 안 된다. 서비스마다 실제 하위 도메인과 로딩 방식이 다를 수 있다.
+- 운영 확인은 "버튼이 보인다/창이 뜬다" 수준이 아니라 실제 외부 문서와 완료 흐름이 정상인지로 판단한다.
 - 보안 헤더 수정 시에는 반드시 "최소 정적 테스트 페이지 + 실제 화면" 2단 검증을 거친다.
 
 ---
@@ -435,4 +462,5 @@
 - 특히 제일 먼저 잠가야 할 것은 **URL PII 제거** 다.
 - 그 다음은 **guest abuse 방어**, 그 다음은 **confirm token 만료** 순서가 맞다.
 - 보안 헤더와 dependency 정리는 중요하지만, 현재는 먼저 **개인정보 직접 노출과 악용 가능성 차단**이 우선이다.
-- 이후 실제 구현은 `docs/present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md` 기준으로 phase 단위로 진행하고, 각 phase 종료 후 이 문서를 다시 현재화한다.
+- 2026-04-28 기준 보안 실행 문서는 완료되어 `docs/past/present-history/2026-04-28_RENTCAR00_SECURITY_EXECUTION_CURRENT_PAST.md` 로 내렸다.
+- 이후 보안 변경은 이 문서를 현행 기준으로 다시 잠근 뒤, 필요 시 새 execution current 를 별도로 발급한다.

@@ -1,8 +1,8 @@
 # RENTCAR00_SECURITY_EXECUTION_CURRENT
 
 ## 문서 상태
-- 상태: active present
-- 용도: RENTCAR00_SECURITY_CURRENT 기준의 보안 실행 문서
+- 상태: past
+- 용도: 2026-04-28 기준 RENTCAR00_SECURITY_CURRENT 실행 완료 이력 문서
 - 기준 브랜치: `feat/db-preview-home`
 - 선행 기준 문서:
   - `docs/present/RENTCAR00_SECURITY_CURRENT.md`
@@ -10,6 +10,7 @@
   - `docs/present/LOGIN_SYSTEM_CURRENT.md`
 - 보조 근거 문서:
   - `docs/past/present-history/2026-04-24_SECURITY_VERIFICATION_CHECKLIST_PAST.md`
+- 보관 경로: `docs/past/present-history/2026-04-28_RENTCAR00_SECURITY_EXECUTION_CURRENT_PAST.md`
 
 ---
 

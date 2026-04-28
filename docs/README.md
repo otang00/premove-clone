@@ -3,21 +3,15 @@
 문서는 아래 구조로 잠근다.
 
 ## 1. present
-지금 당장 실행 기준으로 삼는 문서는 active current 로 유지한다.
+지금 당장 실행 기준으로 삼는 문서는 active current 1개만 유지한다.
 
 현재 active present:
-- `present/RENTCAR00_RESERVATION_CURRENT.md`
-- `present/LOGIN_SYSTEM_CURRENT.md`
-- `present/RENTCAR00_ADMIN_FOLLOWUPS_CURRENT.md`
-- `present/RENTCAR00_SECURITY_CURRENT.md`
-- `present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md`
-- `present/RENTCAR00_API_CURRENT.md`
-- `present/RENTCAR00_API_REDUCTION_PLAN_CURRENT.md`
+- `present/RENTCAR00_CURRENT.md`
 
 원칙:
-- present 에는 실제 실행 기준으로 쓰는 current 만 둔다.
+- present 에는 실제 실행 기준으로 쓰는 current 1개만 둔다.
 - 임시 체크리스트, 중간 정리본, 작업용 current 는 남기지 않는다.
-- 기준이 바뀌면 기존 current 를 덧대지 말고 역할별 current 로 다시 잠근다.
+- 기준이 바뀌면 기존 current 에 덧대는 대신 현재 문서를 갱신하고, 이전 버전은 `past/` 로 내린다.
 
 ## 2. past
 현재 기준에서 내려온 문서와 과거 실행 기록.
@@ -33,12 +27,10 @@
 현재/과거와 별개로 계속 참고하는 외부 레퍼런스.
 
 ## 운영 원칙
-- 예약/결제/주소 기준은 `present/RENTCAR00_RESERVATION_CURRENT.md` 부터 본다.
-- 로그인/회원 기준은 `present/LOGIN_SYSTEM_CURRENT.md` 를 함께 본다.
-- 관리자 후속 개선은 `present/RENTCAR00_ADMIN_FOLLOWUPS_CURRENT.md` 를 본다.
-- API 현행 기준은 `present/RENTCAR00_API_CURRENT.md` 를 본다.
-- API 축소 정리 기준은 `present/RENTCAR00_API_REDUCTION_PLAN_CURRENT.md` 를 본다.
-- 보안 현행 기준은 `present/RENTCAR00_SECURITY_CURRENT.md` 를 본다.
-- 보안 실제 실행은 `present/RENTCAR00_SECURITY_EXECUTION_CURRENT.md` 를 본다.
+- 외부 SDK, 지도, 주소검색, 인증 위젯 변경은 기능 코드보다 먼저 `present/RENTCAR00_CURRENT.md` 와 `vercel.json` CSP를 같이 확인한다.
+- Kakao 계열은 1차 로더 도메인만 보고 끝내지 않는다. 실제 하위 로딩 도메인까지 확인한 뒤 `script-src`, `connect-src`, `frame-src` 를 각각 점검한다.
+- Kakao 우편번호는 popup 기준이라도 내부 iframe 로딩 여부까지 확인한다.
+- 예약/회원/보안/API/운영 기준은 모두 `present/RENTCAR00_CURRENT.md` 를 먼저 본다.
+- 완료된 실행 기록은 `past/present-history/` 에 보관한다.
 - active 기준이 아닌 체크리스트는 남기지 않는다.
 - 구기준 문서는 과감하게 active 영역에서 제거한다.

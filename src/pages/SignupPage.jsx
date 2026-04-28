@@ -109,24 +109,16 @@ function TermsRow({ checked, onChange, label, required = false, onOpen, disabled
     <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
       <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
         <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} disabled={disabled} />
-        <button
-          type="button"
-          onClick={onOpen}
-          disabled={disabled}
+        <span
           style={{
-            border: 0,
-            background: 'transparent',
-            padding: 0,
             color: '#17212b',
-            textDecoration: 'underline',
-            cursor: disabled ? 'default' : 'pointer',
             font: 'inherit',
             textAlign: 'left',
             lineHeight: 1.4,
           }}
         >
           {required ? '[필수]' : '[선택]'} {label}
-        </button>
+        </span>
       </label>
       <button type="button" className="btn btn-outline btn-sm" onClick={onOpen} disabled={disabled}>보기</button>
     </div>
@@ -170,11 +162,7 @@ export default function SignupPage() {
   const [otpCooldownUntil, setOtpCooldownUntil] = useState(null)
   const [nowMs, setNowMs] = useState(Date.now())
   const [activeTermsModal, setActiveTermsModal] = useState('')
-  const [isAddressSearchOpen, setIsAddressSearchOpen] = useState(false)
-  const [addressSearchReady, setAddressSearchReady] = useState(false)
   const addressDetailInputRef = useRef(null)
-  const postcodeContainerRef = useRef(null)
-  const postcodeInstanceRef = useRef(null)
 
   const passwordChecks = useMemo(() => getPasswordChecks(password, email), [password, email])
   const passwordValid = useMemo(() => Object.values(passwordChecks).every(Boolean), [passwordChecks])
@@ -245,54 +233,6 @@ export default function SignupPage() {
       document.body.style.overflow = previousOverflow
     }
   }, [activeTermsModal])
-
-  useEffect(() => {
-    if (!isAddressSearchOpen || !postcodeContainerRef.current) return undefined
-
-    let cancelled = false
-
-    setAddressSearchReady(false)
-    setAddressMessage('우편번호 검색창을 불러오는 중입니다.')
-
-    loadDaumPostcodeScript()
-      .then((Postcode) => {
-        if (cancelled || !postcodeContainerRef.current) return
-
-        if (!postcodeInstanceRef.current) {
-          postcodeInstanceRef.current = new Postcode({
-            oncomplete: (data) => {
-              const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
-              setPostalCode(data.zonecode || '')
-              setAddressMain(baseAddress)
-              setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
-              setIsAddressSearchOpen(false)
-              window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
-            },
-            onresize: (size) => {
-              if (!postcodeContainerRef.current) return
-              postcodeContainerRef.current.style.height = `${Math.max(420, Number(size?.height || 0))}px`
-            },
-            width: '100%',
-            height: '100%',
-          })
-        }
-
-        postcodeContainerRef.current.innerHTML = ''
-        postcodeContainerRef.current.style.height = '480px'
-        postcodeInstanceRef.current.embed(postcodeContainerRef.current)
-        setAddressSearchReady(true)
-        setAddressMessage('우편번호 또는 도로명 주소를 검색해 주세요.')
-      })
-      .catch(() => {
-        if (cancelled) return
-        setAddressSearchReady(false)
-        setAddressMessage('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [isAddressSearchOpen])
 
   function handleToggleAllTerms(nextChecked) {
     setAgreeAll(nextChecked)
@@ -381,8 +321,29 @@ export default function SignupPage() {
     }
   }
 
-  function handleFindAddress() {
-    setIsAddressSearchOpen((prev) => !prev)
+  async function handleFindAddress() {
+    setErrorMessage('')
+    setSuccessMessage('')
+    setAddressMessage('주소 검색창을 여는 중입니다.')
+
+    try {
+      const Postcode = await loadDaumPostcodeScript()
+      const postcode = new Postcode({
+        oncomplete: (data) => {
+          const baseAddress = data.roadAddress || data.jibunAddress || data.address || ''
+          setPostalCode(data.zonecode || '')
+          setAddressMain(baseAddress)
+          setAddressMessage(baseAddress ? '주소 검색이 완료되었습니다. 상세주소를 이어서 입력해 주세요.' : '주소 검색 결과를 확인해 주세요.')
+          window.setTimeout(() => addressDetailInputRef.current?.focus(), 50)
+        },
+      })
+
+      postcode.open({ popupTitle: '우편번호 검색' })
+      setAddressMessage('우편번호 팝업에서 주소를 선택해 주세요.')
+    } catch (error) {
+      setAddressMessage('주소 검색 서비스를 불러오지 못했습니다. 잠시 후 다시 시도해 주세요.')
+      setErrorMessage(error.message || '주소 검색창을 열지 못했습니다.')
+    }
   }
 
   async function handleSubmit(event) {
@@ -646,9 +607,10 @@ export default function SignupPage() {
                           onChange={(event) => setPostalCode(event.target.value.replace(/\D/g, '').slice(0, 5))}
                           disabled={submitting}
                           required
+                          readOnly
                         />
                         <button type="button" className="btn btn-outline btn-md" onClick={handleFindAddress} disabled={submitting}>
-                          {isAddressSearchOpen ? '검색 닫기' : '우편번호 찾기'}
+                          우편번호 찾기
                         </button>
                       </div>
                     </div>
@@ -666,7 +628,7 @@ export default function SignupPage() {
                         readOnly
                         required
                       />
-                      <FieldNote>기본주소는 아래 주소 검색 카드에서 선택됩니다.</FieldNote>
+                      <FieldNote>기본주소는 우편번호 팝업에서 선택됩니다.</FieldNote>
                     </div>
 
                     <div className="field-group">
@@ -685,26 +647,6 @@ export default function SignupPage() {
                       <FieldNote>{addressMessage}</FieldNote>
                     </div>
                   </div>
-
-                  {isAddressSearchOpen ? (
-                    <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                      <div style={{ display: 'grid', gap: 4 }}>
-                        <strong style={{ fontSize: 16 }}>주소 검색</strong>
-                        <p className="field-note" style={{ margin: 0 }}>카카오 공식 우편번호 검색창입니다. 주소를 선택하면 위 입력칸에 자동 반영됩니다.</p>
-                      </div>
-                      <div
-                        ref={postcodeContainerRef}
-                        style={{
-                          minHeight: 480,
-                          border: '1px solid #dfe7ef',
-                          borderRadius: 12,
-                          overflow: 'hidden',
-                          background: '#fff',
-                        }}
-                      />
-                      {!addressSearchReady ? <FieldNote>검색창을 준비 중입니다.</FieldNote> : null}
-                    </div>
-                  ) : null}
                 </section>
 
                 <section style={{ display: 'grid', gap: 16 }}>

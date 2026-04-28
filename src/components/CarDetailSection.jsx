@@ -18,6 +18,24 @@ import {
 } from '../services/reservationUiState'
 import { createGuestBooking } from '../services/guestBookingApi'
 import { useAuth } from '../hooks/useAuth'
+import termsContent from '../../docs/legal/service-terms.md?raw'
+import privacyContent from '../../docs/legal/privacy-policy.md?raw'
+import rentalTermsContent from '../../docs/legal/rental-terms.md?raw'
+
+const TERMS_MODAL_CONTENT = {
+  service: {
+    title: '서비스 이용약관',
+    content: termsContent,
+  },
+  rental: {
+    title: '렌터카 이용약관',
+    content: rentalTermsContent,
+  },
+  privacy: {
+    title: '개인정보 수집 및 이용 동의',
+    content: privacyContent,
+  },
+}
 
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
@@ -44,6 +62,18 @@ function LoadingState() {
       <h2>상세 정보 불러오는 중</h2>
       <p className="muted small-note">상세 데이터를 불러오는 중입니다.</p>
     </article>
+  )
+}
+
+function TermsCheckRow({ checked, onChange, label, onOpen }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, flex: 1, minWidth: 0 }}>
+        <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+        <span style={{ color: '#17212b', lineHeight: 1.4 }}>{label}</span>
+      </label>
+      <button type="button" className="btn btn-outline btn-sm" onClick={onOpen}>보기</button>
+    </div>
   )
 }
 
@@ -94,7 +124,7 @@ export default function CarDetailSection() {
   const { carId } = useParams()
   const location = useLocation()
   const navigate = useNavigate()
-  const { session } = useAuth()
+  const { session, isAuthenticated, profile } = useAuth()
   const parsedSearchState = useMemo(() => parseSearchQuery(location.search), [location.search])
   const detailToken = useMemo(() => {
     const params = new URLSearchParams(location.search)
@@ -129,8 +159,10 @@ export default function CarDetailSection() {
   const [isReservationConfirmOpen, setIsReservationConfirmOpen] = useState(false)
   const [reservationSubmitError, setReservationSubmitError] = useState('')
   const [isCreatingReservation, setIsCreatingReservation] = useState(false)
+  const [activeTermsModal, setActiveTermsModal] = useState('')
   const paymentSummaryRef = useRef(null)
   const summaryCardRef = useRef(null)
+  const appliedProfilePrefillKeyRef = useRef('')
   useEffect(() => {
     setDeliveryAddressDetail(parsedSearchState.deliveryAddressDetail || '')
     setDeliveryAddressDetailError('')
@@ -150,6 +182,32 @@ export default function CarDetailSection() {
 
     return () => window.cancelAnimationFrame(frameId)
   }, [carId, car, pricing, insurance, isLoading, fetchError])
+
+  useEffect(() => {
+    if (!activeTermsModal) return undefined
+
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    return () => {
+      document.body.style.overflow = previousOverflow
+    }
+  }, [activeTermsModal])
+
+  useEffect(() => {
+    if (!isAuthenticated || !profile?.id) return
+
+    const prefillKey = `${profile.id}:${profile.updatedAt || ''}`
+    if (appliedProfilePrefillKeyRef.current === prefillKey) return
+
+    appliedProfilePrefillKeyRef.current = prefillKey
+
+    setReservationForm((current) => ({
+      customerName: current.customerName || String(profile.name || ''),
+      customerPhone: current.customerPhone || normalizePhone(String(profile.phone || '')),
+      customerBirth: current.customerBirth || normalizeBirth(String(profile.birthDate || '')),
+    }))
+  }, [isAuthenticated, profile])
 
   const reservationValidation = useMemo(
     () => validateReservationForm(reservationForm),
@@ -320,6 +378,7 @@ export default function CarDetailSection() {
   const reservationLocationText = parsedSearchState.pickupOption === 'delivery'
     ? (parsedSearchState.deliveryAddress || '배차 위치 확인 필요')
     : '회사 방문 수령'
+  const activeTermsContent = activeTermsModal ? TERMS_MODAL_CONTENT[activeTermsModal] : null
 
   return (
     <section className="section-bg detail-page">
@@ -396,7 +455,7 @@ export default function CarDetailSection() {
                   <div>
                     <input
                       className="field-input"
-                      placeholder="이름"
+                      placeholder="예: 홍길동"
                       value={reservationForm.customerName}
                       onChange={(e) => updateReservationForm('customerName', e.target.value)}
                     />
@@ -407,7 +466,7 @@ export default function CarDetailSection() {
                   <div>
                     <input
                       className="field-input"
-                      placeholder="생년월일 8자리"
+                      placeholder="예: 19900101"
                       inputMode="numeric"
                       value={reservationForm.customerBirth}
                       onChange={(e) => updateReservationForm('customerBirth', e.target.value)}
@@ -419,7 +478,7 @@ export default function CarDetailSection() {
                   <div>
                     <input
                       className="field-input"
-                      placeholder="휴대폰번호"
+                      placeholder="예: 010-1234-5678"
                       inputMode="tel"
                       value={reservationForm.customerPhone}
                       onChange={(e) => updateReservationForm('customerPhone', e.target.value)}
@@ -429,22 +488,21 @@ export default function CarDetailSection() {
                     )}
                   </div>
                 </div>
-                <p className="muted small-note">이름, 생년월일, 휴대폰번호를 정확히 입력해야 예약 확정 및 비회원 예약조회가 가능합니다. 차량 또는 계약서 기준 만 {car.rentAge}세 이상 예약 가능하며, 면허 취득 1년 이상이어야 합니다. 현장에서 면허와 예약자 본인 확인이 되지 않으면 배차가 불가할 수 있습니다.</p>
               </article>
 
               <article className="detail-card panel">
                 <h2>이용 약관 동의</h2>
                 <div className="terms-list">
                   <label><input type="checkbox" checked={termsState.allAgreed} onChange={(e) => handleToggleAllTerms(e.target.checked)} /> 전체 동의</label>
-                  <label><input type="checkbox" checked={termsState.serviceAgreed} onChange={(e) => handleToggleSingleTerm('serviceAgreed', e.target.checked)} /> 서비스 이용약관</label>
-                  <label><input type="checkbox" checked={termsState.rentalPolicyAgreed} onChange={(e) => handleToggleSingleTerm('rentalPolicyAgreed', e.target.checked)} /> 렌터카 이용약관</label>
-                  <label><input type="checkbox" checked={termsState.privacyAgreed} onChange={(e) => handleToggleSingleTerm('privacyAgreed', e.target.checked)} /> 개인정보 수집 및 이용 동의</label>
+                  <TermsCheckRow checked={termsState.serviceAgreed} onChange={(checked) => handleToggleSingleTerm('serviceAgreed', checked)} label="서비스 이용약관" onOpen={() => setActiveTermsModal('service')} />
+                  <TermsCheckRow checked={termsState.rentalPolicyAgreed} onChange={(checked) => handleToggleSingleTerm('rentalPolicyAgreed', checked)} label="렌터카 이용약관" onOpen={() => setActiveTermsModal('rental')} />
+                  <TermsCheckRow checked={termsState.privacyAgreed} onChange={(checked) => handleToggleSingleTerm('privacyAgreed', checked)} label="개인정보 수집 및 이용 동의" onOpen={() => setActiveTermsModal('privacy')} />
                 </div>
                 {!termsValidation.isValid && (
                   <p className="muted small-note">{Object.values(termsValidation.errors)[0]}</p>
                 )}
                 <div className="legal-note">
-                  빵빵카 주식회사는 본 서비스와 렌터카 계약 시스템을 직접 제공합니다. 결제가 정상적으로 완료된 예약에 한해 예약이 확정되며, 운전자 자격 미충족, 본인 확인 실패, 면허 확인 실패, 결제 확인 실패, 차량 상태 이상, 배차 불가 등 회사가 고지한 사유가 있으면 예약이 거절되거나 취소될 수 있습니다.
+                  빵빵카 주식회사는 본 렌터카 계약 서비스를 직접 제공합니다. 결제가 정상적으로 완료된 예약에 한해 예약이 확정되며, 운전자 자격 미충족, 본인 확인 실패, 면허 확인 실패, 결제 확인 실패, 차량 상태 이상, 회사 사정으로 인한 배차 불가 등 회사가 고지한 사유가 있으면 예약이 거절되거나 취소될 수 있습니다.
                 </div>
               </article>
 
@@ -551,6 +609,34 @@ export default function CarDetailSection() {
             </div>
           </div>
         )}
+
+        {activeTermsContent ? (
+          <div className="delivery-modal-backdrop" onClick={() => setActiveTermsModal('')}>
+            <div
+              className="panel"
+              onClick={(event) => event.stopPropagation()}
+              role="dialog"
+              aria-modal="true"
+              aria-label={activeTermsContent.title}
+              style={{ width: 'min(760px, 100%)', maxHeight: '90vh', display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr) auto', overflow: 'hidden' }}
+            >
+              <div style={{ padding: 18, borderBottom: '1px solid #dfe7ef', display: 'grid', gap: 6 }}>
+                <strong style={{ fontSize: 18 }}>{activeTermsContent.title}</strong>
+                <p className="field-note" style={{ margin: 0 }}>아래 내용을 확인한 뒤 동의해 주세요.</p>
+              </div>
+              <div style={{ overflowY: 'auto', padding: 18, background: '#fff' }}>
+                <div className="legal-content">
+                  {activeTermsContent.content.split('\n').map((line, idx) => (
+                    <p key={`${activeTermsModal}-${idx}`}>{line || '\u00A0'}</p>
+                  ))}
+                </div>
+              </div>
+              <div style={{ padding: 18, borderTop: '1px solid #dfe7ef', display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                <button type="button" className="btn btn-outline btn-md" onClick={() => setActiveTermsModal('')}>닫기</button>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </section>
   )
