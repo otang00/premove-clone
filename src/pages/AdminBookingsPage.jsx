@@ -69,6 +69,21 @@ function buildSyncSummaryRows(kind, sync) {
 function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims' }) {
   const tone = getSyncTone(sync?.status)
   const summaryRows = buildSyncSummaryRows(kind, sync)
+  const displayRows = summaryRows.length > 0
+    ? summaryRows
+    : kind === 'ims'
+      ? [
+        { label: '최근 실행', value: '-' },
+        { label: '가져옴', value: '-' },
+        { label: '반영', value: '-' },
+        { label: '실패', value: '-' },
+      ]
+      : [
+        { label: '모드', value: '-' },
+        { label: '최근 실행', value: '-' },
+        { label: 'add/change/delete', value: '-/-/-' },
+        { label: '실패', value: '-' },
+      ]
 
   return (
     <div
@@ -78,12 +93,14 @@ function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims
         gap: 12,
         background: tone.bg,
         border: `1px solid ${tone.border}`,
+        minHeight: 320,
+        alignContent: 'start',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-        <div style={{ display: 'grid', gap: 4 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+        <div style={{ display: 'grid', gap: 4, minWidth: 0, flex: 1 }}>
           <strong>{title}</strong>
-          <span className="field-note" style={{ margin: 0 }}>
+          <span className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {loading ? '상태를 불러오는 중입니다.' : sync ? `최근 실행 ${formatSyncDateTime(sync.updatedAt)}` : '실행 이력이 아직 없습니다.'}
           </span>
         </div>
@@ -102,47 +119,57 @@ function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims
         </div>
       </div>
 
-      {summaryRows.length > 0 ? (
-        <div style={{ display: 'grid', gap: 8 }}>
-          {summaryRows.map((row) => (
-            <div key={row.label} className="reservation-result-row">
-              <span>{row.label}</span>
-              <strong>{row.value}</strong>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
-      {!loading && sync?.errorSummary ? (
-        <p className="field-note" style={{ margin: 0, color: tone.text, fontWeight: 600 }}>
-          오류 요약: {sync.errorSummary}
-        </p>
-      ) : null}
-
-      {!loading && errors.length > 0 ? (
-        <details>
-          <summary style={{ cursor: 'pointer', fontWeight: 600 }}>최근 오류 {errors.length}건</summary>
-          <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-            {errors.map((entry, index) => (
-              <div key={`${entry.imsReservationId || entry.id || index}`} style={{ padding: '10px 12px', background: '#ffffffaa', borderRadius: 10 }}>
-                {'stage' in entry ? (
-                  <>
-                    <div className="reservation-result-row"><span>예약ID</span><strong>{entry.imsReservationId || '-'}</strong></div>
-                    <div className="reservation-result-row"><span>stage</span><strong>{entry.stage || '-'}</strong></div>
-                    <p className="field-note" style={{ margin: '6px 0 0 0', color: '#7f1d1d' }}>{entry.errorMessage || '-'}</p>
-                  </>
-                ) : (
-                  <>
-                    <div className="reservation-result-row"><span>예약ID</span><strong>{entry.imsReservationId || '-'}</strong></div>
-                    <div className="reservation-result-row"><span>차량번호</span><strong>{entry.carNumber || '-'}</strong></div>
-                    <p className="field-note" style={{ margin: '6px 0 0 0', color: '#7f1d1d' }}>{entry.errorMessage || '-'}</p>
-                  </>
-                )}
-              </div>
-            ))}
+      <div style={{ display: 'grid', gap: 8 }}>
+        {displayRows.map((row) => (
+          <div key={row.label} className="reservation-result-row" style={{ gap: 12, flexWrap: 'nowrap' }}>
+            <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{row.label}</span>
+            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{loading ? '확인중' : row.value}</strong>
           </div>
-        </details>
-      ) : null}
+        ))}
+      </div>
+
+      <div style={{ minHeight: 24 }}>
+        {!loading && sync?.errorSummary ? (
+          <p className="field-note" style={{ margin: 0, color: tone.text, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            오류 요약: {sync.errorSummary}
+          </p>
+        ) : !loading ? (
+          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>오류 요약 없음</p>
+        ) : (
+          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>상태 확인 중</p>
+        )}
+      </div>
+
+      <div style={{ minHeight: 72 }}>
+        {!loading && errors.length > 0 ? (
+          <details>
+            <summary style={{ cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>최근 오류 {errors.length}건</summary>
+            <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
+              {errors.map((entry, index) => (
+                <div key={`${entry.imsReservationId || entry.id || index}`} style={{ padding: '10px 12px', background: '#ffffffaa', borderRadius: 10 }}>
+                  {'stage' in entry ? (
+                    <>
+                      <div className="reservation-result-row"><span>예약ID</span><strong>{entry.imsReservationId || '-'}</strong></div>
+                      <div className="reservation-result-row"><span>stage</span><strong>{entry.stage || '-'}</strong></div>
+                      <p className="field-note" style={{ margin: '6px 0 0 0', color: '#7f1d1d' }}>{entry.errorMessage || '-'}</p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="reservation-result-row"><span>예약ID</span><strong>{entry.imsReservationId || '-'}</strong></div>
+                      <div className="reservation-result-row"><span>차량번호</span><strong>{entry.carNumber || '-'}</strong></div>
+                      <p className="field-note" style={{ margin: '6px 0 0 0', color: '#7f1d1d' }}>{entry.errorMessage || '-'}</p>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          </details>
+        ) : !loading ? (
+          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>최근 오류 없음</p>
+        ) : (
+          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>오류 목록 확인 중</p>
+        )}
+      </div>
     </div>
   )
 }
