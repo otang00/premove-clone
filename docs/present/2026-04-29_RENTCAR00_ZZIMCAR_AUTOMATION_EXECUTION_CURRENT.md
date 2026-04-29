@@ -267,6 +267,15 @@ Last updated: 2026-04-29
 - zzimcar 는 기존 IMS worker 내부에 억지로 붙이지 않는다.
 - 이후 운영 연결은 별도 실행기 기준으로 다시 잠근다.
 
+### zzimcar 별도 실행기
+- LaunchAgent: `~/Library/LaunchAgents/ai.otang.zzimcar-reconcile-sync.plist`
+- wrapper: `scripts/zzimcar-sync/run-launchd.sh`
+- worker: `scripts/zzimcar-sync/run-zzimcar-reconcile-sync.js`
+- interval: `600s`
+- lock: `/tmp/premove-zzimcar-reconcile.lock`
+- save mode: `.env` 의 `ZZIMCAR_SYNC_SAVE=true` 일 때만 실제 반영
+- 기본값: `ZZIMCAR_SYNC_SAVE=false` (dry-run)
+
 ## 9. 결론
 
 이번 구현은 아래로 고정한다.
