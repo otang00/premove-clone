@@ -47,130 +47,78 @@ function formatSyncStatusLabel(status) {
   return status || '알수없음'
 }
 
-function buildSyncSummaryRows(kind, sync) {
-  if (!sync) return []
-  if (kind === 'ims') {
-    return [
-      { label: '최근 실행', value: formatSyncDateTime(sync.updatedAt) },
-      { label: '가져옴', value: `${sync.fetchedCount ?? 0}` },
-      { label: '반영', value: `${sync.upsertedCount ?? 0}` },
-      { label: '실패', value: `${sync.failedCount ?? 0}` },
-    ]
+function buildSyncSummaryText(kind, sync, loading) {
+  if (loading) {
+    return kind === 'ims'
+      ? 'IMS | 확인중 | -- | fetched - / upserted - | 오류 -'
+      : 'ZZIMCAR | 확인중 | -- | add - / del - / chg - | 오류 -'
   }
 
-  return [
-    { label: '모드', value: sync.syncMode || '-' },
-    { label: '최근 실행', value: formatSyncDateTime(sync.updatedAt) },
-    { label: 'add/change/delete', value: `${sync.additionsCount ?? 0}/${sync.changesCount ?? 0}/${sync.deletionsCount ?? 0}` },
-    { label: '실패', value: `${sync.failedCount ?? 0}` },
-  ]
+  if (!sync) {
+    return kind === 'ims'
+      ? 'IMS | 이력없음 | -- | fetched - / upserted - | 오류 -'
+      : 'ZZIMCAR | 이력없음 | -- | add - / del - / chg - | 오류 -'
+  }
+
+  if (kind === 'ims') {
+    return `IMS | ${formatSyncStatusLabel(sync.status)} | ${formatSyncDateTime(sync.updatedAt)} | fetched ${sync.fetchedCount ?? 0} / upserted ${sync.upsertedCount ?? 0} | 오류 ${sync.failedCount ?? 0}`
+  }
+
+  return `ZZIMCAR | ${formatSyncStatusLabel(sync.status)} | ${formatSyncDateTime(sync.updatedAt)} | add ${sync.additionsCount ?? 0} / del ${sync.deletionsCount ?? 0} / chg ${sync.changesCount ?? 0} | 오류 ${sync.failedCount ?? 0}`
 }
 
-function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims' }) {
+function SyncStatusRow({ sync, errors = [], loading = false, kind = 'ims' }) {
   const tone = getSyncTone(sync?.status)
-  const summaryRows = buildSyncSummaryRows(kind, sync)
-  const displayRows = summaryRows.length > 0
-    ? summaryRows
-    : kind === 'ims'
-      ? [
-        { label: '최근 실행', value: '-' },
-        { label: '가져옴', value: '-' },
-        { label: '반영', value: '-' },
-        { label: '실패', value: '-' },
-      ]
-      : [
-        { label: '모드', value: '-' },
-        { label: '최근 실행', value: '-' },
-        { label: 'add/change/delete', value: '-/-/-' },
-        { label: '실패', value: '-' },
-      ]
+  const summaryText = buildSyncSummaryText(kind, sync, loading)
+  const hasErrors = !loading && errors.length > 0
 
   return (
     <div
       className="panel-sub"
       style={{
         display: 'grid',
-        gap: 8,
+        gap: 6,
         background: tone.bg,
         border: `1px solid ${tone.border}`,
-        minHeight: 220,
-        alignContent: 'start',
-        padding: '12px 14px',
+        padding: '10px 12px',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'nowrap' }}>
-        <div style={{ display: 'grid', gap: 2, minWidth: 0, flex: 1 }}>
-          <strong>{title}</strong>
-          <span className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {loading ? '상태를 불러오는 중입니다.' : sync ? `최근 실행 ${formatSyncDateTime(sync.updatedAt)}` : '실행 이력이 아직 없습니다.'}
-          </span>
-        </div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', minWidth: 0 }}>
         <div
           style={{
-            padding: '4px 8px',
+            width: 8,
+            height: 8,
             borderRadius: 999,
-            fontSize: 13,
-            fontWeight: 700,
-            background: '#ffffffcc',
-            color: tone.text,
-            border: `1px solid ${tone.border}`,
+            background: tone.text,
+            flexShrink: 0,
           }}
-        >
-          {loading ? '확인중' : formatSyncStatusLabel(sync?.status)}
-        </div>
+        />
+        <strong style={{ minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{summaryText}</strong>
       </div>
 
-      <div style={{ display: 'grid', gap: 6 }}>
-        {displayRows.map((row) => (
-          <div key={row.label} className="reservation-result-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
-            <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{row.label}</span>
-            <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{loading ? '확인중' : row.value}</strong>
+      {hasErrors ? (
+        <details>
+          <summary style={{ cursor: 'pointer', fontWeight: 600, fontSize: 13 }}>오류 {errors.length}건 보기</summary>
+          <div style={{ display: 'grid', gap: 6, marginTop: 8 }}>
+            {sync?.errorSummary ? (
+              <p className="field-note" style={{ margin: 0, color: tone.text }}>{sync.errorSummary}</p>
+            ) : null}
+            {errors.map((entry, index) => (
+              <div key={`${entry.imsReservationId || entry.id || index}`} style={{ padding: '8px 10px', background: '#ffffffaa', borderRadius: 8 }}>
+                {'stage' in entry ? (
+                  <p className="field-note" style={{ margin: 0, color: '#7f1d1d' }}>
+                    [{entry.stage || '-'}] {entry.imsReservationId || '-'} · {entry.errorMessage || '-'}
+                  </p>
+                ) : (
+                  <p className="field-note" style={{ margin: 0, color: '#7f1d1d' }}>
+                    [{entry.carNumber || '-'}] {entry.imsReservationId || '-'} · {entry.errorMessage || '-'}
+                  </p>
+                )}
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-
-      <div style={{ minHeight: 18 }}>
-        {!loading && sync?.errorSummary ? (
-          <p className="field-note" style={{ margin: 0, color: tone.text, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            오류 요약: {sync.errorSummary}
-          </p>
-        ) : !loading ? (
-          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>오류 요약 없음</p>
-        ) : (
-          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>상태 확인 중</p>
-        )}
-      </div>
-
-      <div style={{ minHeight: 44 }}>
-        {!loading && errors.length > 0 ? (
-          <details>
-            <summary style={{ cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>최근 오류 {errors.length}건</summary>
-            <div style={{ display: 'grid', gap: 8, marginTop: 10 }}>
-              {errors.map((entry, index) => (
-                <div key={`${entry.imsReservationId || entry.id || index}`} style={{ padding: '10px 12px', background: '#ffffffaa', borderRadius: 10 }}>
-                  {'stage' in entry ? (
-                    <>
-                      <div className="reservation-result-row"><span>예약ID</span><strong>{entry.imsReservationId || '-'}</strong></div>
-                      <div className="reservation-result-row"><span>stage</span><strong>{entry.stage || '-'}</strong></div>
-                      <p className="field-note" style={{ margin: '6px 0 0 0', color: '#7f1d1d' }}>{entry.errorMessage || '-'}</p>
-                    </>
-                  ) : (
-                    <>
-                      <div className="reservation-result-row"><span>예약ID</span><strong>{entry.imsReservationId || '-'}</strong></div>
-                      <div className="reservation-result-row"><span>차량번호</span><strong>{entry.carNumber || '-'}</strong></div>
-                      <p className="field-note" style={{ margin: '6px 0 0 0', color: '#7f1d1d' }}>{entry.errorMessage || '-'}</p>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-          </details>
-        ) : !loading ? (
-          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>최근 오류 없음</p>
-        ) : (
-          <p className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>오류 목록 확인 중</p>
-        )}
-      </div>
+        </details>
+      ) : null}
     </div>
   )
 }
@@ -291,14 +239,14 @@ export default function AdminBookingsPage() {
               ) : null}
 
               {hasAdminHint ? (
-                <div style={{ display: 'grid', gap: 12 }}>
+                <div style={{ display: 'grid', gap: 10 }}>
                   <div>
                     <strong style={{ display: 'block', marginBottom: 6 }}>운영 동기화 패널</strong>
-                    <p className="field-note" style={{ margin: 0 }}>IMS와 찜카 반영 상태를 한 화면에서 확인합니다.</p>
+                    <p className="field-note" style={{ margin: 0 }}>IMS와 찜카 반영 상태를 압축형으로 표시합니다.</p>
                   </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
-                    <SyncStatusCard title="IMS sync" sync={imsSync} errors={imsSyncErrors} loading={fetching} kind="ims" />
-                    <SyncStatusCard title="zzimcar sync" sync={zzimcarSync} errors={zzimcarSyncErrors} loading={fetching} kind="zzimcar" />
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    <SyncStatusRow sync={imsSync} errors={imsSyncErrors} loading={fetching} kind="ims" />
+                    <SyncStatusRow sync={zzimcarSync} errors={zzimcarSyncErrors} loading={fetching} kind="zzimcar" />
                   </div>
                 </div>
               ) : null}
