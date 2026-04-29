@@ -9,15 +9,6 @@ import {
   savePricingHubEditor,
 } from '../services/adminPricingHubApi'
 
-function Field({ label, children }) {
-  return (
-    <label style={{ display: 'grid', gap: 6 }}>
-      <span className="field-note" style={{ fontWeight: 600 }}>{label}</span>
-      {children}
-    </label>
-  )
-}
-
 function toNumber(value, fallback = 0) {
   const next = Number(value)
   return Number.isFinite(next) ? next : fallback
@@ -34,12 +25,6 @@ function roundPercent(value, fallback = 0) {
 
 function formatMoney(value) {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`
-}
-
-function formatPercent(value) {
-  const next = Number(value)
-  if (!Number.isFinite(next)) return '-'
-  return `${next % 1 === 0 ? next.toFixed(0) : next.toFixed(2).replace(/\.00$/, '')}%`
 }
 
 function computeRatios(legacyPolicy) {
@@ -114,6 +99,7 @@ export default function AdminPricingHubPage() {
   const hasAdminHint = useMemo(() => isAdminUser(user) || isAdminUser(profile), [profile, user])
   const selectedGroup = groups.find((item) => item.carGroupId === selectedCarGroupId) || null
   const selectedPolicy = editor?.policies?.[0] || null
+  const originalBase24h = roundAmount(selectedPolicy?.legacyPolicy?.baseDailyPrice || 0)
   const computedPreview = useMemo(
     () => buildComputedRate(selectedPolicy?.legacyPolicy, base24hInput, weekdayPercentInput, weekendPercentInput),
     [selectedPolicy, base24hInput, weekdayPercentInput, weekendPercentInput],
@@ -327,10 +313,17 @@ export default function AdminPricingHubPage() {
                     <button type="button" className="btn btn-dark btn-md" onClick={handleSave} disabled={!selectedPolicy || saving}>{saving ? '저장중' : '수정'}</button>
                   </div>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
-                  <div style={{ display: 'grid', gap: 12 }}>
-                    <Field label="기준 24시간 금액">
-                      <input className="field-input" type="number" inputMode="numeric" min="0" step="10000" value={base24hInput} onChange={(e) => setBase24hInput(e.target.value)} disabled={!selectedPolicy || saving} />
-                    </Field>
+                  <div className="reservation-result-row">
+                    <span>불러온 최초 기준금액</span>
+                    <strong>{formatMoney(originalBase24h)}</strong>
+                  </div>
+                  <div className="reservation-result-row pricing-hub-adjust-row">
+                    <span>기준 24시간 금액</span>
+                    <div className="pricing-hub-inline-controls pricing-hub-base-control">
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => setBase24hInput(String(Math.max(0, roundAmount(base24hInput) - 10000)))} disabled={!selectedPolicy || saving}>-</button>
+                      <input className="field-input pricing-hub-base-input" type="number" inputMode="numeric" min="0" step="10000" value={base24hInput} onChange={(e) => setBase24hInput(e.target.value)} disabled={!selectedPolicy || saving} />
+                      <button type="button" className="btn btn-outline btn-sm" onClick={() => setBase24hInput(String(roundAmount(base24hInput) + 10000))} disabled={!selectedPolicy || saving}>+</button>
+                    </div>
                   </div>
                   <div className="reservation-result-row pricing-hub-adjust-row">
                     <span>주중 24시간 요금</span>
@@ -338,8 +331,10 @@ export default function AdminPricingHubPage() {
                       <strong>{formatMoney(computedPreview.weekdayApplied24h)}</strong>
                       <div className="pricing-hub-percent-control">
                         <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekday', -5)} disabled={!selectedPolicy || saving}>-</button>
-                        <input className="field-input pricing-hub-percent-input" type="number" inputMode="decimal" min="0" step="5" value={weekdayPercentInput} onChange={(e) => handlePercentChange('weekday', e.target.value)} disabled={!selectedPolicy || saving} />
-                        <span className="pricing-hub-percent-suffix">%</span>
+                        <div className="pricing-hub-input-wrap">
+                          <input className="field-input pricing-hub-percent-input" type="number" inputMode="decimal" min="0" step="5" value={weekdayPercentInput} onChange={(e) => handlePercentChange('weekday', e.target.value)} disabled={!selectedPolicy || saving} />
+                          <span className="pricing-hub-percent-suffix">%</span>
+                        </div>
                         <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekday', 5)} disabled={!selectedPolicy || saving}>+</button>
                       </div>
                     </div>
@@ -350,15 +345,13 @@ export default function AdminPricingHubPage() {
                       <strong>{formatMoney(computedPreview.weekendApplied24h)}</strong>
                       <div className="pricing-hub-percent-control">
                         <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekend', -5)} disabled={!selectedPolicy || saving}>-</button>
-                        <input className="field-input pricing-hub-percent-input" type="number" inputMode="decimal" min="0" step="5" value={weekendPercentInput} onChange={(e) => handlePercentChange('weekend', e.target.value)} disabled={!selectedPolicy || saving} />
-                        <span className="pricing-hub-percent-suffix">%</span>
+                        <div className="pricing-hub-input-wrap">
+                          <input className="field-input pricing-hub-percent-input" type="number" inputMode="decimal" min="0" step="5" value={weekendPercentInput} onChange={(e) => handlePercentChange('weekend', e.target.value)} disabled={!selectedPolicy || saving} />
+                          <span className="pricing-hub-percent-suffix">%</span>
+                        </div>
                         <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekend', 5)} disabled={!selectedPolicy || saving}>+</button>
                       </div>
                     </div>
-                  </div>
-                  <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                    <div className="reservation-result-row"><span>주중 비율</span><strong>{formatPercent(computedPreview.weekdayRatePercent)}</strong></div>
-                    <div className="reservation-result-row"><span>주말 비율</span><strong>{formatPercent(computedPreview.weekendRatePercent)}</strong></div>
                   </div>
                 </div>
               </div>

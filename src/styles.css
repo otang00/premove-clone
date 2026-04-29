@@ -737,29 +737,49 @@
   display:flex;
   align-items:center;
   justify-content:flex-end;
-  gap:12px;
+  gap:10px;
   min-width:0;
 }
 
+.pricing-hub-base-control,
 .pricing-hub-percent-control{
   display:flex;
   align-items:center;
-  gap:6px;
+  gap:4px;
   flex-wrap:nowrap;
 }
 
-.pricing-hub-percent-input{
-  width:88px;
-  min-width:88px;
+.pricing-hub-base-input{
+  width:124px;
+  min-width:124px;
   min-height:32px;
   padding:0 10px;
   text-align:right;
 }
 
+.pricing-hub-input-wrap{
+  position:relative;
+  display:flex;
+  align-items:center;
+}
+
+.pricing-hub-percent-input{
+  width:64px;
+  min-width:64px;
+  min-height:32px;
+  padding:0 22px 0 8px;
+  text-align:right;
+}
+
 .pricing-hub-percent-suffix{
-  font-size:13px;
-  color:#4b5f73;
+  position:absolute;
+  right:8px;
+  top:50%;
+  transform:translateY(-50%);
+  font-size:12px;
+  color:rgba(75,95,115,0.55);
   font-weight:600;
+  pointer-events:none;
 }
 
 @media (max-width: 960px){
@@ -776,6 +796,7 @@
     justify-content:space-between;
   }
 
+  .pricing-hub-base-control,
   .pricing-hub-percent-control{
     margin-left:auto;
   }
