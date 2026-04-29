@@ -17,8 +17,11 @@
 실행 중인 작업에 한해 임시 current 문서를 둘 수 있다.
 
 현재 active present:
-- `present/2026-04-28_RENTCAR00_CURRENT_STATUS.md`
-- `present/2026-04-28_RENTCAR00_NEXT_GOALS_CURRENT.md`
+- `present/2026-04-29_RENTCAR00_PRICING_HUB_CURRENT.md`
+- `present/2026-04-29_RENTCAR00_PRICING_HUB_EXECUTION_CURRENT.md`
+- `present/2026-04-29_RENTCAR00_PRICING_HUB_SOURCE_STRUCTURE_CURRENT.md`
+- `present/2026-04-29_RENTCAR00_PRICING_HUB_PANEL_DRAFT_CURRENT.md`
+- `present/2026-04-29_RENTCAR00_PRICING_HUB_SCHEMA_LOCK_CURRENT.md`
 
 원칙:
 - present 는 실행 중인 작업이 있을 때만 사용한다.
@@ -45,4 +48,6 @@
 - 예약/회원/보안/API/운영 기준은 모두 `policies/RENTCAR00_POLICY.md` 를 먼저 본다.
 - 완료된 실행 기록은 `past/present-history/` 에 보관한다.
 - 상태가 끝난 체크리스트는 남기지 않는다.
+- 예약 연동처럼 구현 완료된 current 문서는 active 에 두지 않고 `past/present-history/` 로 내린다.
+- 가격 허브처럼 현재 구현 축인 문서만 active 영역에 둔다.
 - 구기준 문서는 과감하게 active 영역에서 제거한다.

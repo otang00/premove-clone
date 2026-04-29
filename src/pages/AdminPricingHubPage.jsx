@@ -7,7 +7,6 @@ import {
   buildPricingHubPreview,
   getPricingHubPolicyEditor,
   listPricingHubGroups,
-  savePricingHubOverride,
   savePricingHubPeriod,
   savePricingHubRate,
 } from '../services/adminPricingHubApi'
@@ -24,6 +23,7 @@ const EMPTY_PERIOD = {
   applySat: true,
   applySun: true,
   active: true,
+  percentAdjustment: 0,
 }
 
 const EMPTY_RATE = {
@@ -32,27 +32,12 @@ const EMPTY_RATE = {
   fee12h: 0,
   fee24h: 0,
   fee1h: 0,
-  discountPercent: '',
-  discountAmount: '',
-  week1Price: '',
-  week2Price: '',
-  month1Price: '',
-  long24hPrice: '',
-  long1hPrice: '',
+  week1Price: 0,
+  week2Price: 0,
+  month1Price: 0,
+  long24hPrice: 0,
+  long1hPrice: 0,
   weekendDays: '',
-}
-
-const EMPTY_OVERRIDE = {
-  targetType: 'ims_group',
-  targetId: '',
-  fieldName: 'fee_24h',
-  overrideType: 'absolute',
-  overrideValue: 0,
-  startAt: '',
-  endAt: '',
-  priority: 100,
-  reason: '',
-  status: 'active',
 }
 
 function Field({ label, children }) {
@@ -64,22 +49,65 @@ function Field({ label, children }) {
   )
 }
 
-function JsonBlock({ value }) {
-  return (
-    <pre
-      style={{
-        margin: 0,
-        padding: 12,
-        borderRadius: 12,
-        background: '#0f172a',
-        color: '#e2e8f0',
-        fontSize: 12,
-        overflowX: 'auto',
-      }}
-    >
-      {JSON.stringify(value, null, 2)}
-    </pre>
-  )
+function toNumber(value, fallback = 0) {
+  const next = Number(value)
+  return Number.isFinite(next) ? next : fallback
+}
+
+function roundAmount(value) {
+  return Math.max(0, Math.round(toNumber(value, 0)))
+}
+
+function formatMoney(value) {
+  return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
+
+function computeRatios(legacyPolicy) {
+  const base24 = toNumber(legacyPolicy?.baseDailyPrice, 0)
+  if (base24 <= 0) {
+    return {
+      fee6h: 0.55,
+      fee12h: 0.8,
+      fee1h: 0.04,
+      week1Price: 6.5,
+      week2Price: 12.5,
+      month1Price: 24,
+      long24hPrice: 1,
+      long1hPrice: 0.04,
+    }
+  }
+
+  return {
+    fee6h: toNumber(legacyPolicy?.hour6Price, base24 * 0.55) / base24,
+    fee12h: toNumber(legacyPolicy?.hour12Price, base24 * 0.8) / base24,
+    fee1h: toNumber(legacyPolicy?.hour1Price, base24 * 0.04) / base24,
+    week1Price: toNumber(legacyPolicy?.weekday7dPlusPrice, base24 * 6.5) / base24,
+    week2Price: toNumber(legacyPolicy?.weekend7dPlusPrice, base24 * 12.5) / base24,
+    month1Price: 24,
+    long24hPrice: 1,
+    long1hPrice: toNumber(legacyPolicy?.hour1Price, base24 * 0.1) / base24,
+  }
+}
+
+function buildComputedRate(legacyPolicy, base24Input, percentAdjustment) {
+  const base24 = roundAmount(base24Input)
+  const percent = toNumber(percentAdjustment, 0)
+  const applied24h = roundAmount(base24 * (1 + percent / 100))
+  const ratios = computeRatios(legacyPolicy)
+
+  return {
+    base24h: base24,
+    percentAdjustment: percent,
+    applied24h,
+    fee6h: roundAmount(applied24h * ratios.fee6h),
+    fee12h: roundAmount(applied24h * ratios.fee12h),
+    fee1h: roundAmount(applied24h * ratios.fee1h),
+    week1Price: roundAmount(applied24h * ratios.week1Price),
+    week2Price: roundAmount(applied24h * ratios.week2Price),
+    month1Price: roundAmount(applied24h * ratios.month1Price),
+    long24hPrice: roundAmount(applied24h * ratios.long24hPrice),
+    long1hPrice: roundAmount(applied24h * ratios.long1hPrice),
+  }
 }
 
 export default function AdminPricingHubPage() {
@@ -94,7 +122,6 @@ export default function AdminPricingHubPage() {
   const [editorError, setEditorError] = useState('')
   const [periodForm, setPeriodForm] = useState(EMPTY_PERIOD)
   const [rateForm, setRateForm] = useState(EMPTY_RATE)
-  const [overrideForm, setOverrideForm] = useState(EMPTY_OVERRIDE)
   const [previewResult, setPreviewResult] = useState(null)
   const [submitMessage, setSubmitMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -102,7 +129,10 @@ export default function AdminPricingHubPage() {
   const hasAdminHint = useMemo(() => isAdminUser(user) || isAdminUser(profile), [profile, user])
   const selectedGroup = groups.find((item) => item.carGroupId === selectedCarGroupId) || null
   const selectedPolicy = editor?.policies?.[0] || null
-  const selectedPeriod = selectedPolicy?.periods?.[0] || null
+  const computedPreview = useMemo(
+    () => buildComputedRate(selectedPolicy?.legacyPolicy, rateForm.fee24h, periodForm.percentAdjustment),
+    [selectedPolicy, rateForm.fee24h, periodForm.percentAdjustment],
+  )
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -166,8 +196,18 @@ export default function AdminPricingHubPage() {
         if (ignore) return
         setEditor(result)
         setEditorError('')
-        const fallbackTargetId = String(result?.group?.imsGroupId || result?.group?.carGroupId || '')
-        setOverrideForm((prev) => ({ ...prev, targetId: fallbackTargetId }))
+        const legacyPolicy = result?.policies?.[0]?.legacyPolicy || {}
+        setRateForm((prev) => ({
+          ...prev,
+          fee24h: toNumber(legacyPolicy.baseDailyPrice, 0),
+          fee6h: toNumber(legacyPolicy.hour6Price, 0),
+          fee12h: toNumber(legacyPolicy.hour12Price, 0),
+          fee1h: toNumber(legacyPolicy.hour1Price, 0),
+        }))
+        setPeriodForm((prev) => ({
+          ...prev,
+          percentAdjustment: 0,
+        }))
       })
       .catch((error) => {
         if (ignore) return
@@ -195,54 +235,33 @@ export default function AdminPricingHubPage() {
     setSubmitting(true)
     setSubmitMessage('')
     try {
-      await savePricingHubPeriod(session, {
+      const savedPeriod = await savePricingHubPeriod(session, {
         ...periodForm,
         pricePolicyId: selectedPolicy.pricePolicyId,
+        metadata: {
+          percentAdjustment: toNumber(periodForm.percentAdjustment, 0),
+        },
       })
-      setPeriodForm(EMPTY_PERIOD)
-      await refreshEditor()
-      setSubmitMessage('기간 저장 완료')
-    } catch (error) {
-      setSubmitMessage(error.message || '기간 저장 실패')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
-  async function handleSaveRate() {
-    if (!session?.access_token || !selectedPeriod?.id) return
-    setSubmitting(true)
-    setSubmitMessage('')
-    try {
       await savePricingHubRate(session, {
-        ...rateForm,
-        pricingHubPeriodId: selectedPeriod.id,
+        ...EMPTY_RATE,
+        pricingHubPeriodId: savedPeriod?.item?.id,
+        fee24h: computedPreview.applied24h,
+        fee6h: computedPreview.fee6h,
+        fee12h: computedPreview.fee12h,
+        fee1h: computedPreview.fee1h,
+        week1Price: computedPreview.week1Price,
+        week2Price: computedPreview.week2Price,
+        month1Price: computedPreview.month1Price,
+        long24hPrice: computedPreview.long24hPrice,
+        long1hPrice: computedPreview.long1hPrice,
       })
-      setRateForm(EMPTY_RATE)
-      await refreshEditor()
-      setSubmitMessage('요율 저장 완료')
-    } catch (error) {
-      setSubmitMessage(error.message || '요율 저장 실패')
-    } finally {
-      setSubmitting(false)
-    }
-  }
 
-  async function handleSaveOverride() {
-    if (!session?.access_token) return
-    setSubmitting(true)
-    setSubmitMessage('')
-    try {
-      await savePricingHubOverride(session, overrideForm)
-      setOverrideForm((prev) => ({
-        ...EMPTY_OVERRIDE,
-        targetType: prev.targetType,
-        targetId: prev.targetId,
-      }))
+      setPeriodForm((prev) => ({ ...EMPTY_PERIOD, percentAdjustment: prev.percentAdjustment }))
       await refreshEditor()
-      setSubmitMessage('예외 규칙 저장 완료')
+      setSubmitMessage('기간 정책 저장 완료')
     } catch (error) {
-      setSubmitMessage(error.message || '예외 규칙 저장 실패')
+      setSubmitMessage(error.message || '기간 정책 저장 실패')
     } finally {
       setSubmitting(false)
     }
@@ -271,7 +290,7 @@ export default function AdminPricingHubPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <h1 style={{ margin: 0 }}>RENTCAR00 PRICING HUB</h1>
-                <p className="small-note" style={{ marginTop: 8 }}>운영 검색 가격은 건드리지 않고 분리된 허브 데이터만 관리합니다.</p>
+                <p className="small-note" style={{ marginTop: 8 }}>24시간 기준금액과 기간 % 정책만 입력하고, 실제 적용 금액을 바로 확인합니다.</p>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Link className="btn btn-outline btn-md" to="/admin/bookings">예약관리로</Link>
@@ -297,7 +316,7 @@ export default function AdminPricingHubPage() {
                     onClick={() => setSelectedCarGroupId(item.carGroupId)}
                   >
                     <span>{item.groupName} · {item.policyName}</span>
-                    <span style={{ fontSize: 12, opacity: 0.75 }}>P{item.hubPeriodsCount} / O{item.hubOverridesCount}</span>
+                    <span style={{ fontSize: 12, opacity: 0.75 }}>P{item.hubPeriodsCount}</span>
                   </button>
                 ))}
               </div>
@@ -317,13 +336,21 @@ export default function AdminPricingHubPage() {
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>기존 정책 기준값</strong>
+                  <strong>기준값 입력</strong>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
-                  {!editorLoading && selectedPolicy ? <JsonBlock value={selectedPolicy.legacyPolicy} /> : null}
+                  <div className="form-grid">
+                    <Field label="기존 24시간 기준값">
+                      <input className="field-input" type="number" value={rateForm.fee24h} onChange={(e) => setRateForm((prev) => ({ ...prev, fee24h: e.target.value }))} />
+                    </Field>
+                    <Field label="기간 조정률(%)">
+                      <input className="field-input" type="number" value={periodForm.percentAdjustment} onChange={(e) => setPeriodForm((prev) => ({ ...prev, percentAdjustment: e.target.value }))} />
+                    </Field>
+                  </div>
+                  <p className="field-note" style={{ margin: 0 }}>1h/일수별은 기존 비율을 유지하고, 6h/12h는 legacy 우선·없으면 55%/80% fallback으로 계산합니다.</p>
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>기간 추가</strong>
+                  <strong>기간 정책 추가</strong>
                   <div className="form-grid">
                     <Field label="기간명"><input className="field-input" value={periodForm.periodName} onChange={(e) => setPeriodForm((prev) => ({ ...prev, periodName: e.target.value }))} /></Field>
                     <Field label="시작"><input className="field-input" type="datetime-local" value={periodForm.startAt} onChange={(e) => setPeriodForm((prev) => ({ ...prev, startAt: e.target.value }))} /></Field>
@@ -340,72 +367,45 @@ export default function AdminPricingHubPage() {
                     ))}
                   </div>
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn btn-dark btn-md" type="button" disabled={submitting || !selectedPolicy} onClick={handleSavePeriod}>기간 저장</button>
+                    <button className="btn btn-dark btn-md" type="button" disabled={submitting || !selectedPolicy} onClick={handleSavePeriod}>기간 정책 저장</button>
+                    <button className="btn btn-outline btn-md" type="button" disabled={submitting || !selectedCarGroupId} onClick={handleBuildPreview}>저장된 허브 preview</button>
                   </div>
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>요율 추가</strong>
-                  <p className="field-note" style={{ margin: 0 }}>가장 최근 period 기준으로 저장합니다.</p>
+                  <strong>실제 적용 금액 미리보기</strong>
+                  <div className="reservation-result-row"><span>기본 24시간</span><strong>{formatMoney(computedPreview.base24h)}</strong></div>
+                  <div className="reservation-result-row"><span>기간 조정률</span><strong>{toNumber(periodForm.percentAdjustment, 0)}%</strong></div>
+                  <div className="reservation-result-row"><span>적용 24시간</span><strong>{formatMoney(computedPreview.applied24h)}</strong></div>
                   <div className="form-grid">
-                    <Field label="scope">
-                      <select className="field-select" value={rateForm.rateScope} onChange={(e) => setRateForm((prev) => ({ ...prev, rateScope: e.target.value }))}>
-                        <option value="common">common</option>
-                        <option value="weekday">weekday</option>
-                        <option value="weekend">weekend</option>
-                        <option value="extended">extended</option>
-                      </select>
-                    </Field>
-                    <Field label="6h"><input className="field-input" type="number" value={rateForm.fee6h} onChange={(e) => setRateForm((prev) => ({ ...prev, fee6h: e.target.value }))} /></Field>
-                    <Field label="12h"><input className="field-input" type="number" value={rateForm.fee12h} onChange={(e) => setRateForm((prev) => ({ ...prev, fee12h: e.target.value }))} /></Field>
-                    <Field label="24h"><input className="field-input" type="number" value={rateForm.fee24h} onChange={(e) => setRateForm((prev) => ({ ...prev, fee24h: e.target.value }))} /></Field>
-                    <Field label="1h"><input className="field-input" type="number" value={rateForm.fee1h} onChange={(e) => setRateForm((prev) => ({ ...prev, fee1h: e.target.value }))} /></Field>
-                    <Field label="weekend_days"><input className="field-input" value={rateForm.weekendDays} onChange={(e) => setRateForm((prev) => ({ ...prev, weekendDays: e.target.value }))} /></Field>
+                    <div className="reservation-result-row"><span>1시간</span><strong>{formatMoney(computedPreview.fee1h)}</strong></div>
+                    <div className="reservation-result-row"><span>6시간</span><strong>{formatMoney(computedPreview.fee6h)}</strong></div>
+                    <div className="reservation-result-row"><span>12시간</span><strong>{formatMoney(computedPreview.fee12h)}</strong></div>
+                    <div className="reservation-result-row"><span>1주</span><strong>{formatMoney(computedPreview.week1Price)}</strong></div>
+                    <div className="reservation-result-row"><span>2주</span><strong>{formatMoney(computedPreview.week2Price)}</strong></div>
+                    <div className="reservation-result-row"><span>1개월</span><strong>{formatMoney(computedPreview.month1Price)}</strong></div>
                   </div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn btn-dark btn-md" type="button" disabled={submitting || !selectedPeriod} onClick={handleSaveRate}>요율 저장</button>
-                  </div>
+                  <div className="reservation-result-row"><span>IMS 반영 예상 24h</span><strong>{formatMoney(computedPreview.applied24h)}</strong></div>
+                  <div className="reservation-result-row"><span>찜카 반영 예상 24h</span><strong>{formatMoney(computedPreview.applied24h)}</strong></div>
                 </div>
 
-                <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>예외 규칙 추가</strong>
-                  <div className="form-grid">
-                    <Field label="target type">
-                      <select className="field-select" value={overrideForm.targetType} onChange={(e) => setOverrideForm((prev) => ({ ...prev, targetType: e.target.value }))}>
-                        <option value="ims_group">ims_group</option>
-                        <option value="vehicle">vehicle</option>
-                        <option value="policy">policy</option>
-                        <option value="zzimcar_model">zzimcar_model</option>
-                      </select>
-                    </Field>
-                    <Field label="target id"><input className="field-input" value={overrideForm.targetId} onChange={(e) => setOverrideForm((prev) => ({ ...prev, targetId: e.target.value }))} /></Field>
-                    <Field label="field"><input className="field-input" value={overrideForm.fieldName} onChange={(e) => setOverrideForm((prev) => ({ ...prev, fieldName: e.target.value }))} /></Field>
-                    <Field label="type">
-                      <select className="field-select" value={overrideForm.overrideType} onChange={(e) => setOverrideForm((prev) => ({ ...prev, overrideType: e.target.value }))}>
-                        <option value="absolute">absolute</option>
-                        <option value="adjustment">adjustment</option>
-                        <option value="percentage">percentage</option>
-                      </select>
-                    </Field>
-                    <Field label="value"><input className="field-input" type="number" value={overrideForm.overrideValue} onChange={(e) => setOverrideForm((prev) => ({ ...prev, overrideValue: e.target.value }))} /></Field>
-                    <Field label="priority"><input className="field-input" type="number" value={overrideForm.priority} onChange={(e) => setOverrideForm((prev) => ({ ...prev, priority: e.target.value }))} /></Field>
+                {selectedPolicy?.periods?.length ? (
+                  <div className="panel-sub" style={{ display: 'grid', gap: 10 }}>
+                    <strong>저장된 기간 정책</strong>
+                    {selectedPolicy.periods.map((period) => (
+                      <div key={period.id} className="reservation-result-row">
+                        <span>{period.period_name || '-'}</span>
+                        <strong>{toNumber(period.metadata?.percentAdjustment, 0)}%</strong>
+                      </div>
+                    ))}
                   </div>
-                  <Field label="reason"><input className="field-input" value={overrideForm.reason} onChange={(e) => setOverrideForm((prev) => ({ ...prev, reason: e.target.value }))} /></Field>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn btn-dark btn-md" type="button" disabled={submitting} onClick={handleSaveOverride}>예외 저장</button>
-                    <button className="btn btn-outline btn-md" type="button" disabled={submitting || !selectedCarGroupId} onClick={handleBuildPreview}>미리보기 생성</button>
-                  </div>
-                </div>
-
-                <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>현재 허브 상태</strong>
-                  <JsonBlock value={{ policies: editor?.policies || [], overrides: editor?.overrides || [] }} />
-                </div>
+                ) : null}
 
                 {previewResult ? (
                   <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                    <strong>최근 preview</strong>
-                    <JsonBlock value={previewResult} />
+                    <strong>저장된 허브 preview 결과</strong>
+                    <div className="reservation-result-row"><span>preview id</span><strong>{previewResult.previewId || '-'}</strong></div>
+                    <div className="reservation-result-row"><span>항목 수</span><strong>{previewResult.itemCount || 0}</strong></div>
                   </div>
                 ) : null}
               </div>

@@ -1,238 +1,145 @@
-# RENTCAR00 pricing hub execution current
+# RENTCAR00 PRICING_HUB execution current
 
 Last updated: 2026-04-29
 
-이 문서는 **구현 직전 기준의 PRICING_HUB 실행 문서**다.
-현재 목표는 아래다.
-
-- 기존 운영 가격 계산은 유지
-- 신규 `pricing_hub_*` 테이블만 추가
-- 관리자 패널에서 새 요금체계를 조회/수정 가능하게 준비
+이 문서는 지금부터 실제로 적용할 PRICING_HUB 실행 순서를 잠근다.
+현재 초점은 **UI를 먼저 단순화하고, 그 UI가 요구하는 계산/DB/API만 뒤에서 맞추는 것**이다.
 
 ---
 
-## 1. 실행 범위
+## 1. 목적
 
-### 포함
-- 신규 허브 테이블 범위 확정
-- migration 초안 준비
-- admin API 계약 확정
-- admin page 진입 구조 확정
-- preview 저장 구조 확정
-- 충돌/꼬임 포인트 확인
-
-### 제외
-- 기존 검색 가격 계산 교체
-- 찜카 publish
-- IMS/찜카 수집기 연결
-- 레거시 가격 테이블 교체
-- 예약 sync 재구현
+- 관리자 화면을 **24h 기준금액 + 기간 percent 정책 + 실적용 preview** 중심으로 재구성한다.
+- IMS 완전 호환을 기준으로 내부 데이터 구조를 다시 좁힌다.
+- 찜카 반영은 같은 계산 결과를 채널 규칙에 맞춰 파생시키는 방식으로 정리한다.
 
 ---
 
-## 2. 실코드 확인 결과
+## 2. 기준점
 
-### 라우트 / 페이지
-- 라우트 등록: `src/App.jsx`
-- 현재 관리자 페이지:
-  - `/admin/bookings`
-  - `/admin/booking-confirm`
-- 관리자 진입/권한 패턴:
-  - `src/pages/AdminBookingsPage.jsx`
-  - `src/components/Layout.jsx`
-  - `src/utils/adminAccess.js`
+현재 이미 존재하는 것:
+- `/admin/pricing-hub` 페이지 진입
+- `api/admin/pricing-hub.js`
+- `pricing_hub_*` 신규 테이블
+- 관리자 버튼 연결
+- migration 적용 완료
 
-### admin API 패턴
-- 현재 admin API: `api/admin/bookings.js`
-- 인증 방식:
-  - `Authorization: Bearer <access_token>`
-  - `getUserFromAccessToken`
-  - `assertAdminUser(authUser)`
-- 신규 허브 API도 같은 패턴을 따라가는 것이 안전함
-
-### 기존 가격 의존 경로
-- 검색 가격 조회 repository:
-  - `server/search-db/repositories/fetchGroupPricePolicies.js`
-- 검색 가격 기준 view:
-  - `v_active_group_price_policies`
-- 레거시 가격 적재 스크립트:
-  - `scripts/pricing/build-group-pricing-preview.js`
-  - `scripts/pricing/apply-group-pricing.js`
-
-### 실코드 기준 핵심 판단
-1. 기존 검색 가격은 `v_active_group_price_policies` 만 본다.
-2. 신규 허브 테이블을 추가해도 기존 검색 가격은 자동으로 바뀌지 않는다.
-3. 이 분리가 1차에는 오히려 안전하다.
-4. PRICING_HUB 구현은 반드시 기존 검색 경로와 분리해야 한다.
+현재 active에서 바로 손봐야 할 것:
+- 기존 정책 JSON 카드 제거
+- legacy 기준값 폼 자동 주입
+- 기간 정책을 percent 전용으로 단순화
+- 24h 이외 직접 편집 입력 축소
+- 실제 적용 금액 preview 강화
 
 ---
 
-## 3. 구현 직전 결정
+## 3. phase
 
-### 결정 1 — 메인 그룹 축
-- `ims_group_id` 중심
-- 그룹 본체는 기존 `car_groups`
+### Phase 1 — 문서/원칙 잠금
+목적:
+- 범용 허브 초안을 내리고, 실적용 원칙으로 문서를 재잠금
 
-### 결정 2 — 신규 테이블 범위
+종료 조건:
+- present 문서는 현재 실행 기준만 남음
+- 과거 초안은 past 로 이동
+
+### Phase 2 — UI 단순화
+목적:
+- 관리자 화면을 24h 기준금액 + 기간 percent 중심으로 줄임
+
+수정 대상:
+- `src/pages/AdminPricingHubPage.jsx`
+- `src/services/adminPricingHubApi.js`
+
+세부 작업:
+1. 기존 정책 JSON 카드 제거
+2. legacy 기준값 폼 자동 주입
+3. 기간 폼을 percent 전용으로 단순화
+4. 직접 수정 가능한 금액 입력을 24h 중심으로 축소
+5. 실제 적용 금액 preview 패널 추가
+
+종료 조건:
+- 관리자가 복잡한 내부 구조 없이 입력 가능
+- 적용 예상 금액을 즉시 확인 가능
+
+### Phase 3 — 계산 계약 잠금
+목적:
+- 24h 기준값에서 시간별/기간별 금액을 어떻게 계산할지 고정
+
+수정 대상:
+- 문서 우선
+- 필요 시 `server/pricing-hub/*` 또는 `api/admin/pricing-hub.js`
+
+잠긴 active 규칙:
+- 24h 직접 수정
+- 기간은 %만
+- 1h/일수별 금액은 legacy 비율 유지
+- 6h fallback = 24h × 0.55
+- 12h fallback = 24h × 0.80
+
+종료 조건:
+- 1h / 6h / 12h / 장기요금 계산 규칙 문서화
+- preview 결과와 계산 계약 일치
+
+### Phase 4 — DB/API 축소 정렬
+목적:
+- 현재 범용적으로 열린 구조를 active 규칙에 맞게 좁힘
+
+검토 대상:
 - `pricing_hub_periods`
 - `pricing_hub_rates`
 - `pricing_hub_overrides`
 - `pricing_hub_previews`
 - `pricing_hub_preview_items`
-- `pricing_hub_publishes`
-- `pricing_hub_publish_items`
-- `pricing_hub_channel_mappings`
 
-### 결정 3 — 1차에서 실제로 쓰는 테이블
-- 읽기:
-  - `car_groups`
-  - `price_policies`
-  - `price_policy_groups`
-- 쓰기:
-  - `pricing_hub_periods`
-  - `pricing_hub_rates`
-  - `pricing_hub_overrides`
-  - `pricing_hub_previews`
-  - `pricing_hub_preview_items`
+핵심 판단:
+- active 에서 필요한 필드만 실제 사용
+- 나머지 필드는 후순위 또는 숨김 처리
+- 필요 시 additive migration 으로 보강
 
-### 결정 4 — 신규 API 분리
-- `api/admin/bookings.js` 에 섞지 않는다.
-- 신규 `api/admin/pricing-hub.js` 로 분리한다.
+종료 조건:
+- UI 입력과 DB/API 구조가 같은 방향을 봄
+- IMS 호환 관점에서 누락 필드가 식별됨
 
-### 결정 5 — 신규 페이지 분리
-- `AdminBookingsPage.jsx` 는 버튼만 추가
-- 신규 `AdminPricingHubPage.jsx` 생성
+### Phase 5 — IMS 반영 계약
+목적:
+- 허브 저장값이 IMS에 그대로 들어갈 수 있는 반영 포맷 정리
+
+종료 조건:
+- IMS payload 기준 정리
+- 기간 percent 가 IMS 정책에 어떻게 풀리는지 문서화
+- 반영/검증 절차 초안 확보
+
+### Phase 6 — 찜카 파생 반영 계약
+목적:
+- 같은 결과값을 찜카용으로 변환하는 규칙 정리
+
+종료 조건:
+- 찜카 항목별 0원 처리 규칙 정리
+- 필수 매핑키 정리
+- preview 에서 찜카 예상 반영값 확인 가능
 
 ---
 
-## 4. 구현 직전 phase
+## 4. 리스크
 
-### Phase 1 — migration 준비
-목적:
-- 신규 허브 테이블만 추가하는 migration 초안 준비
-
-수정 대상:
-- `supabase/migrations/<new>_create_pricing_hub_tables.sql`
-
-종료 조건:
-- 레거시 테이블 수정 없음
-- 신규 허브 테이블 목록 확정
-- FK 방향 확정
-
-체크:
-- `price_policy_id` → `price_policies.id`
-- `car_group_id` → `car_groups.id`
-- 기존 view 미수정
-
-### Phase 2 — admin API 계약 준비
-목적:
-- 패널이 호출할 API shape 확정
-
-수정 대상:
-- `api/admin/pricing-hub.js` 신규
-- 필요 시 `server/pricing-hub/*` 신규
-
-권장 action:
-- `list-groups`
-- `get-policy-editor`
-- `save-period`
-- `save-rate`
-- `save-override`
-- `build-preview`
-
-종료 조건:
-- list 응답 shape 확정
-- editor 응답 shape 확정
-- save payload 확정
-- preview 응답 shape 확정
-
-### Phase 3 — admin page 준비
-목적:
-- 관리자 페이지에서 안전하게 진입 가능한 UI 준비
-
-수정 대상:
-- `src/App.jsx`
-- `src/pages/AdminBookingsPage.jsx`
-- `src/pages/AdminPricingHubPage.jsx` 신규
-- `src/services/adminPricingHubApi.js` 신규
-
-종료 조건:
-- `/admin/pricing-hub` 라우트 추가 위치 확정
-- 관리자 버튼 추가 위치 확정
-- 페이지 state 구조 확정
-
-실코드 기준 메모:
-- 권한 체크는 `AdminBookingsPage.jsx` 복사 패턴 사용
-- 1차 UI는 기존 panel/card 스타일 재사용
-
-### Phase 4 — preview 구조 준비
-목적:
-- 저장 후 바로 preview 확인 가능한 최소 구조 준비
-
-수정 대상:
-- `api/admin/pricing-hub.js`
-- `pricing_hub_previews`
-- `pricing_hub_preview_items`
-
-종료 조건:
-- preview 생성 가능
-- before / after / diff 저장 가능
-- 기존 검색 가격 결과 미변경 확인
-
-### Phase 5 — 충돌 방지 최종 점검
-목적:
-- 구현 직전 꼬임 방지
-
-체크 대상:
-- `server/search-db/repositories/fetchGroupPricePolicies.js`
-- `v_active_group_price_policies`
-- `scripts/pricing/apply-group-pricing.js`
-- `api/admin/bookings.js`
-- `src/pages/AdminBookingsPage.jsx`
-
-종료 조건:
-- 기존 검색 가격 경로 미수정 확인
-- admin bookings API 와 pricing hub API 분리 확인
-- admin bookings page 와 pricing hub page 분리 확인
+1. IMS 계산 규칙을 정확히 모르면 24h 기반 수식이 어긋날 수 있다.
+2. 현재 DB는 범용 허브 초안 흔적이 있어, UI보다 DB가 넓게 열려 있다.
+3. 찜카는 옵션이 많아 0원 처리 기준을 빨리 잠그지 않으면 preview 신뢰도가 떨어질 수 있다.
+4. 너무 빨리 스키마를 다시 고치면 이전 실험 구조와 충돌할 수 있다.
 
 ---
 
-## 5. 충돌 / 꼬임 체크 결과
+## 5. 검증
 
-### A. 바로 구현하면 안 되는 꼬임
-1. `api/admin/bookings.js` 에 허브 action 추가
-2. `AdminBookingsPage.jsx` 안에 허브 본문까지 같이 구현
-3. 신규 허브 저장값을 기존 검색 조회에 바로 섞음
-4. 레거시 스크립트 책임과 신규 허브 저장 책임을 합침
-
-### B. 지금 안전한 방법
-1. migration 추가
-2. 신규 admin API 파일 추가
-3. 신규 admin page 파일 추가
-4. 기존 관리자 페이지엔 버튼만 추가
-5. preview 까지만 먼저 연결
+- UI 빌드 통과
+- 관리자 진입 확인
+- 그룹 선택 시 legacy 값 자동 주입 확인
+- 기간 percent 입력 시 preview 금액 변동 확인
+- IMS / 찜카 예상 출력 행 검토
 
 ---
 
-## 6. 구현 직전 산출물
+## 6. 한 줄 실행 순서
 
-### 문서
-- `...PRICING_HUB_CURRENT.md`
-- `...PRICING_HUB_SCHEMA_LOCK_CURRENT.md`
-- `...PRICING_HUB_PANEL_DRAFT_CURRENT.md`
-- 현재 문서
-
-### 코드 예정
-- migration 1개
-- API 1개
-- service 1개
-- page 1개
-- 기존 admin page 버튼 수정 1곳
-- route 추가 1곳
-
----
-
-## 7. 한 줄 결론
-
-지금은 **설계 잠금 + 실코드 충돌 확인 완료 상태**다.
-바로 다음은 **migration 초안 → admin API 초안 → admin page 뼈대** 순서로 들어가면 된다.
+**문서 잠금 → UI 단순화 → 계산 계약 잠금 → DB/API 정렬 → IMS 반영 계약 → 찜카 파생 계약**
