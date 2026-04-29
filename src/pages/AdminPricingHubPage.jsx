@@ -97,6 +97,7 @@ export default function AdminPricingHubPage() {
   const [editorError, setEditorError] = useState('')
   const [base24hInput, setBase24hInput] = useState(0)
   const [adjustedBase24hInput, setAdjustedBase24hInput] = useState(0)
+  const [adjustInputValue, setAdjustInputValue] = useState('0')
   const [adjustMode, setAdjustMode] = useState(ADJUST_MODE_WEEKDAY)
   const [submitMessage, setSubmitMessage] = useState('')
   const selectionCardRef = useRef(null)
@@ -173,8 +174,10 @@ export default function AdminPricingHubPage() {
         setEditorError('')
         const legacyPolicy = result?.policies?.[0]?.legacyPolicy || {}
         const nextBase24h = toNumber(legacyPolicy.baseDailyPrice, 0)
+        const nextWeekday24h = roundAmount(nextBase24h * (toNumber(legacyPolicy.weekdayRatePercent, 100) / 100))
         setBase24hInput(nextBase24h)
         setAdjustedBase24hInput(nextBase24h)
+        setAdjustInputValue(String(adjustMode === ADJUST_MODE_WEEKDAY ? nextWeekday24h : nextBase24h))
       })
       .catch((error) => {
         if (ignore) return
@@ -193,12 +196,23 @@ export default function AdminPricingHubPage() {
 
   useEffect(() => {
     if (!selectedCarGroupId || !selectionCardRef.current) return
-    if (typeof window === 'undefined' || window.innerWidth > 960) return
 
     selectionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [selectedCarGroupId])
 
+  function handleAdjustModeChange(nextMode) {
+    setAdjustMode(nextMode)
+    setAdjustInputValue(String(nextMode === ADJUST_MODE_WEEKDAY ? computedPreview.weekdayApplied24h : computedPreview.adjustedBase24h))
+  }
+
   function handleAdjustInputChange(value) {
+    setAdjustInputValue(value)
+
+    if (value === '') {
+      setAdjustedBase24hInput('')
+      return
+    }
+
     if (adjustMode === ADJUST_MODE_BASE24) {
       setAdjustedBase24hInput(value)
       return
@@ -216,7 +230,6 @@ export default function AdminPricingHubPage() {
   }
 
   const adjustFieldLabel = adjustMode === ADJUST_MODE_WEEKDAY ? '주중 24시간 요금' : '조정 후 24시간 기준값'
-  const adjustFieldValue = adjustMode === ADJUST_MODE_WEEKDAY ? computedPreview.weekdayApplied24h : adjustedBase24hInput
 
   return (
     <PageShell>
@@ -255,8 +268,8 @@ export default function AdminPricingHubPage() {
                       <span style={{ fontSize: 12, opacity: 0.75 }}>P{item.hubPeriodsCount}</span>
                     </div>
                     <div className="pricing-hub-group-card__meta">
-                      <span>주중24 {formatMoney(item.currentRateSummary?.weekday24h)}</span>
-                      <span>주말24 {formatMoney(item.currentRateSummary?.weekend24h)}</span>
+                      <span>주중24 <strong>{formatMoney(item.currentRateSummary?.weekday24h)}</strong></span>
+                      <span>주말24 <strong>{formatMoney(item.currentRateSummary?.weekend24h)}</strong></span>
                     </div>
                   </button>
                 ))}
@@ -280,8 +293,8 @@ export default function AdminPricingHubPage() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     <strong>기준값 조정</strong>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_BASE24 ? 'btn-dark' : 'btn-outline'}`} onClick={() => setAdjustMode(ADJUST_MODE_BASE24)}>기준값수정</button>
-                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_WEEKDAY ? 'btn-dark' : 'btn-outline'}`} onClick={() => setAdjustMode(ADJUST_MODE_WEEKDAY)}>주중요금수정</button>
+                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_BASE24 ? 'btn-dark' : 'btn-outline'}`} onClick={() => handleAdjustModeChange(ADJUST_MODE_BASE24)}>기준값수정</button>
+                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_WEEKDAY ? 'btn-dark' : 'btn-outline'}`} onClick={() => handleAdjustModeChange(ADJUST_MODE_WEEKDAY)}>주중요금수정</button>
                     </div>
                   </div>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
@@ -290,7 +303,7 @@ export default function AdminPricingHubPage() {
                       <input className="field-input" type="text" readOnly value={formatMoney(computedPreview.originalBase24h)} />
                     </Field>
                     <Field label={adjustFieldLabel}>
-                      <input className="field-input" type="number" value={adjustFieldValue} onChange={(e) => handleAdjustInputChange(e.target.value)} />
+                      <input className="field-input" type="number" inputMode="numeric" min="0" step="10000" value={adjustInputValue} onChange={(e) => handleAdjustInputChange(e.target.value)} />
                     </Field>
                   </div>
                   <div className="reservation-result-row"><span>조정 후 24시간 기준값</span><strong>{formatMoney(computedPreview.adjustedBase24h)}</strong></div>
