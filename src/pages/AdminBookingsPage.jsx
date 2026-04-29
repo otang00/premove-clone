@@ -90,15 +90,16 @@ function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims
       className="panel-sub"
       style={{
         display: 'grid',
-        gap: 12,
+        gap: 8,
         background: tone.bg,
         border: `1px solid ${tone.border}`,
-        minHeight: 320,
+        minHeight: 220,
         alignContent: 'start',
+        padding: '12px 14px',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'nowrap' }}>
-        <div style={{ display: 'grid', gap: 4, minWidth: 0, flex: 1 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'flex-start', flexWrap: 'nowrap' }}>
+        <div style={{ display: 'grid', gap: 2, minWidth: 0, flex: 1 }}>
           <strong>{title}</strong>
           <span className="field-note" style={{ margin: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {loading ? '상태를 불러오는 중입니다.' : sync ? `최근 실행 ${formatSyncDateTime(sync.updatedAt)}` : '실행 이력이 아직 없습니다.'}
@@ -106,7 +107,7 @@ function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims
         </div>
         <div
           style={{
-            padding: '6px 10px',
+            padding: '4px 8px',
             borderRadius: 999,
             fontSize: 13,
             fontWeight: 700,
@@ -119,16 +120,16 @@ function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims
         </div>
       </div>
 
-      <div style={{ display: 'grid', gap: 8 }}>
+      <div style={{ display: 'grid', gap: 6 }}>
         {displayRows.map((row) => (
-          <div key={row.label} className="reservation-result-row" style={{ gap: 12, flexWrap: 'nowrap' }}>
+          <div key={row.label} className="reservation-result-row" style={{ gap: 8, flexWrap: 'nowrap' }}>
             <span style={{ whiteSpace: 'nowrap', flexShrink: 0 }}>{row.label}</span>
             <strong style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{loading ? '확인중' : row.value}</strong>
           </div>
         ))}
       </div>
 
-      <div style={{ minHeight: 24 }}>
+      <div style={{ minHeight: 18 }}>
         {!loading && sync?.errorSummary ? (
           <p className="field-note" style={{ margin: 0, color: tone.text, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             오류 요약: {sync.errorSummary}
@@ -140,7 +141,7 @@ function SyncStatusCard({ title, sync, errors = [], loading = false, kind = 'ims
         )}
       </div>
 
-      <div style={{ minHeight: 72 }}>
+      <div style={{ minHeight: 44 }}>
         {!loading && errors.length > 0 ? (
           <details>
             <summary style={{ cursor: 'pointer', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>최근 오류 {errors.length}건</summary>
