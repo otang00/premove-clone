@@ -725,6 +725,43 @@
   color:#ffffff;
 }
 
+.pricing-hub-car-numbers{
+  word-break:break-all;
+}
+
+.pricing-hub-adjust-row{
+  gap:12px;
+}
+
+.pricing-hub-inline-controls{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:12px;
+  min-width:0;
+}
+
+.pricing-hub-percent-control{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex-wrap:nowrap;
+}
+
+.pricing-hub-percent-input{
+  width:88px;
+  min-width:88px;
+  min-height:32px;
+  padding:0 10px;
+  text-align:right;
+}
+
+.pricing-hub-percent-suffix{
+  font-size:13px;
+  color:#4b5f73;
+  font-weight:600;
+}
+
 @media (max-width: 960px){
   .pricing-hub-layout{
     grid-template-columns:1fr !important;
@@ -732,6 +769,15 @@
 
   .pricing-hub-editor-column{
     order:2;
+  }
+
+  .pricing-hub-inline-controls{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .pricing-hub-percent-control{
+    margin-left:auto;
   }
 
   .reservation-result-card{

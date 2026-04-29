@@ -62,6 +62,15 @@ export function savePricingHubRate(session, payload) {
   })
 }
 
+export function savePricingHubEditor(session, payload) {
+  return request(session, {
+    method: 'POST',
+    action: 'save-editor',
+    body: payload,
+    fallbackMessage: '요금 수정 저장에 실패했습니다.',
+  })
+}
+
 export function savePricingHubOverride(session, payload) {
   return request(session, {
     method: 'POST',

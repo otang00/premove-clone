@@ -6,6 +6,7 @@ import { isAdminUser } from '../utils/adminAccess'
 import {
   getPricingHubPolicyEditor,
   listPricingHubGroups,
+  savePricingHubEditor,
 } from '../services/adminPricingHubApi'
 
 function Field({ label, children }) {
@@ -26,8 +27,19 @@ function roundAmount(value) {
   return Math.max(0, Math.round(toNumber(value, 0)))
 }
 
+function roundPercent(value, fallback = 0) {
+  const next = toNumber(value, fallback)
+  return Math.max(0, Math.round(next * 100) / 100)
+}
+
 function formatMoney(value) {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`
+}
+
+function formatPercent(value) {
+  const next = Number(value)
+  if (!Number.isFinite(next)) return '-'
+  return `${next % 1 === 0 ? next.toFixed(0) : next.toFixed(2).replace(/\.00$/, '')}%`
 }
 
 function computeRatios(legacyPolicy) {
@@ -57,18 +69,18 @@ function computeRatios(legacyPolicy) {
   }
 }
 
-function buildComputedRate(legacyPolicy, base24Input, adjustedBase24hInput) {
-  const originalBase24h = roundAmount(base24Input)
-  const adjustedBase24h = roundAmount(adjustedBase24hInput)
+function buildComputedRate(legacyPolicy, base24Input, weekdayRatePercentInput, weekendRatePercentInput) {
+  const base24h = roundAmount(base24Input)
   const ratios = computeRatios(legacyPolicy)
-  const weekdayRatePercent = toNumber(legacyPolicy?.weekdayRatePercent, 100)
-  const weekendRatePercent = toNumber(legacyPolicy?.weekendRatePercent, 100)
-  const weekdayApplied24h = roundAmount(adjustedBase24h * (weekdayRatePercent / 100))
-  const weekendApplied24h = roundAmount(adjustedBase24h * (weekendRatePercent / 100))
+  const weekdayRatePercent = roundPercent(weekdayRatePercentInput, toNumber(legacyPolicy?.weekdayRatePercent, 100))
+  const weekendRatePercent = roundPercent(weekendRatePercentInput, toNumber(legacyPolicy?.weekendRatePercent, 100))
+  const weekdayApplied24h = roundAmount(base24h * (weekdayRatePercent / 100))
+  const weekendApplied24h = roundAmount(base24h * (weekendRatePercent / 100))
 
   return {
-    originalBase24h,
-    adjustedBase24h,
+    base24h,
+    weekdayRatePercent,
+    weekendRatePercent,
     weekdayApplied24h,
     weekendApplied24h,
     fee6h: roundAmount(weekdayApplied24h * ratios.fee6h),
@@ -82,9 +94,6 @@ function buildComputedRate(legacyPolicy, base24Input, adjustedBase24hInput) {
   }
 }
 
-const ADJUST_MODE_WEEKDAY = 'weekday'
-const ADJUST_MODE_BASE24 = 'base24'
-
 export default function AdminPricingHubPage() {
   const navigate = useNavigate()
   const { loading, isAuthenticated, session, user, profile } = useAuth()
@@ -95,10 +104,10 @@ export default function AdminPricingHubPage() {
   const [editor, setEditor] = useState(null)
   const [editorLoading, setEditorLoading] = useState(false)
   const [editorError, setEditorError] = useState('')
-  const [base24hInput, setBase24hInput] = useState(0)
-  const [adjustedBase24hInput, setAdjustedBase24hInput] = useState(0)
-  const [adjustInputValue, setAdjustInputValue] = useState('0')
-  const [adjustMode, setAdjustMode] = useState(ADJUST_MODE_WEEKDAY)
+  const [base24hInput, setBase24hInput] = useState('0')
+  const [weekdayPercentInput, setWeekdayPercentInput] = useState(100)
+  const [weekendPercentInput, setWeekendPercentInput] = useState(100)
+  const [saving, setSaving] = useState(false)
   const [submitMessage, setSubmitMessage] = useState('')
   const selectionCardRef = useRef(null)
 
@@ -106,8 +115,8 @@ export default function AdminPricingHubPage() {
   const selectedGroup = groups.find((item) => item.carGroupId === selectedCarGroupId) || null
   const selectedPolicy = editor?.policies?.[0] || null
   const computedPreview = useMemo(
-    () => buildComputedRate(selectedPolicy?.legacyPolicy, base24hInput, adjustedBase24hInput),
-    [selectedPolicy, base24hInput, adjustedBase24hInput],
+    () => buildComputedRate(selectedPolicy?.legacyPolicy, base24hInput, weekdayPercentInput, weekendPercentInput),
+    [selectedPolicy, base24hInput, weekdayPercentInput, weekendPercentInput],
   )
 
   useEffect(() => {
@@ -173,11 +182,11 @@ export default function AdminPricingHubPage() {
         setEditor(result)
         setEditorError('')
         const legacyPolicy = result?.policies?.[0]?.legacyPolicy || {}
-        const nextBase24h = toNumber(legacyPolicy.baseDailyPrice, 0)
-        const nextWeekday24h = roundAmount(nextBase24h * (toNumber(legacyPolicy.weekdayRatePercent, 100) / 100))
-        setBase24hInput(nextBase24h)
-        setAdjustedBase24hInput(nextBase24h)
-        setAdjustInputValue(String(adjustMode === ADJUST_MODE_WEEKDAY ? nextWeekday24h : nextBase24h))
+        const editorState = result?.editorState || {}
+        setBase24hInput(String(roundAmount(editorState.base24h || legacyPolicy.baseDailyPrice || 0)))
+        setWeekdayPercentInput(roundPercent(editorState.weekdayPercent, toNumber(legacyPolicy.weekdayRatePercent, 100)))
+        setWeekendPercentInput(roundPercent(editorState.weekendPercent, toNumber(legacyPolicy.weekendRatePercent, 100)))
+        setSubmitMessage('')
       })
       .catch((error) => {
         if (ignore) return
@@ -200,36 +209,58 @@ export default function AdminPricingHubPage() {
     selectionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [selectedCarGroupId])
 
-  function handleAdjustModeChange(nextMode) {
-    setAdjustMode(nextMode)
-    setAdjustInputValue(String(nextMode === ADJUST_MODE_WEEKDAY ? computedPreview.weekdayApplied24h : computedPreview.adjustedBase24h))
+  function handlePercentChange(kind, value) {
+    const nextValue = value === '' ? 0 : roundPercent(value, 0)
+    if (kind === 'weekday') {
+      setWeekdayPercentInput(nextValue)
+      return
+    }
+    setWeekendPercentInput(nextValue)
   }
 
-  function handleAdjustInputChange(value) {
-    setAdjustInputValue(value)
-
-    if (value === '') {
-      setAdjustedBase24hInput('')
+  function adjustPercent(kind, delta) {
+    if (kind === 'weekday') {
+      setWeekdayPercentInput((prev) => roundPercent(Math.max(0, toNumber(prev, 0) + delta), 0))
       return
     }
-
-    if (adjustMode === ADJUST_MODE_BASE24) {
-      setAdjustedBase24hInput(value)
-      return
-    }
-
-    const weekdayRatePercent = toNumber(selectedPolicy?.legacyPolicy?.weekdayRatePercent, 100)
-    const weekdayTarget = roundAmount(value)
-    if (weekdayRatePercent <= 0) {
-      setAdjustedBase24hInput(0)
-      return
-    }
-
-    const nextBase24h = roundAmount(weekdayTarget / (weekdayRatePercent / 100))
-    setAdjustedBase24hInput(nextBase24h)
+    setWeekendPercentInput((prev) => roundPercent(Math.max(0, toNumber(prev, 0) + delta), 0))
   }
 
-  const adjustFieldLabel = adjustMode === ADJUST_MODE_WEEKDAY ? '주중 24시간 요금' : '조정 후 24시간 기준값'
+  async function handleSave() {
+    if (!session?.access_token || !selectedCarGroupId || !selectedPolicy || saving) return
+
+    setSaving(true)
+    setSubmitMessage('')
+
+    try {
+      const payload = {
+        carGroupId: selectedCarGroupId,
+        base24h: computedPreview.base24h,
+        weekdayPercent: computedPreview.weekdayRatePercent,
+        weekendPercent: computedPreview.weekendRatePercent,
+      }
+
+      await savePricingHubEditor(session, payload)
+      const [nextGroups, nextEditor] = await Promise.all([
+        listPricingHubGroups(session),
+        getPricingHubPolicyEditor(session, selectedCarGroupId),
+      ])
+
+      setGroups(Array.isArray(nextGroups.items) ? nextGroups.items : [])
+      setEditor(nextEditor)
+
+      const legacyPolicy = nextEditor?.policies?.[0]?.legacyPolicy || {}
+      const editorState = nextEditor?.editorState || {}
+      setBase24hInput(String(roundAmount(editorState.base24h || legacyPolicy.baseDailyPrice || 0)))
+      setWeekdayPercentInput(roundPercent(editorState.weekdayPercent, toNumber(legacyPolicy.weekdayRatePercent, 100)))
+      setWeekendPercentInput(roundPercent(editorState.weekendPercent, toNumber(legacyPolicy.weekendRatePercent, 100)))
+      setSubmitMessage('수정 내용이 저장되었습니다.')
+    } catch (error) {
+      setSubmitMessage(error.message || '저장에 실패했습니다.')
+    } finally {
+      setSaving(false)
+    }
+  }
 
   return (
     <PageShell>
@@ -239,7 +270,7 @@ export default function AdminPricingHubPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <h1 style={{ margin: 0 }}>RENTCAR00 PRICING HUB</h1>
-                <p className="small-note" style={{ marginTop: 8 }}>기준 24시간 금액은 잠그고, 기본은 주중 24시간 요금 기준으로 조정합니다.</p>
+                <p className="small-note" style={{ marginTop: 8 }}>기준값과 주중/주말 비율 3개만 조정하고, 나머지 값은 실시간 계산 후 수정 버튼으로 저장합니다.</p>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Link className="btn btn-outline btn-md" to="/admin/bookings">예약관리로</Link>
@@ -283,6 +314,7 @@ export default function AdminPricingHubPage() {
                       <div className="reservation-result-row"><span>IMS 그룹</span><strong>{selectedGroup.imsGroupId}</strong></div>
                       <div className="reservation-result-row"><span>그룹명</span><strong>{selectedGroup.groupName}</strong></div>
                       <div className="reservation-result-row"><span>기존 정책</span><strong>{selectedGroup.policyName}</strong></div>
+                      <div className="reservation-result-row"><span>차량번호</span><strong className="pricing-hub-car-numbers">{editor?.group?.carNumbers?.length ? editor.group.carNumbers.join(', ') : '-'}</strong></div>
                     </>
                   ) : (
                     <p className="field-note" style={{ margin: 0 }}>그룹을 선택하세요.</p>
@@ -292,24 +324,41 @@ export default function AdminPricingHubPage() {
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                     <strong>기준값 조정</strong>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_BASE24 ? 'btn-dark' : 'btn-outline'}`} onClick={() => handleAdjustModeChange(ADJUST_MODE_BASE24)}>기준값수정</button>
-                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_WEEKDAY ? 'btn-dark' : 'btn-outline'}`} onClick={() => handleAdjustModeChange(ADJUST_MODE_WEEKDAY)}>주중요금수정</button>
-                    </div>
+                    <button type="button" className="btn btn-dark btn-md" onClick={handleSave} disabled={!selectedPolicy || saving}>{saving ? '저장중' : '수정'}</button>
                   </div>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
                   <div style={{ display: 'grid', gap: 12 }}>
                     <Field label="기준 24시간 금액">
-                      <input className="field-input" type="text" readOnly value={formatMoney(computedPreview.originalBase24h)} />
-                    </Field>
-                    <Field label={adjustFieldLabel}>
-                      <input className="field-input" type="number" inputMode="numeric" min="0" step="10000" value={adjustInputValue} onChange={(e) => handleAdjustInputChange(e.target.value)} />
+                      <input className="field-input" type="number" inputMode="numeric" min="0" step="10000" value={base24hInput} onChange={(e) => setBase24hInput(e.target.value)} disabled={!selectedPolicy || saving} />
                     </Field>
                   </div>
-                  <div className="reservation-result-row"><span>조정 후 24시간 기준값</span><strong>{formatMoney(computedPreview.adjustedBase24h)}</strong></div>
+                  <div className="reservation-result-row pricing-hub-adjust-row">
+                    <span>주중 24시간 요금</span>
+                    <div className="pricing-hub-inline-controls">
+                      <strong>{formatMoney(computedPreview.weekdayApplied24h)}</strong>
+                      <div className="pricing-hub-percent-control">
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekday', -5)} disabled={!selectedPolicy || saving}>-</button>
+                        <input className="field-input pricing-hub-percent-input" type="number" inputMode="decimal" min="0" step="5" value={weekdayPercentInput} onChange={(e) => handlePercentChange('weekday', e.target.value)} disabled={!selectedPolicy || saving} />
+                        <span className="pricing-hub-percent-suffix">%</span>
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekday', 5)} disabled={!selectedPolicy || saving}>+</button>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="reservation-result-row pricing-hub-adjust-row">
+                    <span>주말 24시간 요금</span>
+                    <div className="pricing-hub-inline-controls">
+                      <strong>{formatMoney(computedPreview.weekendApplied24h)}</strong>
+                      <div className="pricing-hub-percent-control">
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekend', -5)} disabled={!selectedPolicy || saving}>-</button>
+                        <input className="field-input pricing-hub-percent-input" type="number" inputMode="decimal" min="0" step="5" value={weekendPercentInput} onChange={(e) => handlePercentChange('weekend', e.target.value)} disabled={!selectedPolicy || saving} />
+                        <span className="pricing-hub-percent-suffix">%</span>
+                        <button type="button" className="btn btn-outline btn-sm" onClick={() => adjustPercent('weekend', 5)} disabled={!selectedPolicy || saving}>+</button>
+                      </div>
+                    </div>
+                  </div>
                   <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-                    <div className="reservation-result-row"><span>주중 24시간 요금</span><strong>{formatMoney(computedPreview.weekdayApplied24h)}</strong></div>
-                    <div className="reservation-result-row"><span>주말 24시간 요금</span><strong>{formatMoney(computedPreview.weekendApplied24h)}</strong></div>
+                    <div className="reservation-result-row"><span>주중 비율</span><strong>{formatPercent(computedPreview.weekdayRatePercent)}</strong></div>
+                    <div className="reservation-result-row"><span>주말 비율</span><strong>{formatPercent(computedPreview.weekendRatePercent)}</strong></div>
                   </div>
                 </div>
               </div>

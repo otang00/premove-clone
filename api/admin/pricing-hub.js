@@ -49,6 +49,73 @@ function roundAmount(value) {
   return Math.max(0, Math.round(normalizeNumber(value, 0)))
 }
 
+function roundPercent(value, fallback = 0) {
+  const next = normalizeNumber(value, fallback)
+  return Math.max(0, Math.round(next * 100) / 100)
+}
+
+function computeRatios(legacyPolicy) {
+  const base24 = normalizeNumber(legacyPolicy?.baseDailyPrice ?? legacyPolicy?.base_daily_price, 0)
+  if (base24 <= 0) {
+    return {
+      fee6h: 0.55,
+      fee12h: 0.8,
+      fee1h: 0.04,
+      week1Price: 6.5,
+      week2Price: 12.5,
+      month1Price: 24,
+      long24hPrice: 1,
+      long1hPrice: 0.04,
+    }
+  }
+
+  return {
+    fee6h: normalizeNumber(legacyPolicy?.hour6Price ?? legacyPolicy?.hour_6_price, base24 * 0.55) / base24,
+    fee12h: normalizeNumber(legacyPolicy?.hour12Price ?? legacyPolicy?.hour_12_price, base24 * 0.8) / base24,
+    fee1h: normalizeNumber(legacyPolicy?.hour1Price ?? legacyPolicy?.hour_1_price, base24 * 0.04) / base24,
+    week1Price: normalizeNumber(legacyPolicy?.weekday7dPlusPrice ?? legacyPolicy?.weekday_7d_plus_price, base24 * 6.5) / base24,
+    week2Price: normalizeNumber(legacyPolicy?.weekend7dPlusPrice ?? legacyPolicy?.weekend_7d_plus_price, base24 * 12.5) / base24,
+    month1Price: 24,
+    long24hPrice: 1,
+    long1hPrice: normalizeNumber(legacyPolicy?.hour1Price ?? legacyPolicy?.hour_1_price, base24 * 0.1) / base24,
+  }
+}
+
+function buildRatePayloadFromBase(base24h, ratios) {
+  const applied24h = roundAmount(base24h)
+  return {
+    fee6h: roundAmount(applied24h * ratios.fee6h),
+    fee12h: roundAmount(applied24h * ratios.fee12h),
+    fee24h: applied24h,
+    fee1h: roundAmount(applied24h * ratios.fee1h),
+    week1Price: roundAmount(applied24h * ratios.week1Price),
+    week2Price: roundAmount(applied24h * ratios.week2Price),
+    month1Price: roundAmount(applied24h * ratios.month1Price),
+    long24hPrice: roundAmount(applied24h * ratios.long24hPrice),
+    long1hPrice: roundAmount(applied24h * ratios.long1hPrice),
+  }
+}
+
+function buildComputedRate(legacyPolicy, base24Input, weekdayRatePercentInput, weekendRatePercentInput) {
+  const base24h = roundAmount(base24Input)
+  const weekdayRatePercent = roundPercent(weekdayRatePercentInput, 100)
+  const weekendRatePercent = roundPercent(weekendRatePercentInput, 100)
+  const weekdayApplied24h = roundAmount(base24h * (weekdayRatePercent / 100))
+  const weekendApplied24h = roundAmount(base24h * (weekendRatePercent / 100))
+  const ratios = computeRatios(legacyPolicy)
+
+  return {
+    base24h,
+    weekdayRatePercent,
+    weekendRatePercent,
+    weekdayApplied24h,
+    weekendApplied24h,
+    common: buildRatePayloadFromBase(base24h, ratios),
+    weekday: buildRatePayloadFromBase(weekdayApplied24h, ratios),
+    weekend: buildRatePayloadFromBase(weekendApplied24h, ratios),
+  }
+}
+
 function getSeoulWeekdayFlag(date = new Date()) {
   const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Seoul' }).format(date)
   const map = {
@@ -149,6 +216,61 @@ async function fetchOverrides(supabaseClient, { carGroupId, imsGroupId, pricePol
   return Array.isArray(data) ? data : []
 }
 
+async function fetchCarNumbersByImsGroupIds(supabaseClient, imsGroupIds) {
+  const normalizedIds = [...new Set((Array.isArray(imsGroupIds) ? imsGroupIds : []).filter(Boolean).map(Number))]
+  if (normalizedIds.length === 0) return {}
+
+  const { data, error } = await supabaseClient
+    .from('cars')
+    .select('source_group_id, car_number')
+    .in('source_group_id', normalizedIds)
+    .order('car_number', { ascending: true })
+
+  if (error) throw error
+
+  return (Array.isArray(data) ? data : []).reduce((acc, item) => {
+    const key = String(item?.source_group_id || '')
+    if (!key) return acc
+    if (!acc[key]) acc[key] = []
+    if (item?.car_number) acc[key].push(String(item.car_number))
+    return acc
+  }, {})
+}
+
+function buildRateByScope(rates = []) {
+  return (Array.isArray(rates) ? rates : []).reduce((acc, rate) => {
+    const scope = normalizeText(rate?.rate_scope) || 'common'
+    acc[scope] = rate
+    return acc
+  }, {})
+}
+
+function getActivePeriod(periods = [], now = new Date()) {
+  const items = Array.isArray(periods) ? periods : []
+  return items.find((period) => isPeriodActiveNow(period, now)) || items.find((period) => period?.active !== false) || items[0] || null
+}
+
+function buildEditorState(baseRow, periods = [], ratesByPeriodId = {}, now = new Date()) {
+  const relatedPeriods = (Array.isArray(periods) ? periods : []).filter((period) => period?.price_policy_id === baseRow?.price_policy_id)
+  const activePeriod = getActivePeriod(relatedPeriods, now)
+  const rateByScope = buildRateByScope(activePeriod ? ratesByPeriodId[activePeriod.id] || [] : [])
+  const base24h = roundAmount(rateByScope.common?.fee_24h || baseRow?.base_daily_price)
+  const fallbackWeekday24h = roundAmount(base24h * (normalizeNumber(baseRow?.weekday_rate_percent, 100) / 100))
+  const fallbackWeekend24h = roundAmount(base24h * (normalizeNumber(baseRow?.weekend_rate_percent, 100) / 100))
+  const weekday24h = roundAmount(rateByScope.weekday?.fee_24h || fallbackWeekday24h)
+  const weekend24h = roundAmount(rateByScope.weekend?.fee_24h || fallbackWeekend24h)
+
+  return {
+    activePeriodId: activePeriod?.id || null,
+    activePeriodName: activePeriod?.period_name || null,
+    base24h,
+    weekdayPercent: base24h > 0 ? roundPercent((weekday24h / base24h) * 100, normalizeNumber(baseRow?.weekday_rate_percent, 100)) : roundPercent(baseRow?.weekday_rate_percent, 100),
+    weekendPercent: base24h > 0 ? roundPercent((weekend24h / base24h) * 100, normalizeNumber(baseRow?.weekend_rate_percent, 100)) : roundPercent(baseRow?.weekend_rate_percent, 100),
+    weekday24h,
+    weekend24h,
+  }
+}
+
 async function handleList(req, res, supabaseClient) {
   const q = normalizeText(req.query?.q).toLowerCase()
 
@@ -228,6 +350,7 @@ async function handleGetPolicyEditor(req, res, supabaseClient) {
   const pricePolicyIds = [...new Set(baseRows.map((row) => row.price_policy_id).filter(Boolean))]
   const periods = await fetchPeriods(supabaseClient, pricePolicyIds)
   const rates = await fetchRates(supabaseClient, periods.map((item) => item.id))
+  const carNumbersByGroupId = await fetchCarNumbersByImsGroupIds(supabaseClient, [baseRows[0]?.ims_group_id])
   const overrides = await fetchOverrides(supabaseClient, {
     carGroupId,
     imsGroupId: baseRows[0]?.ims_group_id,
@@ -235,6 +358,7 @@ async function handleGetPolicyEditor(req, res, supabaseClient) {
   })
 
   const ratesByPeriodId = toMap(rates, 'pricing_hub_period_id')
+  const editorState = buildEditorState(baseRows[0], periods, ratesByPeriodId)
 
   const policies = pricePolicyIds.map((pricePolicyId) => {
     const base = baseRows.find((row) => row.price_policy_id === pricePolicyId)
@@ -276,9 +400,104 @@ async function handleGetPolicyEditor(req, res, supabaseClient) {
       carGroupId: baseRows[0].car_group_id,
       imsGroupId: baseRows[0].ims_group_id,
       groupName: baseRows[0].group_name,
+      carNumbers: carNumbersByGroupId[String(baseRows[0].ims_group_id)] || [],
     },
+    editorState,
     policies,
     overrides,
+  })
+}
+
+async function handleSaveEditor(req, res, supabaseClient, authUser) {
+  const body = await parseJsonBody(req)
+  const carGroupId = normalizeText(body.carGroupId)
+  if (!carGroupId) {
+    return res.status(400).json({ error: 'missing_car_group_id', message: 'carGroupId 가 필요합니다.' })
+  }
+
+  const baseRows = await fetchEditorBase(supabaseClient, carGroupId)
+  if (baseRows.length === 0) {
+    return res.status(404).json({ error: 'group_not_found', message: '대상 그룹을 찾지 못했습니다.' })
+  }
+
+  const base = baseRows[0]
+  const periods = await fetchPeriods(supabaseClient, [base.price_policy_id])
+  let activePeriod = getActivePeriod(periods.filter((item) => item.price_policy_id === base.price_policy_id))
+
+  if (!activePeriod) {
+    const { data: createdPeriod, error: periodError } = await supabaseClient
+      .from('pricing_hub_periods')
+      .insert({
+        price_policy_id: base.price_policy_id,
+        period_name: '기본',
+        active: true,
+        metadata: {
+          source: 'admin-pricing-hub-editor',
+          createdBy: buildActorLabel(authUser),
+        },
+      })
+      .select('*')
+      .single()
+
+    if (periodError) {
+      return res.status(500).json({ error: 'save_editor_period_failed', message: periodError.message })
+    }
+
+    activePeriod = createdPeriod
+  }
+
+  const computed = buildComputedRate(base, body.base24h, body.weekdayPercent, body.weekendPercent)
+  const metadata = {
+    source: 'admin-pricing-hub-editor',
+    savedBy: buildActorLabel(authUser),
+    savedAt: new Date().toISOString(),
+    base24h: computed.base24h,
+    weekdayPercent: computed.weekdayRatePercent,
+    weekendPercent: computed.weekendRatePercent,
+  }
+
+  const rows = [
+    { rate_scope: 'common', ...computed.common },
+    { rate_scope: 'weekday', ...computed.weekday },
+    { rate_scope: 'weekend', ...computed.weekend },
+  ].map((item) => ({
+    pricing_hub_period_id: activePeriod.id,
+    rate_scope: item.rate_scope,
+    fee_6h: item.fee6h,
+    fee_12h: item.fee12h,
+    fee_24h: item.fee24h,
+    fee_1h: item.fee1h,
+    week_1_price: item.week1Price,
+    week_2_price: item.week2Price,
+    month_1_price: item.month1Price,
+    long_24h_price: item.long24hPrice,
+    long_1h_price: item.long1hPrice,
+    metadata,
+  }))
+
+  const { data: savedRates, error: ratesError } = await supabaseClient
+    .from('pricing_hub_rates')
+    .upsert(rows, { onConflict: 'pricing_hub_period_id,rate_scope' })
+    .select('*')
+
+  if (ratesError) {
+    return res.status(500).json({ error: 'save_editor_rates_failed', message: ratesError.message })
+  }
+
+  return res.status(200).json({
+    item: {
+      activePeriod,
+      rates: savedRates,
+      editorState: {
+        activePeriodId: activePeriod.id,
+        activePeriodName: activePeriod.period_name,
+        base24h: computed.base24h,
+        weekdayPercent: computed.weekdayRatePercent,
+        weekendPercent: computed.weekendRatePercent,
+        weekday24h: computed.weekdayApplied24h,
+        weekend24h: computed.weekendApplied24h,
+      },
+    },
   })
 }
 
@@ -542,6 +761,10 @@ module.exports = async function handler(req, res) {
 
     if (req.method === 'POST' && action === 'save-rate') {
       return handleSaveRate(req, res, supabaseClient)
+    }
+
+    if (req.method === 'POST' && action === 'save-editor') {
+      return handleSaveEditor(req, res, supabaseClient, authUser)
     }
 
     if (req.method === 'POST' && action === 'save-override') {
