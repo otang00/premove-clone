@@ -1,0 +1,500 @@
+'use strict'
+
+const { createServerPrivilegedClient } = require('../../server/supabase/createServerClient')
+const { getAccessTokenFromRequest } = require('../../server/auth/getAccessTokenFromRequest')
+const { getUserFromAccessToken } = require('../../server/auth/getUserFromAccessToken')
+const { assertAdminUser } = require('../../server/auth/adminAccess')
+
+function normalizeText(value) {
+  return String(value || '').trim()
+}
+
+function normalizeNumber(value, fallback = 0) {
+  if (value == null || value === '') return fallback
+  const next = Number(value)
+  return Number.isFinite(next) ? next : fallback
+}
+
+async function parseJsonBody(req) {
+  if (req.body && typeof req.body === 'object') {
+    return req.body
+  }
+
+  if (typeof req.body === 'string' && req.body.trim()) {
+    try {
+      return JSON.parse(req.body)
+    } catch {
+      return {}
+    }
+  }
+
+  return {}
+}
+
+function buildActorLabel(authUser) {
+  return authUser?.phone || authUser?.user_metadata?.phone || authUser?.email || authUser?.id || 'admin'
+}
+
+function toMap(items, keyField) {
+  return (Array.isArray(items) ? items : []).reduce((acc, item) => {
+    const key = item?.[keyField]
+    if (!key) return acc
+    if (!acc[key]) acc[key] = []
+    acc[key].push(item)
+    return acc
+  }, {})
+}
+
+async function fetchEditorBase(supabaseClient, carGroupId) {
+  const { data, error } = await supabaseClient
+    .from('v_pricing_hub_policy_editor')
+    .select('*')
+    .eq('car_group_id', carGroupId)
+    .order('policy_name', { ascending: true })
+
+  if (error) throw error
+  return Array.isArray(data) ? data : []
+}
+
+async function fetchPeriods(supabaseClient, pricePolicyIds) {
+  if (!Array.isArray(pricePolicyIds) || pricePolicyIds.length === 0) return []
+  const { data, error } = await supabaseClient
+    .from('pricing_hub_periods')
+    .select('*')
+    .in('price_policy_id', pricePolicyIds)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return Array.isArray(data) ? data : []
+}
+
+async function fetchRates(supabaseClient, periodIds) {
+  if (!Array.isArray(periodIds) || periodIds.length === 0) return []
+  const { data, error } = await supabaseClient
+    .from('pricing_hub_rates')
+    .select('*')
+    .in('pricing_hub_period_id', periodIds)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return Array.isArray(data) ? data : []
+}
+
+async function fetchOverrides(supabaseClient, { carGroupId, imsGroupId, pricePolicyIds }) {
+  const targetIds = [carGroupId, imsGroupId, ...(Array.isArray(pricePolicyIds) ? pricePolicyIds : [])].filter(Boolean).map(String)
+  if (targetIds.length === 0) return []
+
+  const { data, error } = await supabaseClient
+    .from('pricing_hub_overrides')
+    .select('*')
+    .in('target_id', targetIds)
+    .order('priority', { ascending: true })
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return Array.isArray(data) ? data : []
+}
+
+async function handleList(req, res, supabaseClient) {
+  const q = normalizeText(req.query?.q).toLowerCase()
+
+  const { data, error } = await supabaseClient
+    .from('v_pricing_hub_policy_editor')
+    .select('*')
+    .order('ims_group_id', { ascending: true })
+
+  if (error) {
+    return res.status(500).json({ error: 'pricing_hub_list_failed', message: error.message })
+  }
+
+  const rows = Array.isArray(data) ? data : []
+  const filteredRows = q
+    ? rows.filter((row) => [row.group_name, row.policy_name, row.ims_group_id].some((value) => String(value || '').toLowerCase().includes(q)))
+    : rows
+
+  const pricePolicyIds = [...new Set(filteredRows.map((row) => row.price_policy_id).filter(Boolean))]
+  const carGroupIds = [...new Set(filteredRows.map((row) => row.car_group_id).filter(Boolean))]
+  const imsGroupIds = [...new Set(filteredRows.map((row) => row.ims_group_id).filter(Boolean))].map(String)
+
+  const [periodsResult, overridesResult] = await Promise.all([
+    fetchPeriods(supabaseClient, pricePolicyIds),
+    fetchOverrides(supabaseClient, { carGroupId: null, imsGroupId: null, pricePolicyIds: [...carGroupIds, ...imsGroupIds, ...pricePolicyIds] }),
+  ])
+
+  const periodsByPolicyId = toMap(periodsResult, 'price_policy_id')
+  const overridesByTargetId = toMap(overridesResult, 'target_id')
+
+  const items = filteredRows.map((row) => ({
+    carGroupId: row.car_group_id,
+    imsGroupId: row.ims_group_id,
+    groupName: row.group_name,
+    pricePolicyId: row.price_policy_id,
+    policyName: row.policy_name,
+    legacyPolicy: {
+      baseDailyPrice: row.base_daily_price,
+      weekdayRatePercent: row.weekday_rate_percent,
+      weekendRatePercent: row.weekend_rate_percent,
+      hour1Price: row.hour_1_price,
+      hour6Price: row.hour_6_price,
+      hour12Price: row.hour_12_price,
+      effectiveFrom: row.effective_from,
+      effectiveTo: row.effective_to,
+      active: row.policy_active,
+    },
+    hubPeriodsCount: (periodsByPolicyId[row.price_policy_id] || []).length,
+    hubOverridesCount: [
+      ...(overridesByTargetId[String(row.car_group_id)] || []),
+      ...(overridesByTargetId[String(row.ims_group_id)] || []),
+      ...(overridesByTargetId[String(row.price_policy_id)] || []),
+    ].length,
+  }))
+
+  return res.status(200).json({ items })
+}
+
+async function handleGetPolicyEditor(req, res, supabaseClient) {
+  const carGroupId = normalizeText(req.query?.carGroupId)
+  if (!carGroupId) {
+    return res.status(400).json({ error: 'missing_car_group_id', message: 'carGroupId 가 필요합니다.' })
+  }
+
+  const baseRows = await fetchEditorBase(supabaseClient, carGroupId)
+  if (baseRows.length === 0) {
+    return res.status(404).json({ error: 'group_not_found', message: '대상 그룹을 찾지 못했습니다.' })
+  }
+
+  const pricePolicyIds = [...new Set(baseRows.map((row) => row.price_policy_id).filter(Boolean))]
+  const periods = await fetchPeriods(supabaseClient, pricePolicyIds)
+  const rates = await fetchRates(supabaseClient, periods.map((item) => item.id))
+  const overrides = await fetchOverrides(supabaseClient, {
+    carGroupId,
+    imsGroupId: baseRows[0]?.ims_group_id,
+    pricePolicyIds,
+  })
+
+  const ratesByPeriodId = toMap(rates, 'pricing_hub_period_id')
+
+  const policies = pricePolicyIds.map((pricePolicyId) => {
+    const base = baseRows.find((row) => row.price_policy_id === pricePolicyId)
+    const relatedPeriods = periods
+      .filter((item) => item.price_policy_id === pricePolicyId)
+      .map((period) => ({
+        ...period,
+        rates: ratesByPeriodId[period.id] || [],
+      }))
+
+    return {
+      pricePolicyId,
+      policyName: base?.policy_name || '-',
+      legacyPolicy: {
+        baseDailyPrice: base?.base_daily_price,
+        weekdayRatePercent: base?.weekday_rate_percent,
+        weekendRatePercent: base?.weekend_rate_percent,
+        weekday12dPrice: base?.weekday_1_2d_price,
+        weekday34dPrice: base?.weekday_3_4d_price,
+        weekday56dPrice: base?.weekday_5_6d_price,
+        weekday7dPlusPrice: base?.weekday_7d_plus_price,
+        weekend12dPrice: base?.weekend_1_2d_price,
+        weekend34dPrice: base?.weekend_3_4d_price,
+        weekend56dPrice: base?.weekend_5_6d_price,
+        weekend7dPlusPrice: base?.weekend_7d_plus_price,
+        hour1Price: base?.hour_1_price,
+        hour6Price: base?.hour_6_price,
+        hour12Price: base?.hour_12_price,
+        effectiveFrom: base?.effective_from,
+        effectiveTo: base?.effective_to,
+        active: base?.policy_active,
+      },
+      periods: relatedPeriods,
+    }
+  })
+
+  return res.status(200).json({
+    group: {
+      carGroupId: baseRows[0].car_group_id,
+      imsGroupId: baseRows[0].ims_group_id,
+      groupName: baseRows[0].group_name,
+    },
+    policies,
+    overrides,
+  })
+}
+
+async function handleSavePeriod(req, res, supabaseClient) {
+  const body = await parseJsonBody(req)
+  const id = normalizeText(body.id)
+  const payload = {
+    price_policy_id: normalizeText(body.pricePolicyId),
+    period_name: normalizeText(body.periodName),
+    start_at: body.startAt || null,
+    end_at: body.endAt || null,
+    apply_mon: body.applyMon !== false,
+    apply_tue: body.applyTue !== false,
+    apply_wed: body.applyWed !== false,
+    apply_thu: body.applyThu !== false,
+    apply_fri: body.applyFri !== false,
+    apply_sat: body.applySat !== false,
+    apply_sun: body.applySun !== false,
+    active: body.active !== false,
+    metadata: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
+  }
+
+  if (!payload.price_policy_id || !payload.period_name) {
+    return res.status(400).json({ error: 'invalid_period_payload', message: 'pricePolicyId 와 periodName 이 필요합니다.' })
+  }
+
+  const query = id
+    ? supabaseClient.from('pricing_hub_periods').update(payload).eq('id', id).select('*').single()
+    : supabaseClient.from('pricing_hub_periods').insert(payload).select('*').single()
+
+  const { data, error } = await query
+  if (error) {
+    return res.status(500).json({ error: 'save_period_failed', message: error.message })
+  }
+
+  return res.status(200).json({ item: data })
+}
+
+async function handleSaveRate(req, res, supabaseClient) {
+  const body = await parseJsonBody(req)
+  const id = normalizeText(body.id)
+  const payload = {
+    pricing_hub_period_id: normalizeText(body.pricingHubPeriodId),
+    rate_scope: normalizeText(body.rateScope) || 'common',
+    fee_6h: normalizeNumber(body.fee6h, 0),
+    fee_12h: normalizeNumber(body.fee12h, 0),
+    fee_24h: normalizeNumber(body.fee24h, 0),
+    fee_1h: normalizeNumber(body.fee1h, 0),
+    discount_percent: body.discountPercent == null || body.discountPercent === '' ? null : normalizeNumber(body.discountPercent, 0),
+    discount_amount: body.discountAmount == null || body.discountAmount === '' ? null : normalizeNumber(body.discountAmount, 0),
+    week_1_price: body.week1Price == null || body.week1Price === '' ? null : normalizeNumber(body.week1Price, 0),
+    week_2_price: body.week2Price == null || body.week2Price === '' ? null : normalizeNumber(body.week2Price, 0),
+    month_1_price: body.month1Price == null || body.month1Price === '' ? null : normalizeNumber(body.month1Price, 0),
+    long_24h_price: body.long24hPrice == null || body.long24hPrice === '' ? null : normalizeNumber(body.long24hPrice, 0),
+    long_1h_price: body.long1hPrice == null || body.long1hPrice === '' ? null : normalizeNumber(body.long1hPrice, 0),
+    weekend_days: normalizeText(body.weekendDays) || null,
+    metadata: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
+  }
+
+  if (!payload.pricing_hub_period_id) {
+    return res.status(400).json({ error: 'invalid_rate_payload', message: 'pricingHubPeriodId 가 필요합니다.' })
+  }
+
+  const query = id
+    ? supabaseClient.from('pricing_hub_rates').update(payload).eq('id', id).select('*').single()
+    : supabaseClient.from('pricing_hub_rates').upsert(payload, { onConflict: 'pricing_hub_period_id,rate_scope' }).select('*').single()
+
+  const { data, error } = await query
+  if (error) {
+    return res.status(500).json({ error: 'save_rate_failed', message: error.message })
+  }
+
+  return res.status(200).json({ item: data })
+}
+
+async function handleSaveOverride(req, res, supabaseClient) {
+  const body = await parseJsonBody(req)
+  const id = normalizeText(body.id)
+  const payload = {
+    target_type: normalizeText(body.targetType),
+    target_id: normalizeText(body.targetId),
+    field_name: normalizeText(body.fieldName),
+    override_type: normalizeText(body.overrideType),
+    override_value: normalizeNumber(body.overrideValue, 0),
+    start_at: body.startAt || null,
+    end_at: body.endAt || null,
+    priority: normalizeNumber(body.priority, 100),
+    reason: normalizeText(body.reason) || null,
+    status: normalizeText(body.status) || 'active',
+    metadata: body.metadata && typeof body.metadata === 'object' ? body.metadata : {},
+  }
+
+  if (!payload.target_type || !payload.target_id || !payload.field_name || !payload.override_type) {
+    return res.status(400).json({ error: 'invalid_override_payload', message: 'override 필수값이 부족합니다.' })
+  }
+
+  const query = id
+    ? supabaseClient.from('pricing_hub_overrides').update(payload).eq('id', id).select('*').single()
+    : supabaseClient.from('pricing_hub_overrides').insert(payload).select('*').single()
+
+  const { data, error } = await query
+  if (error) {
+    return res.status(500).json({ error: 'save_override_failed', message: error.message })
+  }
+
+  return res.status(200).json({ item: data })
+}
+
+function computeDiff(beforeJson, afterJson) {
+  const diff = {}
+  const keys = [...new Set([...Object.keys(beforeJson || {}), ...Object.keys(afterJson || {})])]
+  for (const key of keys) {
+    const beforeValue = beforeJson?.[key] ?? null
+    const afterValue = afterJson?.[key] ?? null
+    if (JSON.stringify(beforeValue) !== JSON.stringify(afterValue)) {
+      diff[key] = { before: beforeValue, after: afterValue }
+    }
+  }
+  return diff
+}
+
+async function handleBuildPreview(req, res, supabaseClient, authUser) {
+  const body = await parseJsonBody(req)
+  const carGroupId = normalizeText(body.carGroupId)
+  if (!carGroupId) {
+    return res.status(400).json({ error: 'missing_car_group_id', message: 'carGroupId 가 필요합니다.' })
+  }
+
+  const baseRows = await fetchEditorBase(supabaseClient, carGroupId)
+  if (baseRows.length === 0) {
+    return res.status(404).json({ error: 'group_not_found', message: '대상 그룹을 찾지 못했습니다.' })
+  }
+
+  const group = baseRows[0]
+  const pricePolicyIds = [...new Set(baseRows.map((row) => row.price_policy_id).filter(Boolean))]
+  const periods = await fetchPeriods(supabaseClient, pricePolicyIds)
+  const rates = await fetchRates(supabaseClient, periods.map((item) => item.id))
+  const overrides = await fetchOverrides(supabaseClient, {
+    carGroupId,
+    imsGroupId: group.ims_group_id,
+    pricePolicyIds,
+  })
+
+  const beforeJson = {
+    imsGroupId: group.ims_group_id,
+    groupName: group.group_name,
+    policies: baseRows.map((row) => ({
+      pricePolicyId: row.price_policy_id,
+      policyName: row.policy_name,
+      baseDailyPrice: row.base_daily_price,
+      weekdayRatePercent: row.weekday_rate_percent,
+      weekendRatePercent: row.weekend_rate_percent,
+      hour1Price: row.hour_1_price,
+      hour6Price: row.hour_6_price,
+      hour12Price: row.hour_12_price,
+      effectiveFrom: row.effective_from,
+      effectiveTo: row.effective_to,
+    })),
+  }
+
+  const afterJson = {
+    group: {
+      carGroupId,
+      imsGroupId: group.ims_group_id,
+      groupName: group.group_name,
+    },
+    periods,
+    rates,
+    overrides,
+  }
+
+  const diffJson = computeDiff(beforeJson, afterJson)
+  const warnings = []
+  if (periods.length === 0) warnings.push('등록된 pricing_hub_periods 가 없습니다.')
+  if (rates.length === 0) warnings.push('등록된 pricing_hub_rates 가 없습니다.')
+
+  const { data: preview, error: previewError } = await supabaseClient
+    .from('pricing_hub_previews')
+    .insert({
+      run_label: `${group.group_name || group.ims_group_id}-preview-${new Date().toISOString()}`,
+      status: warnings.length > 0 ? 'warning' : 'ready',
+      summary_json: {
+        carGroupId,
+        imsGroupId: group.ims_group_id,
+        pricePolicyIds,
+        periodsCount: periods.length,
+        ratesCount: rates.length,
+        overridesCount: overrides.length,
+      },
+      created_by: buildActorLabel(authUser),
+    })
+    .select('*')
+    .single()
+
+  if (previewError) {
+    return res.status(500).json({ error: 'create_preview_failed', message: previewError.message })
+  }
+
+  const { data: previewItem, error: itemError } = await supabaseClient
+    .from('pricing_hub_preview_items')
+    .insert({
+      pricing_hub_preview_id: preview.id,
+      car_group_id: carGroupId,
+      target_type: 'ims_group',
+      target_id: String(group.ims_group_id),
+      before_json: beforeJson,
+      after_json: afterJson,
+      diff_json: diffJson,
+      warning_json: warnings,
+    })
+    .select('*')
+    .single()
+
+  if (itemError) {
+    return res.status(500).json({ error: 'create_preview_item_failed', message: itemError.message })
+  }
+
+  return res.status(200).json({ preview, item: previewItem })
+}
+
+module.exports = async function handler(req, res) {
+  if (!['GET', 'POST'].includes(req.method)) {
+    res.setHeader('Allow', 'GET, POST')
+    return res.status(405).json({ error: 'method_not_allowed' })
+  }
+
+  const supabaseClient = createServerPrivilegedClient()
+  if (!supabaseClient) {
+    return res.status(500).json({ error: 'supabase_client_unavailable' })
+  }
+
+  const accessToken = getAccessTokenFromRequest(req)
+  if (!accessToken) {
+    return res.status(401).json({ error: 'missing_access_token', message: '로그인이 필요합니다.' })
+  }
+
+  try {
+    const authUser = await getUserFromAccessToken({ supabaseClient, accessToken })
+    if (!authUser) {
+      return res.status(401).json({ error: 'invalid_access_token', message: '로그인이 필요합니다.' })
+    }
+
+    const access = assertAdminUser(authUser)
+    if (!access.ok) {
+      return res.status(access.status).json({ error: access.code, message: access.message })
+    }
+
+    const action = normalizeText(req.query?.action || req.body?.action).toLowerCase()
+
+    if (req.method === 'GET' && (action === 'list-groups' || !action)) {
+      return handleList(req, res, supabaseClient)
+    }
+
+    if (req.method === 'GET' && action === 'get-policy-editor') {
+      return handleGetPolicyEditor(req, res, supabaseClient)
+    }
+
+    if (req.method === 'POST' && action === 'save-period') {
+      return handleSavePeriod(req, res, supabaseClient)
+    }
+
+    if (req.method === 'POST' && action === 'save-rate') {
+      return handleSaveRate(req, res, supabaseClient)
+    }
+
+    if (req.method === 'POST' && action === 'save-override') {
+      return handleSaveOverride(req, res, supabaseClient)
+    }
+
+    if (req.method === 'POST' && action === 'build-preview') {
+      return handleBuildPreview(req, res, supabaseClient, authUser)
+    }
+
+    return res.status(404).json({ error: 'not_found' })
+  } catch (error) {
+    return res.status(500).json({
+      error: 'pricing_hub_failed',
+      message: error?.message || 'pricing_hub_failed',
+    })
+  }
+}

@@ -13,6 +13,7 @@ import PostcodeTestPage from './pages/PostcodeTestPage'
 import MemberReservationDetailPage from './pages/MemberReservationDetailPage'
 import AdminBookingConfirmPage from './pages/AdminBookingConfirmPage'
 import AdminBookingsPage from './pages/AdminBookingsPage'
+import AdminPricingHubPage from './pages/AdminPricingHubPage'
 
 export default function App() {
   return (
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPasswordPage />} />
       <Route path="/admin/booking-confirm" element={<AdminBookingConfirmPage />} />
       <Route path="/admin/bookings" element={<AdminBookingsPage />} />
+      <Route path="/admin/pricing-hub" element={<AdminPricingHubPage />} />
       <Route path="/faq" element={<PlaceholderPage title="FAQ" />} />
       <Route path="/terms" element={<LegalPage kind="terms" />} />
       <Route path="/privacy" element={<LegalPage kind="privacy" />} />

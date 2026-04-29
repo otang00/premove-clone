@@ -235,6 +235,9 @@ export default function AdminBookingsPage() {
                 <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
                   <div className="reservation-result-row"><span>관리자 계정</span><strong>{adminLabel || '-'}</strong></div>
                   <div className="reservation-result-row"><span>표시 건수</span><strong>{fetching ? '불러오는 중' : `${total}건`}</strong></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Link className="btn btn-outline btn-md" to="/admin/pricing-hub">통합 요금 관리</Link>
+                  </div>
                 </div>
               ) : null}
 
