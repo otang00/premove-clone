@@ -247,12 +247,17 @@ export default function AdminPricingHubPage() {
                   <button
                     key={`${item.carGroupId}-${item.pricePolicyId}`}
                     type="button"
-                    className={`btn btn-md ${selectedCarGroupId === item.carGroupId ? 'is-active' : ''}`}
-                    style={{ justifyContent: 'space-between', textAlign: 'left' }}
+                    className={`btn pricing-hub-group-card ${selectedCarGroupId === item.carGroupId ? 'is-active' : ''}`}
                     onClick={() => setSelectedCarGroupId(item.carGroupId)}
                   >
-                    <span>{item.groupName} · {item.policyName}</span>
-                    <span style={{ fontSize: 12, opacity: 0.75 }}>P{item.hubPeriodsCount}</span>
+                    <div className="pricing-hub-group-card__head">
+                      <span>{item.groupName} · {item.policyName}</span>
+                      <span style={{ fontSize: 12, opacity: 0.75 }}>P{item.hubPeriodsCount}</span>
+                    </div>
+                    <div className="pricing-hub-group-card__meta">
+                      <span>주중24 {formatMoney(item.currentRateSummary?.weekday24h)}</span>
+                      <span>주말24 {formatMoney(item.currentRateSummary?.weekend24h)}</span>
+                    </div>
                   </button>
                 ))}
               </div>

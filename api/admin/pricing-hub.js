@@ -45,6 +45,60 @@ function toMap(items, keyField) {
   }, {})
 }
 
+function roundAmount(value) {
+  return Math.max(0, Math.round(normalizeNumber(value, 0)))
+}
+
+function getSeoulWeekdayFlag(date = new Date()) {
+  const weekday = new Intl.DateTimeFormat('en-US', { weekday: 'short', timeZone: 'Asia/Seoul' }).format(date)
+  const map = {
+    Mon: 'apply_mon',
+    Tue: 'apply_tue',
+    Wed: 'apply_wed',
+    Thu: 'apply_thu',
+    Fri: 'apply_fri',
+    Sat: 'apply_sat',
+    Sun: 'apply_sun',
+  }
+  return map[weekday] || 'apply_mon'
+}
+
+function isPeriodActiveNow(period, now = new Date()) {
+  if (!period || period.active === false) return false
+
+  const startAt = period.start_at ? new Date(period.start_at) : null
+  const endAt = period.end_at ? new Date(period.end_at) : null
+  if (startAt && startAt > now) return false
+  if (endAt && endAt < now) return false
+
+  const weekdayFlag = getSeoulWeekdayFlag(now)
+  return period[weekdayFlag] !== false
+}
+
+function buildCurrentRateSummary(row, periods = [], ratesByPeriodId = {}, now = new Date()) {
+  const activePeriod = periods.find((period) => isPeriodActiveNow(period, now)) || null
+  const activeRates = activePeriod ? (ratesByPeriodId[activePeriod.id] || []) : []
+  const rateByScope = activeRates.reduce((acc, rate) => {
+    const scope = normalizeText(rate?.rate_scope) || 'common'
+    acc[scope] = rate
+    return acc
+  }, {})
+
+  const base24h = roundAmount(row?.base_daily_price)
+  const legacyWeekday24h = roundAmount(base24h * (normalizeNumber(row?.weekday_rate_percent, 100) / 100))
+  const legacyWeekend24h = roundAmount(base24h * (normalizeNumber(row?.weekend_rate_percent, 100) / 100))
+  const common24h = roundAmount(rateByScope.common?.fee_24h)
+  const weekday24h = roundAmount(rateByScope.weekday?.fee_24h) || common24h || legacyWeekday24h
+  const weekend24h = roundAmount(rateByScope.weekend?.fee_24h) || common24h || legacyWeekend24h
+
+  return {
+    activePeriodId: activePeriod?.id || null,
+    activePeriodName: activePeriod?.period_name || null,
+    weekday24h,
+    weekend24h,
+  }
+}
+
 async function fetchEditorBase(supabaseClient, carGroupId) {
   const { data, error } = await supabaseClient
     .from('v_pricing_hub_policy_editor')
@@ -120,34 +174,42 @@ async function handleList(req, res, supabaseClient) {
     fetchPeriods(supabaseClient, pricePolicyIds),
     fetchOverrides(supabaseClient, { carGroupId: null, imsGroupId: null, pricePolicyIds: [...carGroupIds, ...imsGroupIds, ...pricePolicyIds] }),
   ])
+  const ratesResult = await fetchRates(supabaseClient, periodsResult.map((item) => item.id))
 
   const periodsByPolicyId = toMap(periodsResult, 'price_policy_id')
+  const ratesByPeriodId = toMap(ratesResult, 'pricing_hub_period_id')
   const overridesByTargetId = toMap(overridesResult, 'target_id')
 
-  const items = filteredRows.map((row) => ({
-    carGroupId: row.car_group_id,
-    imsGroupId: row.ims_group_id,
-    groupName: row.group_name,
-    pricePolicyId: row.price_policy_id,
-    policyName: row.policy_name,
-    legacyPolicy: {
-      baseDailyPrice: row.base_daily_price,
-      weekdayRatePercent: row.weekday_rate_percent,
-      weekendRatePercent: row.weekend_rate_percent,
-      hour1Price: row.hour_1_price,
-      hour6Price: row.hour_6_price,
-      hour12Price: row.hour_12_price,
-      effectiveFrom: row.effective_from,
-      effectiveTo: row.effective_to,
-      active: row.policy_active,
-    },
-    hubPeriodsCount: (periodsByPolicyId[row.price_policy_id] || []).length,
-    hubOverridesCount: [
-      ...(overridesByTargetId[String(row.car_group_id)] || []),
-      ...(overridesByTargetId[String(row.ims_group_id)] || []),
-      ...(overridesByTargetId[String(row.price_policy_id)] || []),
-    ].length,
-  }))
+  const items = filteredRows.map((row) => {
+    const relatedPeriods = periodsByPolicyId[row.price_policy_id] || []
+    const currentRateSummary = buildCurrentRateSummary(row, relatedPeriods, ratesByPeriodId)
+
+    return {
+      carGroupId: row.car_group_id,
+      imsGroupId: row.ims_group_id,
+      groupName: row.group_name,
+      pricePolicyId: row.price_policy_id,
+      policyName: row.policy_name,
+      legacyPolicy: {
+        baseDailyPrice: row.base_daily_price,
+        weekdayRatePercent: row.weekday_rate_percent,
+        weekendRatePercent: row.weekend_rate_percent,
+        hour1Price: row.hour_1_price,
+        hour6Price: row.hour_6_price,
+        hour12Price: row.hour_12_price,
+        effectiveFrom: row.effective_from,
+        effectiveTo: row.effective_to,
+        active: row.policy_active,
+      },
+      currentRateSummary,
+      hubPeriodsCount: relatedPeriods.length,
+      hubOverridesCount: [
+        ...(overridesByTargetId[String(row.car_group_id)] || []),
+        ...(overridesByTargetId[String(row.ims_group_id)] || []),
+        ...(overridesByTargetId[String(row.price_policy_id)] || []),
+      ].length,
+    }
+  })
 
   return res.status(200).json({ items })
 }
