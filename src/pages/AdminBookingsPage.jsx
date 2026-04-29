@@ -224,20 +224,24 @@ export default function AdminBookingsPage() {
 
           {!loading && isAuthenticated && !hasAdminHint ? null : (
             <article className="detail-card panel" style={{ display: 'grid', gap: 16 }}>
-              <div>
-                <h1 style={{ margin: 0 }}>예약관리</h1>
-                <p className="small-note" style={{ marginTop: 8 }}>
-                  현재 살아있는 예약과 확정대기 예약을 한 화면에서 확인합니다.
-                </p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                <div>
+                  <h1 style={{ margin: 0 }}>예약관리</h1>
+                  <p className="small-note" style={{ marginTop: 8 }}>
+                    현재 살아있는 예약과 확정대기 예약을 한 화면에서 확인합니다.
+                  </p>
+                </div>
+                {hasAdminHint ? (
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <Link className="btn btn-outline btn-md" to="/admin/pricing-hub">통합 요금 관리</Link>
+                  </div>
+                ) : null}
               </div>
 
               {hasAdminHint ? (
                 <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
                   <div className="reservation-result-row"><span>관리자 계정</span><strong>{adminLabel || '-'}</strong></div>
                   <div className="reservation-result-row"><span>표시 건수</span><strong>{fetching ? '불러오는 중' : `${total}건`}</strong></div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <Link className="btn btn-outline btn-md" to="/admin/pricing-hub">통합 요금 관리</Link>
-                  </div>
                 </div>
               ) : null}
 
