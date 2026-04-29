@@ -82,6 +82,9 @@ function buildComputedRate(legacyPolicy, base24Input, adjustedBase24hInput) {
   }
 }
 
+const ADJUST_MODE_WEEKDAY = 'weekday'
+const ADJUST_MODE_BASE24 = 'base24'
+
 export default function AdminPricingHubPage() {
   const navigate = useNavigate()
   const { loading, isAuthenticated, session, user, profile } = useAuth()
@@ -94,6 +97,7 @@ export default function AdminPricingHubPage() {
   const [editorError, setEditorError] = useState('')
   const [base24hInput, setBase24hInput] = useState(0)
   const [adjustedBase24hInput, setAdjustedBase24hInput] = useState(0)
+  const [adjustMode, setAdjustMode] = useState(ADJUST_MODE_WEEKDAY)
   const [submitMessage, setSubmitMessage] = useState('')
   const selectionCardRef = useRef(null)
 
@@ -194,6 +198,26 @@ export default function AdminPricingHubPage() {
     selectionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [selectedCarGroupId])
 
+  function handleAdjustInputChange(value) {
+    if (adjustMode === ADJUST_MODE_BASE24) {
+      setAdjustedBase24hInput(value)
+      return
+    }
+
+    const weekdayRatePercent = toNumber(selectedPolicy?.legacyPolicy?.weekdayRatePercent, 100)
+    const weekdayTarget = roundAmount(value)
+    if (weekdayRatePercent <= 0) {
+      setAdjustedBase24hInput(0)
+      return
+    }
+
+    const nextBase24h = roundAmount(weekdayTarget / (weekdayRatePercent / 100))
+    setAdjustedBase24hInput(nextBase24h)
+  }
+
+  const adjustFieldLabel = adjustMode === ADJUST_MODE_WEEKDAY ? '주중 24시간 요금' : '조정 후 24시간 기준값'
+  const adjustFieldValue = adjustMode === ADJUST_MODE_WEEKDAY ? computedPreview.weekdayApplied24h : adjustedBase24hInput
+
   return (
     <PageShell>
       <section className="section-bg">
@@ -202,7 +226,7 @@ export default function AdminPricingHubPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <h1 style={{ margin: 0 }}>RENTCAR00 PRICING HUB</h1>
-                <p className="small-note" style={{ marginTop: 8 }}>기준 24시간 금액은 잠그고, 조정 후 24시간 기준값만 바로 입력합니다.</p>
+                <p className="small-note" style={{ marginTop: 8 }}>기준 24시간 금액은 잠그고, 기본은 주중 24시간 요금 기준으로 조정합니다.</p>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Link className="btn btn-outline btn-md" to="/admin/bookings">예약관리로</Link>
@@ -248,16 +272,23 @@ export default function AdminPricingHubPage() {
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>기준값 조정</strong>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                    <strong>기준값 조정</strong>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_BASE24 ? 'btn-dark' : 'btn-outline'}`} onClick={() => setAdjustMode(ADJUST_MODE_BASE24)}>기준값수정</button>
+                      <button type="button" className={`btn btn-md ${adjustMode === ADJUST_MODE_WEEKDAY ? 'btn-dark' : 'btn-outline'}`} onClick={() => setAdjustMode(ADJUST_MODE_WEEKDAY)}>주중요금수정</button>
+                    </div>
+                  </div>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
                   <div style={{ display: 'grid', gap: 12 }}>
                     <Field label="기준 24시간 금액">
                       <input className="field-input" type="text" readOnly value={formatMoney(computedPreview.originalBase24h)} />
                     </Field>
-                    <Field label="조정 후 24시간 기준값">
-                      <input className="field-input" type="number" value={adjustedBase24hInput} onChange={(e) => setAdjustedBase24hInput(e.target.value)} />
+                    <Field label={adjustFieldLabel}>
+                      <input className="field-input" type="number" value={adjustFieldValue} onChange={(e) => handleAdjustInputChange(e.target.value)} />
                     </Field>
                   </div>
+                  <div className="reservation-result-row"><span>조정 후 24시간 기준값</span><strong>{formatMoney(computedPreview.adjustedBase24h)}</strong></div>
                   <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
                     <div className="reservation-result-row"><span>주중 24시간 요금</span><strong>{formatMoney(computedPreview.weekdayApplied24h)}</strong></div>
                     <div className="reservation-result-row"><span>주말 24시간 요금</span><strong>{formatMoney(computedPreview.weekendApplied24h)}</strong></div>
