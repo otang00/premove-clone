@@ -1,6 +1,7 @@
 const { formatKstDateTime, ZzimcarClient } = require('./zzimcar-client');
 const { fetchDesiredImsReservations } = require('./fetch-desired-ims-reservations');
 const { fetchActiveMappings, upsertMapping, markMappingDeleted, markMappingFailed } = require('./zzimcar-sync-mapping-repo');
+const { createRun, finishRun } = require('./zzimcar-sync-run-repo');
 
 function buildMapByImsReservationId(rows = []) {
   return new Map((Array.isArray(rows) ? rows : []).map((row) => [String(row.imsReservationId), row]));
@@ -153,62 +154,70 @@ async function reconcileZzimcarDisableTimes({
   client,
 } = {}) {
   const supabase = supabaseClient;
-  const zzimcarClient = client || new ZzimcarClient();
-  const desiredRows = await fetchDesiredImsReservations({ now, supabaseClient: supabase });
-  const actualRows = await fetchActiveMappings({
-    supabaseClient: supabase,
-    allowMissingTable: !shouldSave,
-  });
-  const plan = planReconcile({ desiredRows, actualRows });
+  const syncMode = shouldSave ? 'save' : 'dry-run';
+  const run = await createRun({ syncMode, supabaseClient: supabase });
 
-  const results = { additions: [], deletions: [], changes: [], unchanged: plan.unchanged, errors: [] };
-  const requiresZzimcarAccess = shouldSave && (plan.additions.length > 0 || plan.deletions.length > 0 || plan.changes.length > 0);
+  try {
+    const zzimcarClient = client || new ZzimcarClient();
+    const desiredRows = await fetchDesiredImsReservations({ now, supabaseClient: supabase });
+    const actualRows = await fetchActiveMappings({
+      supabaseClient: supabase,
+      allowMissingTable: !shouldSave,
+    });
+    const plan = planReconcile({ desiredRows, actualRows });
 
-  if (!shouldSave) {
-    return {
-      mode: 'dry-run',
-      desiredCount: desiredRows.length,
-      actualCount: actualRows.length,
-      additionsCount: plan.additions.length,
-      deletionsCount: plan.deletions.length,
-      changesCount: plan.changes.length,
-      unchangedCount: plan.unchanged.length,
-      errorsCount: 0,
-      results: {
-        additions: plan.additions.map(({ desired }) => ({ action: 'add', imsReservationId: desired.imsReservationId, desired, applied: false })),
-        deletions: plan.deletions.map(({ actual }) => ({ action: 'delete', imsReservationId: actual.imsReservationId, actual, applied: false })),
-        changes: plan.changes.map(({ desired, actual }) => ({ action: 'change', imsReservationId: desired.imsReservationId, desired, actual, applied: false })),
-        unchanged: plan.unchanged,
-        errors: [],
-      },
-    };
-  }
+    const results = { additions: [], deletions: [], changes: [], unchanged: plan.unchanged, errors: [] };
+    const requiresZzimcarAccess = shouldSave && (plan.additions.length > 0 || plan.deletions.length > 0 || plan.changes.length > 0);
 
-  if (requiresZzimcarAccess) {
-    try {
-      await zzimcarClient.ensureLoggedIn();
-    } catch (error) {
-      return {
-        mode: 'save',
+    if (!shouldSave) {
+      const summary = {
+        mode: 'dry-run',
         desiredCount: desiredRows.length,
         actualCount: actualRows.length,
         additionsCount: plan.additions.length,
         deletionsCount: plan.deletions.length,
         changesCount: plan.changes.length,
         unchangedCount: plan.unchanged.length,
-        errorsCount: 1,
+        errorsCount: 0,
         results: {
-          additions: [],
-          deletions: [],
-          changes: [],
+          additions: plan.additions.map(({ desired }) => ({ action: 'add', imsReservationId: desired.imsReservationId, desired, applied: false })),
+          deletions: plan.deletions.map(({ actual }) => ({ action: 'delete', imsReservationId: actual.imsReservationId, actual, applied: false })),
+          changes: plan.changes.map(({ desired, actual }) => ({ action: 'change', imsReservationId: desired.imsReservationId, desired, actual, applied: false })),
           unchanged: plan.unchanged,
-          errors: [{ action: 'auth', error: error.message }],
+          errors: [],
         },
       };
+      await finishRun({ runId: run.id, status: 'success', summary, supabaseClient: supabase });
+      return summary;
     }
-  }
 
-  for (const entry of plan.additions) {
+    if (requiresZzimcarAccess) {
+      try {
+        await zzimcarClient.ensureLoggedIn();
+      } catch (error) {
+        const summary = {
+          mode: 'save',
+          desiredCount: desiredRows.length,
+          actualCount: actualRows.length,
+          additionsCount: plan.additions.length,
+          deletionsCount: plan.deletions.length,
+          changesCount: plan.changes.length,
+          unchangedCount: plan.unchanged.length,
+          errorsCount: 1,
+          results: {
+            additions: [],
+            deletions: [],
+            changes: [],
+            unchanged: plan.unchanged,
+            errors: [{ action: 'auth', error: error.message }],
+          },
+        };
+        await finishRun({ runId: run.id, status: 'failed', summary, errorSummary: error.message, supabaseClient: supabase });
+        return summary;
+      }
+    }
+
+    for (const entry of plan.additions) {
     try {
       const result = await applyAddition({ ...entry, client: zzimcarClient, shouldSave });
       results.additions.push(result);
@@ -318,17 +327,39 @@ async function reconcileZzimcarDisableTimes({
     }
   }
 
-  return {
-    mode: shouldSave ? 'save' : 'dry-run',
-    desiredCount: desiredRows.length,
-    actualCount: actualRows.length,
-    additionsCount: results.additions.length,
-    deletionsCount: results.deletions.length,
-    changesCount: results.changes.length,
-    unchangedCount: results.unchanged.length,
-    errorsCount: results.errors.length,
-    results,
-  };
+    const summary = {
+      mode: shouldSave ? 'save' : 'dry-run',
+      desiredCount: desiredRows.length,
+      actualCount: actualRows.length,
+      additionsCount: results.additions.length,
+      deletionsCount: results.deletions.length,
+      changesCount: results.changes.length,
+      unchangedCount: results.unchanged.length,
+      errorsCount: results.errors.length,
+      results,
+    };
+    const finalStatus = results.errors.length > 0 ? (results.additions.length > 0 || results.deletions.length > 0 || results.changes.length > 0 ? 'partial_success' : 'failed') : 'success';
+    await finishRun({ runId: run.id, status: finalStatus, summary, supabaseClient: supabase });
+    return summary;
+  } catch (error) {
+    await finishRun({
+      runId: run.id,
+      status: 'failed',
+      summary: {
+        desiredCount: 0,
+        actualCount: 0,
+        additionsCount: 0,
+        deletionsCount: 0,
+        changesCount: 0,
+        unchangedCount: 0,
+        errorsCount: 1,
+        results: { errors: [{ error: error.message }] },
+      },
+      errorSummary: error.message,
+      supabaseClient: supabase,
+    });
+    throw error;
+  }
 }
 
 module.exports = {

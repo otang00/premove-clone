@@ -136,6 +136,97 @@ async function fetchLatestImsReservationSync({ supabaseClient } = {}) {
   }
 }
 
+async function fetchLatestImsReservationSyncErrors({ supabaseClient, syncRunId } = {}) {
+  if (!syncRunId) return []
+
+  const { data, error } = await supabaseClient
+    .from('reservation_sync_errors')
+    .select('id, ims_reservation_id, stage, error_code, error_message, created_at')
+    .eq('sync_run_id', syncRunId)
+    .order('created_at', { ascending: false })
+    .limit(5)
+
+  if (error) {
+    throw error
+  }
+
+  return Array.isArray(data)
+    ? data.map((row) => ({
+      id: row.id,
+      imsReservationId: row.ims_reservation_id || '',
+      stage: row.stage || '',
+      errorCode: row.error_code || '',
+      errorMessage: row.error_message || '',
+      createdAt: row.created_at || null,
+    }))
+    : []
+}
+
+async function fetchLatestZzimcarSync({ supabaseClient } = {}) {
+  const { data, error } = await supabaseClient
+    .from('zzimcar_sync_runs')
+    .select('id, sync_mode, status, started_at, finished_at, desired_count, actual_count, additions_count, deletions_count, changes_count, unchanged_count, failed_count, error_summary')
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    const message = String(error.message || '')
+    if (message.includes('zzimcar_sync_runs')) {
+      return null
+    }
+    throw error
+  }
+
+  if (!data) {
+    return null
+  }
+
+  return {
+    id: data.id,
+    syncMode: data.sync_mode || 'dry-run',
+    status: data.status || 'unknown',
+    startedAt: data.started_at || null,
+    finishedAt: data.finished_at || null,
+    updatedAt: data.finished_at || data.started_at || null,
+    desiredCount: Number(data.desired_count || 0),
+    actualCount: Number(data.actual_count || 0),
+    additionsCount: Number(data.additions_count || 0),
+    deletionsCount: Number(data.deletions_count || 0),
+    changesCount: Number(data.changes_count || 0),
+    unchangedCount: Number(data.unchanged_count || 0),
+    failedCount: Number(data.failed_count || 0),
+    errorSummary: data.error_summary || '',
+  }
+}
+
+async function fetchLatestZzimcarSyncErrors({ supabaseClient } = {}) {
+  const { data, error } = await supabaseClient
+    .from('zzimcar_disable_time_sync_mappings')
+    .select('ims_reservation_id, car_number, sync_status, last_error, updated_at')
+    .in('sync_status', ['sync_failed', 'delete_failed'])
+    .order('updated_at', { ascending: false })
+    .limit(5)
+
+  if (error) {
+    const message = String(error.message || '')
+    if (message.includes('zzimcar_disable_time_sync_mappings')) {
+      return []
+    }
+    throw error
+  }
+
+  return Array.isArray(data)
+    ? data.map((row) => ({
+      imsReservationId: row.ims_reservation_id || '',
+      carNumber: row.car_number || '',
+      syncStatus: row.sync_status || '',
+      errorMessage: row.last_error || '',
+      updatedAt: row.updated_at || null,
+    }))
+    : []
+}
+
 async function handleList(req, res, supabaseClient) {
   const tab = normalizeTab(req.query?.tab)
   const q = String(req.query?.q || '').trim()
@@ -155,9 +246,15 @@ async function handleList(req, res, supabaseClient) {
     throw error
   }
 
-  const [fallbackCarNumberById, latestImsSync] = await Promise.all([
+  const [fallbackCarNumberById, latestImsSync, latestZzimcarSync] = await Promise.all([
     fetchFallbackCarNumbers({ supabaseClient, rows: data }),
     fetchLatestImsReservationSync({ supabaseClient }),
+    fetchLatestZzimcarSync({ supabaseClient }),
+  ])
+
+  const [imsSyncErrors, zzimcarSyncErrors] = await Promise.all([
+    fetchLatestImsReservationSyncErrors({ supabaseClient, syncRunId: latestImsSync?.id }),
+    fetchLatestZzimcarSyncErrors({ supabaseClient }),
   ])
 
   const items = (Array.isArray(data) ? data : [])
@@ -184,6 +281,9 @@ async function handleList(req, res, supabaseClient) {
       qField,
     },
     imsSync: latestImsSync,
+    imsSyncErrors,
+    zzimcarSync: latestZzimcarSync,
+    zzimcarSyncErrors,
   })
 }
 

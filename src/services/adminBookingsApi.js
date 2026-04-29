@@ -46,5 +46,8 @@ export async function getAdminBookings(session, params = {}) {
     total: Number(result.total || 0),
     filters: result.filters || {},
     imsSync: result.imsSync || null,
+    imsSyncErrors: Array.isArray(result.imsSyncErrors) ? result.imsSyncErrors : [],
+    zzimcarSync: result.zzimcarSync || null,
+    zzimcarSyncErrors: Array.isArray(result.zzimcarSyncErrors) ? result.zzimcarSyncErrors : [],
   }
 }
