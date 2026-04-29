@@ -1,10 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { PageShell } from '../components/Layout'
 import { useAuth } from '../hooks/useAuth'
 import { isAdminUser } from '../utils/adminAccess'
 import {
-  buildPricingHubPreview,
   getPricingHubPolicyEditor,
   listPricingHubGroups,
 } from '../services/adminPricingHubApi'
@@ -70,12 +69,8 @@ function buildComputedRate(legacyPolicy, base24Input, adjustedBase24hInput) {
   return {
     originalBase24h,
     adjustedBase24h,
-    weekdayRatePercent,
-    weekendRatePercent,
     weekdayApplied24h,
     weekendApplied24h,
-    weekdayDiscountAmount: Math.max(0, adjustedBase24h - weekdayApplied24h),
-    weekendDiscountAmount: Math.max(0, adjustedBase24h - weekendApplied24h),
     fee6h: roundAmount(weekdayApplied24h * ratios.fee6h),
     fee12h: roundAmount(weekdayApplied24h * ratios.fee12h),
     fee1h: roundAmount(weekdayApplied24h * ratios.fee1h),
@@ -99,9 +94,8 @@ export default function AdminPricingHubPage() {
   const [editorError, setEditorError] = useState('')
   const [base24hInput, setBase24hInput] = useState(0)
   const [adjustedBase24hInput, setAdjustedBase24hInput] = useState(0)
-  const [previewResult, setPreviewResult] = useState(null)
   const [submitMessage, setSubmitMessage] = useState('')
-  const [submitting, setSubmitting] = useState(false)
+  const selectionCardRef = useRef(null)
 
   const hasAdminHint = useMemo(() => isAdminUser(user) || isAdminUser(profile), [profile, user])
   const selectedGroup = groups.find((item) => item.carGroupId === selectedCarGroupId) || null
@@ -193,26 +187,12 @@ export default function AdminPricingHubPage() {
     }
   }, [session, selectedCarGroupId])
 
-  async function refreshEditor() {
-    if (!session?.access_token || !selectedCarGroupId) return
-    const result = await getPricingHubPolicyEditor(session, selectedCarGroupId)
-    setEditor(result)
-  }
+  useEffect(() => {
+    if (!selectedCarGroupId || !selectionCardRef.current) return
+    if (typeof window === 'undefined' || window.innerWidth > 960) return
 
-  async function handleBuildPreview() {
-    if (!session?.access_token || !selectedCarGroupId) return
-    setSubmitting(true)
-    setSubmitMessage('')
-    try {
-      const result = await buildPricingHubPreview(session, { carGroupId: selectedCarGroupId })
-      setPreviewResult(result)
-      setSubmitMessage('미리보기 생성 완료')
-    } catch (error) {
-      setSubmitMessage(error.message || '미리보기 실패')
-    } finally {
-      setSubmitting(false)
-    }
-  }
+    selectionCardRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [selectedCarGroupId])
 
   return (
     <PageShell>
@@ -234,7 +214,7 @@ export default function AdminPricingHubPage() {
             {editorError ? <p className="field-note" style={{ color: '#be123c', margin: 0 }}>{editorError}</p> : null}
             {submitMessage ? <p className="field-note" style={{ margin: 0 }}>{submitMessage}</p> : null}
 
-            <div style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(280px, 360px) minmax(0, 1fr)' }}>
+            <div className="pricing-hub-layout" style={{ display: 'grid', gap: 16, gridTemplateColumns: 'minmax(280px, 360px) minmax(0, 1fr)', alignItems: 'start' }}>
               <div className="panel-sub" style={{ display: 'grid', gap: 10, alignContent: 'start' }}>
                 <strong>IMS 그룹 / 정책 목록</strong>
                 {groupsLoading ? <p className="field-note" style={{ margin: 0 }}>불러오는 중입니다.</p> : null}
@@ -253,8 +233,8 @@ export default function AdminPricingHubPage() {
                 ))}
               </div>
 
-              <div style={{ display: 'grid', gap: 16 }}>
-                <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
+              <div className="pricing-hub-editor-column" style={{ display: 'grid', gap: 16, alignContent: 'start' }}>
+                <div ref={selectionCardRef} className="panel-sub" style={{ display: 'grid', gap: 8 }}>
                   <strong>선택 그룹</strong>
                   {selectedGroup ? (
                     <>
@@ -270,7 +250,7 @@ export default function AdminPricingHubPage() {
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
                   <strong>기준값 조정</strong>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
-                  <div className="form-grid">
+                  <div style={{ display: 'grid', gap: 12 }}>
                     <Field label="기준 24시간 금액">
                       <input className="field-input" type="text" readOnly value={formatMoney(computedPreview.originalBase24h)} />
                     </Field>
@@ -278,36 +258,11 @@ export default function AdminPricingHubPage() {
                       <input className="field-input" type="number" value={adjustedBase24hInput} onChange={(e) => setAdjustedBase24hInput(e.target.value)} />
                     </Field>
                   </div>
-                  <div className="reservation-result-row" style={{ whiteSpace: 'nowrap', overflowX: 'auto', gap: 16 }}><span>주중 적용금액 {formatMoney(computedPreview.weekdayApplied24h)}</span><span>주말 적용금액 {formatMoney(computedPreview.weekendApplied24h)}</span><span>주중 할인금액 {formatMoney(computedPreview.weekdayDiscountAmount)}</span><span>주말 할인금액 {formatMoney(computedPreview.weekendDiscountAmount)}</span></div>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                    <button className="btn btn-outline btn-md" type="button" disabled={submitting || !selectedCarGroupId} onClick={handleBuildPreview}>저장된 허브 preview</button>
+                  <div style={{ display: 'grid', gap: 12, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
+                    <div className="reservation-result-row"><span>주중 24시간 요금</span><strong>{formatMoney(computedPreview.weekdayApplied24h)}</strong></div>
+                    <div className="reservation-result-row"><span>주말 24시간 요금</span><strong>{formatMoney(computedPreview.weekendApplied24h)}</strong></div>
                   </div>
                 </div>
-
-                <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>참고 계산값</strong>
-                  <div className="form-grid">
-                    <div className="reservation-result-row"><span>1시간</span><strong>{formatMoney(computedPreview.fee1h)}</strong></div>
-                    <div className="reservation-result-row"><span>6시간</span><strong>{formatMoney(computedPreview.fee6h)}</strong></div>
-                    <div className="reservation-result-row"><span>12시간</span><strong>{formatMoney(computedPreview.fee12h)}</strong></div>
-                    <div className="reservation-result-row"><span>1주</span><strong>{formatMoney(computedPreview.week1Price)}</strong></div>
-                    <div className="reservation-result-row"><span>2주</span><strong>{formatMoney(computedPreview.week2Price)}</strong></div>
-                    <div className="reservation-result-row"><span>1개월</span><strong>{formatMoney(computedPreview.month1Price)}</strong></div>
-                  </div>
-                </div>
-
-                <div className="panel-sub" style={{ display: 'grid', gap: 8 }}>
-                  <strong>기간 정책</strong>
-                  <p className="field-note" style={{ margin: 0 }}>기간 정책은 나중에 별도 카드로 분리합니다. 지금은 기준값 조정만 먼저 봅니다.</p>
-                </div>
-
-                {previewResult ? (
-                  <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                    <strong>저장된 허브 preview 결과</strong>
-                    <div className="reservation-result-row"><span>preview id</span><strong>{previewResult.previewId || '-'}</strong></div>
-                    <div className="reservation-result-row"><span>항목 수</span><strong>{previewResult.itemCount || 0}</strong></div>
-                  </div>
-                ) : null}
               </div>
             </div>
           </article>

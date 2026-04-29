@@ -668,7 +668,23 @@
   overflow:auto;
 }
 
+.pricing-hub-layout{
+  align-items:start;
+}
+
+.pricing-hub-editor-column{
+  align-content:start;
+}
+
 @media (max-width: 960px){
+  .pricing-hub-layout{
+    grid-template-columns:1fr !important;
+  }
+
+  .pricing-hub-editor-column{
+    order:2;
+  }
+
   .reservation-result-card{
     padding:14px;
   }
