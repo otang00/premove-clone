@@ -9,9 +9,6 @@ import {
   listPricingHubGroups,
 } from '../services/adminPricingHubApi'
 
-const PERCENT_STEP_OPTIONS = [-10, -5, 5, 10]
-const AMOUNT_STEP_OPTIONS = [-10000, -5000, -1000, 1000, 5000, 10000]
-
 function Field({ label, children }) {
   return (
     <label style={{ display: 'grid', gap: 6 }}>
@@ -32,14 +29,6 @@ function roundAmount(value) {
 
 function formatMoney(value) {
   return `${Number(value || 0).toLocaleString('ko-KR')}원`
-}
-
-function formatStep(value) {
-  const amount = Math.abs(value)
-  const sign = value > 0 ? '+' : '-'
-  if (amount % 10000 === 0) return `${sign}${amount / 10000}만원`
-  if (amount % 1000 === 0) return `${sign}${amount / 1000}천원`
-  return `${sign}${amount.toLocaleString('ko-KR')}원`
 }
 
 function computeRatios(legacyPolicy) {
@@ -69,11 +58,9 @@ function computeRatios(legacyPolicy) {
   }
 }
 
-function buildComputedRate(legacyPolicy, base24Input, percentAdjustment = 0, amountAdjustment = 0) {
+function buildComputedRate(legacyPolicy, base24Input, adjustedBase24hInput) {
   const originalBase24h = roundAmount(base24Input)
-  const percent = toNumber(percentAdjustment, 0)
-  const amount = toNumber(amountAdjustment, 0)
-  const adjustedBase24h = roundAmount(originalBase24h * (1 + percent / 100) + amount)
+  const adjustedBase24h = roundAmount(adjustedBase24hInput)
   const ratios = computeRatios(legacyPolicy)
   const weekdayRatePercent = toNumber(legacyPolicy?.weekdayRatePercent, 100)
   const weekendRatePercent = toNumber(legacyPolicy?.weekendRatePercent, 100)
@@ -82,8 +69,6 @@ function buildComputedRate(legacyPolicy, base24Input, percentAdjustment = 0, amo
 
   return {
     originalBase24h,
-    percentAdjustment: percent,
-    amountAdjustment: amount,
     adjustedBase24h,
     weekdayRatePercent,
     weekendRatePercent,
@@ -113,8 +98,7 @@ export default function AdminPricingHubPage() {
   const [editorLoading, setEditorLoading] = useState(false)
   const [editorError, setEditorError] = useState('')
   const [base24hInput, setBase24hInput] = useState(0)
-  const [baseAdjustPercent, setBaseAdjustPercent] = useState(0)
-  const [baseAdjustAmount, setBaseAdjustAmount] = useState(0)
+  const [adjustedBase24hInput, setAdjustedBase24hInput] = useState(0)
   const [previewResult, setPreviewResult] = useState(null)
   const [submitMessage, setSubmitMessage] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -123,8 +107,8 @@ export default function AdminPricingHubPage() {
   const selectedGroup = groups.find((item) => item.carGroupId === selectedCarGroupId) || null
   const selectedPolicy = editor?.policies?.[0] || null
   const computedPreview = useMemo(
-    () => buildComputedRate(selectedPolicy?.legacyPolicy, base24hInput, baseAdjustPercent, baseAdjustAmount),
-    [selectedPolicy, base24hInput, baseAdjustPercent, baseAdjustAmount],
+    () => buildComputedRate(selectedPolicy?.legacyPolicy, base24hInput, adjustedBase24hInput),
+    [selectedPolicy, base24hInput, adjustedBase24hInput],
   )
 
   useEffect(() => {
@@ -190,9 +174,9 @@ export default function AdminPricingHubPage() {
         setEditor(result)
         setEditorError('')
         const legacyPolicy = result?.policies?.[0]?.legacyPolicy || {}
-        setBase24hInput(toNumber(legacyPolicy.baseDailyPrice, 0))
-        setBaseAdjustPercent(0)
-        setBaseAdjustAmount(0)
+        const nextBase24h = toNumber(legacyPolicy.baseDailyPrice, 0)
+        setBase24hInput(nextBase24h)
+        setAdjustedBase24hInput(nextBase24h)
       })
       .catch((error) => {
         if (ignore) return
@@ -213,19 +197,6 @@ export default function AdminPricingHubPage() {
     if (!session?.access_token || !selectedCarGroupId) return
     const result = await getPricingHubPolicyEditor(session, selectedCarGroupId)
     setEditor(result)
-  }
-
-  function applyPercentStep(step) {
-    setBaseAdjustPercent((prev) => prev + step)
-  }
-
-  function applyAmountStep(step) {
-    setBaseAdjustAmount((prev) => prev + step)
-  }
-
-  function resetBaseAdjustments() {
-    setBaseAdjustPercent(0)
-    setBaseAdjustAmount(0)
   }
 
   async function handleBuildPreview() {
@@ -251,7 +222,7 @@ export default function AdminPricingHubPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
               <div>
                 <h1 style={{ margin: 0 }}>RENTCAR00 PRICING HUB</h1>
-                <p className="small-note" style={{ marginTop: 8 }}>지금은 기준값 조정만 먼저 보고, 기간정책은 나중에 분리합니다.</p>
+                <p className="small-note" style={{ marginTop: 8 }}>기준 24시간 금액은 잠그고, 조정 후 24시간 기준값만 바로 입력합니다.</p>
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <Link className="btn btn-outline btn-md" to="/admin/bookings">예약관리로</Link>
@@ -299,48 +270,18 @@ export default function AdminPricingHubPage() {
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
                   <strong>기준값 조정</strong>
                   {editorLoading ? <p className="field-note" style={{ margin: 0 }}>편집 데이터를 불러오는 중입니다.</p> : null}
-                  <div className="reservation-result-row"><span>기존 24시간 기준값</span><strong>{formatMoney(computedPreview.originalBase24h)}</strong></div>
                   <div className="form-grid">
                     <Field label="기준 24시간 금액">
-                      <input className="field-input" type="number" value={base24hInput} onChange={(e) => setBase24hInput(e.target.value)} />
+                      <input className="field-input" type="text" readOnly value={formatMoney(computedPreview.originalBase24h)} />
                     </Field>
                     <Field label="조정 후 24시간 기준값">
-                      <input className="field-input" type="text" readOnly value={formatMoney(computedPreview.adjustedBase24h)} />
+                      <input className="field-input" type="number" value={adjustedBase24hInput} onChange={(e) => setAdjustedBase24hInput(e.target.value)} />
                     </Field>
                   </div>
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    <span className="field-note" style={{ fontWeight: 600 }}>기존 24시간 기준값 조정값</span>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {PERCENT_STEP_OPTIONS.map((step) => (
-                        <button key={`percent-${step}`} className="btn btn-outline btn-md" type="button" onClick={() => applyPercentStep(step)}>
-                          {step > 0 ? '+' : ''}{step}%
-                        </button>
-                      ))}
-                    </div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      {AMOUNT_STEP_OPTIONS.map((step) => (
-                        <button key={`amount-${step}`} className="btn btn-outline btn-md" type="button" onClick={() => applyAmountStep(step)}>
-                          {formatStep(step)}
-                        </button>
-                      ))}
-                    </div>
-                    <div className="reservation-result-row"><span>누적 % 조정</span><strong>{baseAdjustPercent > 0 ? '+' : ''}{baseAdjustPercent}%</strong></div>
-                    <div className="reservation-result-row"><span>누적 금액 조정</span><strong>{baseAdjustAmount > 0 ? '+' : ''}{formatMoney(Math.abs(baseAdjustAmount)).replace('원', '')}{baseAdjustAmount < 0 ? '원 차감' : '원 추가'}</strong></div>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                      <button className="btn btn-dark btn-md" type="button" onClick={resetBaseAdjustments}>조정 초기화</button>
-                      <button className="btn btn-outline btn-md" type="button" disabled={submitting || !selectedCarGroupId} onClick={handleBuildPreview}>저장된 허브 preview</button>
-                    </div>
+                  <div className="reservation-result-row" style={{ whiteSpace: 'nowrap', overflowX: 'auto', gap: 16 }}><span>주중 적용금액 {formatMoney(computedPreview.weekdayApplied24h)}</span><span>주말 적용금액 {formatMoney(computedPreview.weekendApplied24h)}</span><span>주중 할인금액 {formatMoney(computedPreview.weekdayDiscountAmount)}</span><span>주말 할인금액 {formatMoney(computedPreview.weekendDiscountAmount)}</span></div>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                    <button className="btn btn-outline btn-md" type="button" disabled={submitting || !selectedCarGroupId} onClick={handleBuildPreview}>저장된 허브 preview</button>
                   </div>
-                </div>
-
-                <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
-                  <strong>자동 계산 확인값</strong>
-                  <div className="reservation-result-row"><span>주중 적용 비율</span><strong>{computedPreview.weekdayRatePercent}%</strong></div>
-                  <div className="reservation-result-row"><span>주중 적용 24시간 금액</span><strong>{formatMoney(computedPreview.weekdayApplied24h)}</strong></div>
-                  <div className="reservation-result-row"><span>주중 할인금액</span><strong>{formatMoney(computedPreview.weekdayDiscountAmount)}</strong></div>
-                  <div className="reservation-result-row"><span>주말 적용 비율</span><strong>{computedPreview.weekendRatePercent}%</strong></div>
-                  <div className="reservation-result-row"><span>주말 적용 24시간 금액</span><strong>{formatMoney(computedPreview.weekendApplied24h)}</strong></div>
-                  <div className="reservation-result-row"><span>주말 할인금액</span><strong>{formatMoney(computedPreview.weekendDiscountAmount)}</strong></div>
                 </div>
 
                 <div className="panel-sub" style={{ display: 'grid', gap: 12 }}>
