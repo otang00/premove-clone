@@ -721,6 +721,10 @@
   color:rgba(255,255,255,0.82);
 }
 
+.btn.pricing-hub-group-card.is-active .pricing-hub-group-card__meta strong{
+  color:#ffffff;
+}
+
 @media (max-width: 960px){
   .pricing-hub-layout{
     grid-template-columns:1fr !important;
