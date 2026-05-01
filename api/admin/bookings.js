@@ -200,11 +200,21 @@ async function fetchLatestZzimcarSync({ supabaseClient } = {}) {
   }
 }
 
-async function fetchLatestZzimcarSyncErrors({ supabaseClient } = {}) {
-  const { data, error } = await supabaseClient
+async function fetchLatestZzimcarSyncErrors({ supabaseClient, latestSync } = {}) {
+  if (!latestSync?.startedAt) return []
+  if (Number(latestSync.failedCount || 0) <= 0) return []
+
+  let query = supabaseClient
     .from('zzimcar_disable_time_sync_mappings')
     .select('ims_reservation_id, car_number, sync_status, last_error, updated_at')
     .in('sync_status', ['sync_failed', 'delete_failed'])
+    .gte('updated_at', latestSync.startedAt)
+
+  if (latestSync.finishedAt) {
+    query = query.lte('updated_at', latestSync.finishedAt)
+  }
+
+  const { data, error } = await query
     .order('updated_at', { ascending: false })
     .limit(5)
 
@@ -254,7 +264,7 @@ async function handleList(req, res, supabaseClient) {
 
   const [imsSyncErrors, zzimcarSyncErrors] = await Promise.all([
     fetchLatestImsReservationSyncErrors({ supabaseClient, syncRunId: latestImsSync?.id }),
-    fetchLatestZzimcarSyncErrors({ supabaseClient }),
+    fetchLatestZzimcarSyncErrors({ supabaseClient, latestSync: latestZzimcarSync }),
   ])
 
   const items = (Array.isArray(data) ? data : [])
