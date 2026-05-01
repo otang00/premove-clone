@@ -10,6 +10,19 @@ function toIsoOrNull(value) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString();
 }
 
+function assertValidScheduleWindow({ imsReservationId, startAt, endAt }) {
+  const startMs = new Date(startAt).getTime();
+  const endMs = new Date(endAt).getTime();
+
+  if (Number.isNaN(startMs) || Number.isNaN(endMs)) {
+    throw new Error(`schedule start/end is invalid for ${imsReservationId}`);
+  }
+
+  if (endMs <= startMs) {
+    throw new Error(`schedule end_at must be after start_at for ${imsReservationId}`);
+  }
+}
+
 function mapImsStatus(rawStatus) {
   const value = String(rawStatus || '').toLowerCase();
 
@@ -49,6 +62,7 @@ function normalizeSchedule(schedule, rawPayloadRefId = null) {
   if (!startAt || !endAt) {
     throw new Error(`schedule start/end is invalid for ${imsReservationId}`);
   }
+  assertValidScheduleWindow({ imsReservationId, startAt, endAt });
 
   const detail = schedule.detail || {};
   const normalizedStatus = mapImsStatus(rawStatus);
@@ -108,4 +122,5 @@ module.exports = {
   mapImsStatus,
   normalizeSchedule,
   toIsoOrNull,
+  assertValidScheduleWindow,
 };

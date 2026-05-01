@@ -26,32 +26,46 @@ Last updated: 2026-04-30
 
 ## 2. 다음 우선순위
 
-### Priority 1. 계산 검수
+### Priority 1. 월차/보름 source 반영 설계
 목표:
-- 저장 후 실제 값이 운영 기대값과 맞는지 확인
+- IMS monthly API 구조를 pricing hub 계산 기준에 반영
 
-확인 항목:
-- 기준24 변경 시 `common.fee_24h` 저장값
-- 주중% 변경 시 `weekday.fee_24h` 저장값
-- 주말% 변경 시 `weekend.fee_24h` 저장값
-- 1h / 6h / 12h 계산값
-- week_1 / week_2 / month_1 / long 계산값
+확인된 source:
+- `GET /v2/group-cost-tables/monthly?page=1`
+- 필드:
+  - `d15_total_cost`
+  - `d15_daily_cost`
+  - `d15_security_deposit`
+  - `m1_total_cost`
+  - `m1_daily_cost`
+  - `m1_security_deposit`
+
+핵심 과제:
+- 15일 초과 시 `15일 금액` vs `일차 누적 금액` 비교 규칙 반영
+- 30일 단위 + 잔여일 계산식 반영
+- daily source 와 monthly source 결합 key 확정
+- 장기 4개 입력값 기준 잠금
+  - `d15_total_cost`
+  - `d15_daily_cost`
+  - `m1_total_cost`
+  - `m1_daily_cost`
 
 종료 조건:
-- 계산 결과가 사장님 기대값과 맞는지 최소 1~2개 그룹으로 검수 완료
+- 보름/월차 계산 source 와 규칙이 문서 기준으로 잠김
+- 장기 4개 입력값 설계 기준 초안 확보
 
-### Priority 2. 계산식 미세조정
+### Priority 2. 장기 입력값 기준 설계
 목표:
-- legacy 비율/fallback 이 실제 운영값과 안 맞는 부분 있으면 수정
+- 월차 가격이 공격적으로 낮은 상황에서도 15일/30일/잔여일 역전이 덜 생기게 기준을 잡기
 
-후보:
-- `week1Price`, `week2Price` fallback 비율
-- `month1Price = 24배` 규칙
-- `long1hPrice = 0.1배` fallback
-- 반올림 단위 원단위 vs 100원 단위
+핵심 질문:
+- 15일 총액을 14일 단기합 대비 어느 수준으로 둘지
+- 15일 daily 를 보조값으로 어떻게 둘지
+- 30일 총액이 매우 낮을 때 15일 총액을 어떤 범위로 잡을지
+- 30일 daily 를 15일 daily 보다 얼마나 낮게 둘지
 
 종료 조건:
-- active 계산 규칙 문서와 코드가 일치
+- 차급별 또는 그룹별 장기 입력값 설계 원칙 초안 확보
 
 ### Priority 3. 저장 후 피드백 UX
 목표:
@@ -76,11 +90,11 @@ Last updated: 2026-04-30
 
 ## 3. 다음 시작 추천 순서
 
-1. 실제 그룹 1개 선택
-2. 기준24 / 주중% / 주말% 몇 개 바꿔 저장
-3. DB row 확인
-4. 기대값과 차이 나는 계산식만 좁혀 수정
-5. 그 다음 IMS 반영 문서화
+1. monthly API source 기준 문서 확인
+2. 실제 그룹 1개로 daily / monthly source 매핑 확인
+3. 15일 초과 계산식 확정
+4. 30일 계산식 확정
+5. 그 다음 코드 수정 범위 잠금
 
 ---
 
