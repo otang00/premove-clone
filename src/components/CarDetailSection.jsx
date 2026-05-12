@@ -96,6 +96,52 @@ function resolvePaymentChannel() {
 
 let kcpPcScriptPromise = null
 
+function getKcpPcRuntimeConfig(scriptUrl) {
+  const isTest = String(scriptUrl || '').includes('testpay.kcp.co.kr')
+  const baseUrl = isTest ? 'https://testspay.kcp.co.kr/' : 'https://spay.kcp.co.kr/'
+  const version = `oc_${Date.now()}`
+
+  return {
+    baseUrl,
+    version,
+    scripts: [
+      `${baseUrl}js/kcp_jquery-1.8.0.js?ver=${version}`,
+      `${baseUrl}plugin/kcp_spay_cross_hub.js?ver=${version}`,
+      `${baseUrl}js/kcp_jquery.blockUI.js?ver=${version}`,
+      `${baseUrl}js/ClientDataHandler.js?ver=${version}`,
+      `${baseUrl}js/npayUtils.js?ver=${version}`,
+    ],
+  }
+}
+
+function loadScriptSequentially(url) {
+  return new Promise((resolve, reject) => {
+    const existing = document.querySelector(`script[data-kcp-src="${url}"]`)
+    if (existing?.dataset.loaded === 'true') {
+      resolve()
+      return
+    }
+
+    if (existing) {
+      existing.addEventListener('load', () => resolve(), { once: true })
+      existing.addEventListener('error', () => reject(new Error(`KCP 스크립트를 불러오지 못했습니다: ${url}`)), { once: true })
+      return
+    }
+
+    const script = document.createElement('script')
+    script.src = url
+    script.async = false
+    script.charset = 'euc-kr'
+    script.dataset.kcpSrc = url
+    script.onload = () => {
+      script.dataset.loaded = 'true'
+      resolve()
+    }
+    script.onerror = () => reject(new Error(`KCP 스크립트를 불러오지 못했습니다: ${url}`))
+    document.body.appendChild(script)
+  })
+}
+
 function loadKcpPcScript(scriptUrl) {
   if (!scriptUrl) {
     return Promise.reject(new Error('PC 결제 스크립트 주소를 확인하지 못했습니다.'))
@@ -115,37 +161,26 @@ function loadKcpPcScript(scriptUrl) {
   }
 
   if (!kcpPcScriptPromise) {
-    kcpPcScriptPromise = new Promise((resolve, reject) => {
-      const waitUntilReady = () => {
-        const startedAt = Date.now()
+    kcpPcScriptPromise = (async () => {
+      const runtime = getKcpPcRuntimeConfig(scriptUrl)
+      window.KCP_NPAY_DOMAIN = runtime.baseUrl
+      window.KCP_SPAY_DOMAIN = runtime.baseUrl
+      window.KCP_NPAY_Script_VERSION = runtime.version
 
-        const poll = () => {
-          if (isKcpPcReady()) {
-            resolve(window.KCP_Pay_Execute)
-            return
-          }
-
-          if (Date.now() - startedAt > 5000) {
-            reject(new Error('KCP PC 결제 스크립트 초기화가 지연되고 있습니다. 다시 시도해 주세요.'))
-            return
-          }
-
-          window.setTimeout(poll, 50)
-        }
-
-        poll()
+      for (const url of runtime.scripts) {
+        await loadScriptSequentially(url)
       }
 
-      const script = document.createElement('script')
-      script.src = scriptUrl
-      script.async = true
-      script.charset = 'euc-kr'
-      script.onload = () => {
-        waitUntilReady()
+      if (typeof window.KCP_Pay_Execute !== 'function' && typeof window.KCP_Pay_Execute_Web === 'function') {
+        window.KCP_Pay_Execute = (form) => window.KCP_Pay_Execute_Web(form)
       }
-      script.onerror = () => reject(new Error('KCP PC 결제 스크립트를 불러오지 못했습니다.'))
-      document.body.appendChild(script)
-    }).catch((error) => {
+
+      if (!isKcpPcReady()) {
+        throw new Error('KCP PC 결제 스크립트 초기화가 완료되지 않았습니다. 다시 시도해 주세요.')
+      }
+
+      return window.KCP_Pay_Execute
+    })().catch((error) => {
       kcpPcScriptPromise = null
       throw error
     })
