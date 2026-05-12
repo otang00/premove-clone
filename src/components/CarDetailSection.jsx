@@ -79,6 +79,130 @@ function submitExternalPaymentForm(actionUrl, fields = {}) {
   form.submit()
 }
 
+function resolvePaymentChannel() {
+  if (typeof window === 'undefined' || typeof navigator === 'undefined') {
+    return 'mobile_web'
+  }
+
+  const userAgent = String(navigator.userAgent || '')
+  const touchPoints = Number(navigator.maxTouchPoints || 0)
+  const isTablet = /iPad|Tablet|Nexus 7|Nexus 10|SM-T|Tab/i.test(userAgent)
+    || (/Macintosh/i.test(userAgent) && touchPoints > 1)
+  const isMobile = /Mobi|Android|iPhone|iPod|IEMobile|Windows Phone/i.test(userAgent)
+  const isTouchDesktopLike = window.innerWidth <= 1180 && touchPoints > 1
+
+  return (isTablet || isMobile || isTouchDesktopLike) ? 'mobile_web' : 'pc_web'
+}
+
+let kcpPcScriptPromise = null
+
+function loadKcpPcScript(scriptUrl) {
+  if (!scriptUrl) {
+    return Promise.reject(new Error('PC 결제 스크립트 주소를 확인하지 못했습니다.'))
+  }
+
+  if (typeof window === 'undefined') {
+    return Promise.reject(new Error('브라우저 환경을 확인하지 못했습니다.'))
+  }
+
+  if (typeof window.KCP_Pay_Execute === 'function') {
+    return Promise.resolve(window.KCP_Pay_Execute)
+  }
+
+  if (!kcpPcScriptPromise) {
+    kcpPcScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script')
+      script.src = scriptUrl
+      script.async = true
+      script.charset = 'euc-kr'
+      script.onload = () => {
+        if (typeof window.KCP_Pay_Execute === 'function') {
+          resolve(window.KCP_Pay_Execute)
+          return
+        }
+
+        reject(new Error('KCP PC 결제 스크립트를 불러왔지만 실행 함수를 찾지 못했습니다.'))
+      }
+      script.onerror = () => reject(new Error('KCP PC 결제 스크립트를 불러오지 못했습니다.'))
+      document.body.appendChild(script)
+    }).catch((error) => {
+      kcpPcScriptPromise = null
+      throw error
+    })
+  }
+
+  return kcpPcScriptPromise
+}
+
+async function openKcpPcPayment({ actionUrl, scriptUrl, fields = {}, onError } = {}) {
+  await loadKcpPcScript(scriptUrl)
+
+  const form = document.createElement('form')
+  form.name = 'kcp_order_info'
+  form.method = 'POST'
+  form.action = actionUrl
+  form.acceptCharset = 'euc-kr'
+  form.style.display = 'none'
+
+  Object.entries(fields || {}).forEach(([key, value]) => {
+    const input = document.createElement('input')
+    input.type = 'hidden'
+    input.name = key
+    input.value = value == null ? '' : String(value)
+    form.appendChild(input)
+  })
+
+  document.body.appendChild(form)
+
+  const cleanup = () => {
+    if (window.__kcpPcCompletePayment === completeHandler) {
+      delete window.__kcpPcCompletePayment
+    }
+    if (window.m_Completepayment === completeHandler) {
+      delete window.m_Completepayment
+    }
+    form.remove()
+  }
+
+  const completeHandler = (formOrJson, closeEvent) => {
+    try {
+      if (typeof window.GetField === 'function') {
+        window.GetField(form, formOrJson)
+      }
+
+      const resultCode = form.querySelector('input[name="res_cd"]')?.value || ''
+      const resultMessage = form.querySelector('input[name="res_msg"]')?.value || ''
+
+      if (resultCode === '0000') {
+        form.submit()
+        return
+      }
+
+      if (typeof closeEvent === 'function') {
+        closeEvent()
+      }
+      cleanup()
+      onError?.(new Error(resultMessage || '결제가 취소되었거나 인증에 실패했습니다.'))
+    } catch (error) {
+      if (typeof closeEvent === 'function') {
+        closeEvent()
+      }
+      cleanup()
+      onError?.(error instanceof Error ? error : new Error('PC 결제창 처리에 실패했습니다.'))
+    }
+  }
+
+  window.__kcpPcCompletePayment = completeHandler
+  window.m_Completepayment = completeHandler
+
+  try {
+    window.KCP_Pay_Execute(form)
+  } catch (error) {
+    cleanup()
+    throw error instanceof Error ? error : new Error('PC 결제창 실행에 실패했습니다.')
+  }
+}
+
 function formatDisplay(dateText) {
   const [datePart = '', timePart = ''] = dateText.split(' ')
   const [year, month, day] = datePart.split('-').map(Number)
@@ -618,6 +742,7 @@ export default function CarDetailSection() {
         phoneVerificationId: reservationVerificationId,
         phoneVerificationToken: reservationVerificationToken,
         reservationAuthMode,
+        paymentChannel: resolvePaymentChannel(),
       }, {
         session,
       })
@@ -627,6 +752,19 @@ export default function CarDetailSection() {
       }
 
       setIsReservationConfirmOpen(false)
+
+      if (result.paymentFlow === 'kcp_pc_standard') {
+        await openKcpPcPayment({
+          actionUrl: result.actionUrl,
+          scriptUrl: result.scriptUrl,
+          fields: result.formFields || {},
+          onError: (error) => {
+            setReservationSubmitError(error.message || '결제가 취소되었거나 인증에 실패했습니다.')
+          },
+        })
+        return
+      }
+
       submitExternalPaymentForm(result.actionUrl, result.formFields || {})
     } catch (error) {
       setReservationSubmitError(error.message || '결제 준비에 실패했습니다.')

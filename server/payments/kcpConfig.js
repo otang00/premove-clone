@@ -4,10 +4,12 @@ const KCP_ENDPOINTS = {
   test: {
     tradeRegisterUrl: 'https://testsmpay.kcp.co.kr/trade/register.do',
     approveUrl: 'https://stg-spl.kcp.co.kr/gw/enc/v1/payment',
+    pcScriptUrl: 'https://testpay.kcp.co.kr/plugin/payplus_web.jsp',
   },
   production: {
     tradeRegisterUrl: 'https://smpay.kcp.co.kr/trade/register.do',
     approveUrl: 'https://spl.kcp.co.kr/gw/enc/v1/payment',
+    pcScriptUrl: 'https://pay.kcp.co.kr/plugin/payplus_web.jsp',
   },
 }
 

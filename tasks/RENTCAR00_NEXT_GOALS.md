@@ -1,44 +1,34 @@
 # RENTCAR00 next goals
 
 ## active
-- PRICING_HUB 실적용 전환
+- KCP 결제창 PC/모바일 분기 구현
   - 상태: 현재 최우선 active 작업
-  - 목표: IMS 완전 호환을 우선으로 두고, 24h 기준금액 + 기간 percent 정책 + 실적용 금액 preview 중심의 운영 요금체계를 잠금
+  - 목표: PC는 KCP 표준웹, 모바일/태블릿은 KCP 모바일 결제창으로 분기하고 승인 후 예약확정 서버 흐름은 공통 유지
   - 잠긴 원칙:
-    1. IMS 반영이 최우선
-    2. 찜카는 같은 기준값에서 파생 반영
-    3. 안 맞는 찜카 옵션은 0원 처리 가능
-    4. 직접 수정 가능한 절대금액은 24h 기준값만
-    5. 기간 정책은 percent 조정만 허용
-    6. 시간별/장기 금액은 수식 계산
-    7. UI는 실제 적용 금액 즉시 확인 중심
+    1. 결제 전 검증/세션토큰/금액검증/예약생성 규칙은 공통 유지
+    2. 분기 대상은 결제창 진입 방식과 필수 파라미터 세트
+    3. 1차 결제수단은 카드만 유지
+    4. 한글 인코딩/이메일 alias 비노출 보정 유지
+    5. KCP hosted UI 커스터마이즈는 이번 범위 제외
   - 다음 액션:
-    1. PRICING_HUB UI 단순화
-    2. legacy 기준값 자동 주입 연결
-    3. 기간 percent 기반 preview 계산 규칙 잠금
-    4. IMS 반영 포맷 정리
-    5. 찜카 0원 처리 규칙 정리
-  - 현재 계산 규칙:
-    - 24h 직접 수정
-    - 기간 % 조정
-    - 1h/일수별은 legacy 비율 유지
-    - 6h fallback 0.55
-    - 12h fallback 0.80
+    1. `/api/payments/prepare` 채널별 payload 분기
+    2. 프런트 기기 판별 및 PC/모바일 결제 진입 분기
+    3. `/api/payments/return` 공통 승인 흐름 검증
+    4. PC/모바일 smoke test 및 운영 재배포
   - 현재 기준 문서:
-    - `docs/present/2026-04-29_RENTCAR00_PRICING_HUB_CURRENT.md`
-    - `docs/present/2026-04-29_RENTCAR00_PRICING_HUB_EXECUTION_CURRENT.md`
-    - `docs/present/2026-04-29_RENTCAR00_PRICING_HUB_UI_RULES_CURRENT.md`
-    - `docs/present/2026-04-29_RENTCAR00_PRICING_HUB_CALC_RULES_CURRENT.md`
+    - `docs/present/2026-05-12_RENTCAR00_KCP_PC_MOBILE_SPLIT_CURRENT.md`
+    - `docs/present/2026-05-11_RENTCAR00_PAYMENT_REBUILD_CURRENT.md`
+    - `docs/present/2026-05-11_RENTCAR00_PAYMENT_REBUILD_EXECUTION_CURRENT.md`
 
 - 토스페이먼츠 결제시스템 도입
-  - 상태: 신청 진행 중
-  - 다음 액션: 승인 완료 후 결제 상태/웹훅 설계 잠금
+  - 상태: 후속 검토 후보
+  - 다음 액션: KCP 승인흐름 안정화 후 UX/계약/정산 재검토
 
 - 카카오 쉬운연결
   - 상태: 다음 단기 작업 후보
   - 다음 액션: 기존 회원 귀속 정책과 병합 기준 먼저 정리
 
 ## note
-- 기존 범용 PRICING_HUB 초안 문서는 `docs/past/present-history/` 로 이동했다.
-- 예약 연동/찜카 disable_time 구현 문서는 완료되어 `docs/past/present-history/` 에 있다.
+- KCP phase1 기준 문서는 `docs/past/present-history/2026-05-11_RENTCAR00_KCP_PHASE1_CURRENT_PAST.md` 로 이동했다.
+- Pricing Hub grade multiplier 초안은 `docs/past/present-history/2026-05-06_RENTCAR00_PRICING_HUB_GRADE_MULTIPLIER_PLAN_CURRENT_PAST.md` 로 이동했다.
 - 제품 운영 상태 기준은 active present 문서를 우선한다.

@@ -43,6 +43,111 @@ function resolveBuyerEmail({ authUser, profile }) {
   return ''
 }
 
+function resolvePaymentChannel(value) {
+  const normalized = String(value || '').trim().toLowerCase()
+  if (normalized === 'pc_web' || normalized === 'mobile_web') {
+    return normalized
+  }
+  return 'mobile_web'
+}
+
+function buildMobilePaymentPayload({
+  trade,
+  orderId,
+  amount,
+  car,
+  returnUrl,
+  buyerName,
+  buyerPhone,
+  buyerEmail,
+  sessionToken,
+  kcpConfig,
+} = {}) {
+  return {
+    paymentChannel: 'mobile_web',
+    paymentFlow: 'kcp_mobile_hosted',
+    actionUrl: trade.PayUrl || trade.payUrl || '',
+    formFields: {
+      approval_key: trade.approvalKey || trade.approval_key || '',
+      approvalKey: trade.approvalKey || trade.approval_key || '',
+      PayUrl: trade.PayUrl || trade.payUrl || '',
+      ordr_idxx: orderId,
+      good_mny: stringifyAmount(amount),
+      good_name: `${car.display_name || car.name || '차량'} 예약`,
+      pay_method: 'CARD',
+      Ret_URL: returnUrl,
+      encoding_trans: 'UTF-8',
+      currency: '410',
+      buyr_name: buyerName,
+      buyr_tel2: buyerPhone,
+      buyr_mail: buyerEmail,
+      res_cd: trade.res_cd || '0000',
+      site_cd: trade.site_cd || kcpConfig.siteCode || '',
+      param_opt_1: sessionToken,
+      param_opt_2: 'website_booking',
+      session_token: sessionToken,
+    },
+  }
+}
+
+function buildPcPaymentPayload({
+  orderId,
+  amount,
+  car,
+  returnUrl,
+  buyerName,
+  buyerPhone,
+  buyerEmail,
+  sessionToken,
+  kcpConfig,
+} = {}) {
+  return {
+    paymentChannel: 'pc_web',
+    paymentFlow: 'kcp_pc_standard',
+    actionUrl: returnUrl,
+    scriptUrl: kcpConfig.pcScriptUrl,
+    formFields: {
+      good_name: `${car.display_name || car.name || '차량'} 예약`,
+      good_cd: String(car.source_car_id || car.id || ''),
+      good_mny: stringifyAmount(amount),
+      buyr_name: buyerName,
+      buyr_tel1: buyerPhone,
+      buyr_tel2: buyerPhone,
+      buyr_mail: buyerEmail,
+      ordr_idxx: orderId,
+      req_tx: 'pay',
+      site_cd: kcpConfig.siteCode || '',
+      site_name: 'BBANGBBANGCAR',
+      pay_method: '100000000000',
+      quotaopt: '12',
+      currency: 'WON',
+      module_type: '01',
+      res_cd: '',
+      res_msg: '',
+      enc_info: '',
+      enc_data: '',
+      ret_pay_method: '',
+      tran_cd: '',
+      use_pay_method: '',
+      ordr_chk: '',
+      cash_yn: '',
+      cash_tr_code: '',
+      cash_id_info: '',
+      good_expr: '0',
+      tax_flag: 'TG03',
+      comm_tax_mny: '',
+      comm_vat_mny: '',
+      comm_free_mny: '',
+      skin_indx: '1',
+      kcp_pay_title: 'BBANGBBANGCAR',
+      disp_tax_yn: 'N',
+      param_opt_1: sessionToken,
+      param_opt_2: 'website_booking',
+      session_token: sessionToken,
+    },
+  }
+}
+
 function getBody(req) {
   if (Buffer.isBuffer(req.body)) {
     req.body = req.body.toString('utf8')
@@ -414,6 +519,7 @@ async function handlePrepare(req, res) {
   }
 
   const payload = getBody(req)
+  const paymentChannel = resolvePaymentChannel(payload.paymentChannel)
   const validation = validateGuestBookingCreateInput(payload)
   if (!validation.isValid) {
     return res.status(400).json({
@@ -552,6 +658,28 @@ async function handlePrepare(req, res) {
     const baseUrl = buildBaseUrl(req)
     const returnUrl = `${baseUrl}/api/payments/return`
     const buyerEmail = resolveBuyerEmail({ authUser, profile })
+    const kcpConfig = getKcpConfig()
+
+    if (paymentChannel === 'pc_web') {
+      const pcPayload = buildPcPaymentPayload({
+        orderId,
+        amount,
+        car,
+        returnUrl,
+        buyerName: validation.normalized.customerName,
+        buyerPhone: validation.normalized.customerPhone,
+        buyerEmail,
+        sessionToken,
+        kcpConfig,
+      })
+
+      return res.status(200).json({
+        orderId,
+        amount: stringifyAmount(amount),
+        ...pcPayload,
+      })
+    }
+
     const trade = await registerKcpTrade({
       orderId,
       amount,
@@ -562,32 +690,24 @@ async function handlePrepare(req, res) {
       buyerEmail,
       sessionToken,
     })
-    const kcpConfig = getKcpConfig()
+
+    const mobilePayload = buildMobilePaymentPayload({
+      trade,
+      orderId,
+      amount,
+      car,
+      returnUrl,
+      buyerName: validation.normalized.customerName,
+      buyerPhone: validation.normalized.customerPhone,
+      buyerEmail,
+      sessionToken,
+      kcpConfig,
+    })
 
     return res.status(200).json({
       orderId,
       amount: stringifyAmount(amount),
-      actionUrl: trade.PayUrl || trade.payUrl || '',
-      formFields: {
-        approval_key: trade.approvalKey || trade.approval_key || '',
-        approvalKey: trade.approvalKey || trade.approval_key || '',
-        PayUrl: trade.PayUrl || trade.payUrl || '',
-        ordr_idxx: orderId,
-        good_mny: stringifyAmount(amount),
-        good_name: `${car.display_name || car.name || '차량'} 예약`,
-        pay_method: 'CARD',
-        Ret_URL: returnUrl,
-        encoding_trans: 'UTF-8',
-        currency: '410',
-        buyr_name: validation.normalized.customerName,
-        buyr_tel2: validation.normalized.customerPhone,
-        buyr_mail: buyerEmail,
-        res_cd: trade.res_cd || '0000',
-        site_cd: trade.site_cd || kcpConfig.siteCode || '',
-        param_opt_1: sessionToken,
-        param_opt_2: 'website_booking',
-        session_token: sessionToken,
-      },
+      ...mobilePayload,
     })
   } catch (error) {
     return res.status(500).json({
