@@ -170,6 +170,8 @@
 3. 로그인 서버 API 래핑 여부 판단
 4. CAPTCHA/Turnstile 도입 여부 판단
 5. production 에서 실제 회원번호/비회원번호 시나리오 확인
+6. 회원 예약 상세의 운전자 정보 수정 가능 여부와 guest lookup token 경계 재검토
+   - active current: `docs/present/2026-05-14_RENTCAR00_CURRENT.md`
 
 ---
 

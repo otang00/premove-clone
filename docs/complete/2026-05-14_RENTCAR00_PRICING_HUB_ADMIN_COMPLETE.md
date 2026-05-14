@@ -2,13 +2,15 @@
 
 ## 문서 상태
 - 상태: complete
-- 목적: admin pricing hub 개편, DB cleanup, metadata backfill 완료 기준을 한 문서로 통합한다.
+- 목적: admin pricing hub 개편, DB cleanup, metadata backfill, legacy percent 제거 완료 기준을 한 문서로 통합한다.
 
 ## 이번 완료 범위
 1. admin pricing hub 화면 구조 개편 완료
 2. pricing hub dead code / unused table cleanup 완료
 3. `pricing_hub_rates.metadata` 기준값 backfill 완료
 4. admin / search 해석 기준 재정리 완료
+5. legacy `price_policies.weekday_rate_percent` / `weekend_rate_percent` 제거 완료
+6. 오염 metadata `90 / 115` 정정 및 production 배포 완료
 
 ---
 
@@ -95,15 +97,18 @@ admin 이 직접 수정하는 값은 아래 4개다.
 - `weekdayPercent` → 기본 `90`
 - `weekendPercent` → 기본 `115`
 
-이미 `45 / 50` 으로 들어간 metadata 는 후속 current 에서 정정 대상이다.
+이미 `45 / 50` 으로 들어간 metadata 는 최종 정정 완료했다.
 
-후속 정리 기준:
-- `price_policies.weekday_rate_percent`, `price_policies.weekend_rate_percent` 는 삭제 대상이다.
+최종 정리 결과:
+- `price_policies.weekday_rate_percent`, `price_policies.weekend_rate_percent` 는 production migration 으로 삭제 완료했다.
 - pricing hub admin/import/search 코드에서는 위 legacy 컬럼을 참조하지 않는다.
+- `pricing_hub_rates.metadata.weekdayPercent`, `metadata.weekendPercent` 오염값은 `90 / 115` 로 정정 완료했다.
 
 ### 3-3. 결과
 - 대상: `pricing_hub_rates` 54 row
 - backfill 완료: 54 row
+- legacy 오염 metadata 정정: 54 row
+- 정정 후 dry-run 재확인: matched 0
 - 누락: 0 row
 
 ### 3-4. fallback 원칙
@@ -134,11 +139,13 @@ admin 이 직접 수정하는 값은 아래 4개다.
 - `v_pricing_hub_policy_editor`
 - `v_search_pricing_hub_policies`
 
-### 4-3. 보류 대상
-- `v_active_group_price_policies`
-- `price_policies` legacy 컬럼들
-
-이 대상은 즉시 삭제하지 않고 후속 current 에서 재판단한다.
+### 4-3. legacy percent 제거 완료
+- migration: `supabase/migrations/20260514231500_drop_price_policy_legacy_percents.sql`
+- 삭제 대상:
+  - `price_policies.weekday_rate_percent`
+  - `price_policies.weekend_rate_percent`
+- 관련 view 는 legacy percent 없이 재생성했다.
+- `v_active_group_price_policies` 는 migration 실행 시 존재하지 않아 skip notice 로 처리됐다.
 
 ---
 
@@ -147,25 +154,36 @@ admin 이 직접 수정하는 값은 아래 4개다.
 - `api/admin/pricing-hub.js`
 - `src/services/adminPricingHubApi.js`
 - `scripts/pricing/backfill-pricing-hub-rate-metadata.js`
+- `scripts/pricing/fix-pricing-hub-rate-percent-metadata.js`
+- `scripts/pricing/apply-group-pricing.js`
+- `scripts/pricing/build-group-pricing-preview.js`
+- `supabase/migrations/20260514231500_drop_price_policy_legacy_percents.sql`
 
 ---
 
 ## 6. 검증 기준
 - `npm run build` 통과
+- `npm run test:zzimcar-sync` 통과
 - admin pricing hub production 응답 200 확인
-- `pricing_hub_rates.metadata` 의 `base24h / weekdayPercent / weekendPercent` 저장 확인
+- production JS에 admin pricing hub chunk 반영 확인
+- `pricing_hub_rates.metadata` 정정 후 dry-run matched 0 확인
+- `https://rentcar00.com` alias 배포 완료
 
 ---
 
-## 7. 남은 후속 후보
-1. `v_search_pricing_hub_policies` view shape 슬림화
-2. `v_active_group_price_policies` 실제 참조 여부 최종 확인
-3. 차량 chip 클릭 시 차량/그룹 이동 기능 연결
-4. admin 실사용 피드백 반영 후 카드 밀도 조정
+## 7. 관련 커밋 / 배포
+- rollback 기준점: `d031300 docs: lock pricing hub percent rollback point`
+- 최종 반영: `eae02be fix: remove legacy pricing percent columns`
+- production alias: `https://rentcar00.com`
+
+## 8. 남은 후속 후보
+1. 차량 chip 클릭 시 차량/그룹 이동 기능 연결
+2. admin 실사용 피드백 반영 후 카드 밀도 조정
+3. 가격 미리보기 카드 순서/밀도 개선은 active current 에서 별도 처리
 
 ---
 
 ## 한 줄 결론
 2026-05-14 기준 pricing hub admin 은
-**변수형 truth + 연결 truth + metadata 보존 기준**으로 정리됐고,
+**변수형 truth + 연결 truth + metadata 보존 + legacy percent 제거**까지 완료됐고,
 기존 분산된 current 문서 내용은 이 complete 문서로 통합한다.

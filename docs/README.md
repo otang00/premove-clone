@@ -21,7 +21,9 @@
 실행 중 문서 여러 개를 남기지 말고 완료되면 complete 1개 문서로 통합한다.
 
 현재 complete:
+- `complete/2026-05-14_RENTCAR00_AUTH_AND_GUEST_FLOW_COMPLETE.md`
 - `complete/2026-05-14_RENTCAR00_PRICING_HUB_ADMIN_COMPLETE.md`
+- `complete/2026-05-14_RENTCAR00_ROUTE_SPLITTING_COMPLETE.md`
 
 원칙:
 - 구현 완료 범위

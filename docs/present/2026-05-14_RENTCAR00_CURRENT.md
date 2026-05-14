@@ -1,106 +1,138 @@
 # 2026-05-14 RENTCAR00 CURRENT
 
 ## 문서 상태
-- 상태: active issue lock
-- 목적: pricing hub admin 의 주중/주말 비율 오적용을 잠그고, 수정 전 기준점을 명확히 한다.
+- 상태: active current
+- 목적: 즉시 UI 수정 2건과 회원/비회원 예약 식별 경계 문제를 현재 작업 기준으로 잠근다.
 
-## 긴급 잠금: pricing hub weekday/weekend 비율 오적용
+## 현재 요청 1. 예약 약관 체크박스 색상 정리
 
 ### 문제
-관리자 pricing hub 화면에서 주중/주말 비율이 `45% / 50%` 로 보이는 문제가 확인됐다.
+예약 상세/결제 진입 화면의 약관 동의 체크박스가 과하게 빨간색으로 보인다.
 
-### 원인
-`45% / 50%` 는 IMS/legacy `price_policies.weekday_rate_percent`, `price_policies.weekend_rate_percent` 값이다.
-이 값이 admin pricing hub 의 `weekdayPercent`, `weekendPercent` backfill/fallback 기준으로 잘못 승격됐다.
+### 기준
+- 약관 체크박스는 빨간 강조 UI가 아니다.
+- 검정 테두리 박스 + 기본 체크 형태로 정리한다.
+- 전역 checkbox 스타일 변경은 피하고, 가능하면 `.terms-list` 영역으로만 한정한다.
 
-문제 지점:
-- `api/admin/pricing-hub.js`
-  - `buildEditorState()` 가 metadata 누락 시 `price_policies.weekday_rate_percent`, `price_policies.weekend_rate_percent` 를 fallback 으로 사용한다.
-  - `fallbackWeekday24h`, `fallbackWeekend24h` 도 같은 legacy percent 를 기준으로 계산한다.
-- `scripts/pricing/backfill-pricing-hub-rate-metadata.js`
-  - metadata backfill 시 `weekdayPercent`, `weekendPercent` 를 `price_policies` 의 legacy percent 로 채운다.
-- `docs/complete/2026-05-14_RENTCAR00_PRICING_HUB_ADMIN_COMPLETE.md`
-  - backfill 기준을 legacy percent 로 적어 둔 문서 오류가 있었다.
+### 대상 후보
+- `src/components/CarDetailSection.jsx`
+- `src/styles.css`
 
-### 고정 기준
-pricing hub admin 의 기본 주중/주말 기준은 아래다.
+### 종료 조건
+- 약관 동의 체크박스가 검정 테두리 기반으로 보인다.
+- 오류 문구/검증 상태의 빨간색은 필요한 범위에서만 유지된다.
+- 다른 checkbox UI에 불필요한 영향이 없다.
 
-- `base24h` 는 공통 기준 24시간 금액이다.
-- `weekdayPercent` 기본값은 `90` 이다. 즉 `weekday = base24h * 0.90` 이다.
-- `weekendPercent` 기본값은 `115` 이다. 즉 `weekend = base24h * 1.15` 이다.
-- 운영 표현으로는 주중 `-10%`, 주말 `+15%` 다.
-- `price_policies.weekday_rate_percent = 45`, `price_policies.weekend_rate_percent = 50` 은 IMS/legacy 값이며 pricing hub admin 기본 비율 truth 로 쓰면 안 된다.
+---
 
-### truth 해석
-- search/read model 이 실제로 읽는 최종 가격 truth 는 `pricing_hub_rates.fee_24h` 절대값이다.
-- `pricing_hub_rates.metadata.weekdayPercent`, `metadata.weekendPercent` 는 admin 입력/표시용 변수다.
-- 이 변수의 기본 기준은 `90 / 115` 이며, legacy `45 / 50` 에서 가져오면 안 된다.
-- 그룹별 조정은 가능하지만, 조정 전 baseline 은 반드시 `90 / 115` 다.
+## 현재 요청 2. 관리자 pricing hub 가격 미리보기 카드 순서 변경
 
-### 수정 전 금지 사항
-- `45 / 50` 을 pricing hub admin 의 정상 비율로 문서화하지 않는다.
-- `price_policies.weekday_rate_percent`, `weekend_rate_percent` 를 admin percent fallback 으로 계속 쓰지 않는다.
-- metadata 를 다시 backfill 할 때 legacy percent 를 재사용하지 않는다.
-- DB metadata 정정 없이 화면만 숨기는 방식으로 끝내지 않는다.
+### 문제
+관리자 pricing hub 가격 미리보기 카드의 상단 4개 순서가 실사용 시 직관적이지 않다.
 
-## 실행 phase
+### 기준
+상단 4개 카드는 아래 순서로 배치한다.
 
-### Phase 0. 롤백포인트
-- 커밋: `d031300 docs: lock pricing hub percent rollback point`
-- 역할: legacy percent 삭제 작업 전 문서 기준점
+1행:
+- `기준24`
+- `주말24`
 
-### Phase 1. 코드 기준 정정
-- 대상:
-  - `api/admin/pricing-hub.js`
-  - `src/pages/AdminPricingHubPage.jsx`
-  - `scripts/pricing/backfill-pricing-hub-rate-metadata.js`
-  - `scripts/pricing/apply-group-pricing.js`
-  - `scripts/pricing/build-group-pricing-preview.js`
-- 종료 조건:
-  - 신규/누락 metadata 의 기본 percent 가 `90 / 115` 로 고정된다.
-  - admin/API/import 코드에서 `price_policies.weekday_rate_percent`, `price_policies.weekend_rate_percent` 참조가 제거된다.
+2행:
+- `1시간`
+- `주중24`
 
-### Phase 2. DB 컬럼 삭제 migration
-- 대상:
-  - `price_policies.weekday_rate_percent`
-  - `price_policies.weekend_rate_percent`
-  - `v_pricing_hub_policy_editor`
-  - `v_search_pricing_hub_policies`
-- 종료 조건:
-  - 새 migration 에서 legacy percent 컬럼을 drop 한다.
-  - 관련 view 는 legacy percent 없이 재생성한다.
+즉 배열 순서는 아래로 잠근다.
+1. `기준24`
+2. `주말24`
+3. `1시간`
+4. `주중24`
 
-### Phase 3. metadata 정정 스크립트 준비
-- 대상:
-  - `pricing_hub_rates.metadata.weekdayPercent`
-  - `pricing_hub_rates.metadata.weekendPercent`
-- 종료 조건:
-  - `45 / 50` 류 legacy 오염값을 `90 / 115` 로 정정하는 dry-run/apply 스크립트를 준비한다.
-  - 운영 DB 반영은 별도 실행 승인을 받아야 한다.
+### 대상 후보
+- `src/pages/AdminPricingHubPage.jsx`
+- 필요 시 `src/styles.css`
 
-### Phase 4. 검증
-- 대상:
-  - 코드 정적 확인
-  - `npm run build`
-  - `npm run test:zzimcar-sync`
-  - 필요 시 `/admin/pricing-hub`
-- 종료 조건:
-  - 관리자 화면 비율이 `90 / 115` 기준으로 표시된다.
-  - 계산 주중24/주말24가 `base24h * 0.90 / 1.15` 기준과 일치한다.
-  - search 가격이 의도한 절대값을 읽는다.
+### 적용 지점 후보
+- 현재 적용 금액
+- 선택 정책 가격
+- 정책 가격 미리보기
 
-## 현재 확인한 근거
-- `docs/past/present-history/2026-05-13_RENTCAR00_PRICING_HUB_WEEKDAY_WEEKEND_BASELINE_CURRENT_PAST.md`
-  - `weekday = base24h의 -10%`
-  - `weekend = base24h의 +15%`
-- `server/search-db/pricing/calculateGroupPrice.js`
-  - search 계산은 `weekday_24h_price`, `weekend_24h_price` 절대값을 사용한다.
-- `supabase/migrations/20260514024500_slim_search_pricing_hub_view.sql`
-  - search view 는 `pricing_hub_rates.fee_24h` 를 우선 읽는다.
-- `api/admin/pricing-hub.js`
-  - admin editor state 에서 legacy percent fallback 이 남아 있다.
-- `scripts/pricing/backfill-pricing-hub-rate-metadata.js`
-  - metadata backfill 이 legacy percent 를 사용한다.
+### 종료 조건
+- 위 3개 MoneyGrid 출력에서 상단 4개 카드 순서가 동일하다.
+- 모바일 2열에서도 `기준24 / 주말24`, `1시간 / 주중24` 순서로 보인다.
+
+---
+
+## 현재 이슈 3. 회원 예약 운전자 정보 수정 가능 상태 재검토
+
+### 사용자 우려
+로그인한 회원 예약에서 잠겨 있어야 할 운전자 정보를 수정할 수 있는 상태로 보인다.
+이 경우 회원 예약인지 비회원 예약인지 판단 경계가 흐려질 수 있다.
+
+### 확인 필요
+아래는 아직 코드 확인 전 이슈 잠금이며, 사실 확정이 아니다.
+
+- 회원 예약 상세에서 운전자 정보 수정이 가능한지 확인 필요
+- 비회원 예약조회 OTP 흐름이 회원 여부를 먼저 차단하는지 재확인 필요
+- 로그인 회원 예약이 비회원 예약조회/lookup token 흐름과 섞이는지 확인 필요
+- 회원 예약의 운전자 정보는 회원 identity 기준으로 잠가야 하는지, 또는 수정 금지로 가야 하는지 판단 필요
+
+### 위험
+- 회원 예약을 비회원 예약처럼 다루면 소유자 식별과 개인정보 수정 권한이 꼬일 수 있다.
+- OTP가 단순 휴대폰 소유 확인만 하고 회원 세션 확인 없이 예약 접근을 열면, 회원 예약/비회원 예약 경계가 약해질 수 있다.
+- 운전자 정보 수정 허용 시 예약 원장과 회원 프로필/본인확인 기준이 불일치할 수 있다.
+
+### 1차 기준
+- 회원 예약은 로그인 세션 기준으로 확인한다.
+- 비회원 예약조회는 회원 전화번호를 차단해야 한다.
+- 회원 예약의 운전자 정보가 예약 후 잠금 대상이면 UI/API 양쪽에서 수정 불가로 맞춘다.
+- 수정 허용이 필요하다면 별도 인증/정책 기준을 먼저 정한다.
+
+### 조사 대상
+- `src/pages/MemberReservationDetailPage.jsx`
+- `src/services/memberBookingApi.js`
+- `api/member/bookings.js`
+- `api/guest-bookings/[action].js`
+- `server/booking-core/guestBookingService.js`
+- `server/auth/memberPhoneLookup.js`
+
+### 권장 phase
+
+#### Phase 1. 사실 확인
+- 회원 예약 상세의 운전자 정보 표시/수정 가능 여부 확인
+- member API와 guest API가 같은 예약 row를 어떻게 필터링하는지 확인
+- guest lookup OTP가 회원 번호를 차단하는지 실제 코드 기준으로 확인
+
+종료 조건:
+- 회원/비회원 예약 접근 경계가 코드 기준으로 정리된다.
+
+#### Phase 2. 정책 결정
+선택지는 둘 중 하나로 잠근다.
+
+A. 회원 예약 운전자 정보 수정 금지
+- 가장 보수적이다.
+- 예약 후 운전자 정보는 잠금 표시만 한다.
+
+B. 회원 예약 운전자 정보 수정 허용
+- 로그인 세션 + 추가 인증/정책 조건이 필요하다.
+- guest lookup token 경로와 절대 섞지 않는다.
+
+종료 조건:
+- UI/API 수정 기준이 확정된다.
+
+#### Phase 3. 구현
+- 확정된 정책만 반영한다.
+- 회원/비회원 흐름을 동시에 건드리지 않는다.
+
+종료 조건:
+- build 통과
+- 회원 예약 상세 확인
+- 비회원 예약조회 회원번호 차단 확인
+
+---
+
+## 완료로 넘긴 항목
+- pricing hub admin legacy percent 정리 current 는 past 로 이동했다.
+- 최종 완료 내용은 `docs/complete/2026-05-14_RENTCAR00_PRICING_HUB_ADMIN_COMPLETE.md` 에 통합한다.
 
 ## 한 줄 결론
-현재 pricing hub admin 의 `45% / 50%` 표시는 IMS/legacy 비율을 새 허브 변수로 잘못 사용한 오류이며, 정상 baseline 은 `weekday 90%`, `weekend 115%` 로 잠근다.
+현재 active 기준은 **약관 체크박스 UI, pricing hub 카드 순서, 회원 예약 운전자 정보 수정/회원·비회원 경계 재검토**다.

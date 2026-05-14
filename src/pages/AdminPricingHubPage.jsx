@@ -187,7 +187,7 @@ function MoneyGrid({ items = [] }) {
       {items.map((item, index) => (
         <div
           key={item.label}
-          className={`pricing-hub-money-card ${index < 3 ? 'is-primary' : ''}`}
+          className={`pricing-hub-money-card ${index < 4 ? 'is-primary' : ''}`}
         >
           <span className="small-note">{item.label}</span>
           <strong>{formatMoney(item.value)}</strong>
@@ -640,9 +640,9 @@ export default function AdminPricingHubPage() {
                       <InfoBlock title="현재 적용 금액">
                         <MoneyGrid items={[
                           { label: '기준24', value: currentAppliedPreview?.base24h },
-                          { label: '주중24', value: currentAppliedPreview?.weekdayApplied24h },
                           { label: '주말24', value: currentAppliedPreview?.weekendApplied24h },
                           { label: '1시간', value: currentAppliedPreview?.fee1h },
+                          { label: '주중24', value: currentAppliedPreview?.weekdayApplied24h },
                           { label: '7일', value: currentAppliedPreview?.week1Price },
                           { label: '14일', value: currentAppliedPreview?.week2Price },
                           { label: '30일', value: currentAppliedPreview?.month1Price },
@@ -689,9 +689,9 @@ export default function AdminPricingHubPage() {
                     <InfoBlock title={`선택 정책 가격 · ${selectedConnectionPolicyOption.policyName}`}>
                       <MoneyGrid items={[
                         { label: '기준24', value: connectionPolicyPreview?.base24h },
-                        { label: '주중24', value: connectionPolicyPreview?.weekdayApplied24h },
                         { label: '주말24', value: connectionPolicyPreview?.weekendApplied24h },
                         { label: '1시간', value: connectionPolicyPreview?.fee1h },
+                        { label: '주중24', value: connectionPolicyPreview?.weekdayApplied24h },
                         { label: '7일', value: connectionPolicyPreview?.week1Price },
                         { label: '14일', value: connectionPolicyPreview?.week2Price },
                         { label: '30일', value: connectionPolicyPreview?.month1Price },
@@ -759,9 +759,9 @@ export default function AdminPricingHubPage() {
                   <InfoBlock title="정책 가격 미리보기">
                     <MoneyGrid items={[
                       { label: '기준24', value: policyEditorPreview?.base24h },
-                      { label: '주중24', value: policyEditorPreview?.weekdayApplied24h },
                       { label: '주말24', value: policyEditorPreview?.weekendApplied24h },
                       { label: '1시간', value: policyEditorPreview?.fee1h },
+                      { label: '주중24', value: policyEditorPreview?.weekdayApplied24h },
                       { label: '7일', value: policyEditorPreview?.week1Price },
                       { label: '14일', value: policyEditorPreview?.week2Price },
                       { label: '30일', value: policyEditorPreview?.month1Price },
