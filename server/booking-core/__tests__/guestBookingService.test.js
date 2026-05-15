@@ -2,8 +2,17 @@
 
 const test = require('node:test')
 const assert = require('node:assert/strict')
+const fs = require('node:fs')
+const path = require('node:path')
 
 const { createGuestBooking } = require('../guestBookingService')
+
+function readPr4Migration() {
+  return fs.readFileSync(
+    path.join(__dirname, '../../../supabase/migrations/20260515160000_add_booking_creation_advisory_lock.sql'),
+    'utf8',
+  )
+}
 
 function createBookingOrder(overrides = {}) {
   return {
@@ -259,4 +268,40 @@ test('createGuestBooking returns existing booking when RPC reports payment refer
   assert.equal(result.deduped, true)
   assert.equal(result.booking.id, existingOrder.id)
 
+})
+
+test('PR4 RPC uses vehicle-scoped transaction advisory lock before overlap checks', () => {
+  const sql = readPr4Migration()
+
+  const carLookupIndex = sql.indexOf('where source_car_id = v_source_car_id')
+  const paymentDedupeIndex = sql.indexOf('where payment_provider = v_payment_provider')
+  const lockIndex = sql.indexOf("perform pg_advisory_xact_lock(")
+  const bookingOverlapIndex = sql.indexOf('from public.booking_orders\n  where car_id = v_car.id')
+  const imsOverlapIndex = sql.indexOf('from public.ims_sync_reservations')
+
+  assert.ok(carLookupIndex > -1)
+  assert.ok(paymentDedupeIndex > carLookupIndex)
+  assert.ok(lockIndex > paymentDedupeIndex)
+  assert.ok(bookingOverlapIndex > lockIndex)
+  assert.ok(imsOverlapIndex > bookingOverlapIndex)
+  assert.match(sql, /pg_advisory_xact_lock\(\s*hashtextextended\('rentcar00:booking:car:' \|\| v_car\.id::text, 0\)/)
+})
+
+test('PR4 RPC rechecks confirmed booking and IMS overlaps with end-exclusive boundaries after lock', () => {
+  const sql = readPr4Migration()
+  const afterLock = sql.slice(sql.indexOf('perform pg_advisory_xact_lock('))
+
+  assert.match(afterLock, /from public\.booking_orders\s+where car_id = v_car\.id\s+and booking_status = 'confirmed'\s+and pickup_at < v_return_at\s+and return_at > v_pickup_at/)
+  assert.match(afterLock, /from public\.ims_sync_reservations\s+where car_id = v_car\.source_car_id::text\s+and start_at < v_return_at\s+and end_at > v_pickup_at/)
+  assert.doesNotMatch(afterLock, /booking_status\s+in\s*\(/i)
+})
+
+test('PR4 RPC keeps scope narrow without exclusion constraint, extension, ledger, or non-transaction lock', () => {
+  const sql = readPr4Migration()
+
+  assert.doesNotMatch(sql, /create\s+extension/i)
+  assert.doesNotMatch(sql, /btree_gist/i)
+  assert.doesNotMatch(sql, /exclude\s+using/i)
+  assert.doesNotMatch(sql, /ledger/i)
+  assert.doesNotMatch(sql, /pg_advisory_lock\s*\(/)
 })
