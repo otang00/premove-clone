@@ -169,6 +169,7 @@
 - `cancelled` 는 non-blocking 상태다.
 - `in_use`, `completed`, `confirmation_pending`, `confirmed_pending_sync` 는 이번 홈페이지 원장 기준에서 제거 대상이다.
 - 취소/환불 로직은 `booking_status` 와 `payment_status` 를 같이 봐야 한다.
+- 예약/결제 생성 무결성, 중복 예약 방지, 결제 거래번호 멱등성, 단계별 안정화 계획은 `docs/policies/RENTCAR00_BOOKING_PAYMENT_INTEGRITY_V1.md` 를 함께 본다.
 
 ---
 

@@ -10,6 +10,7 @@
 - `../README.md`
 - `policies/RENTCAR00_POLICY.md`
 - `policies/RENTCAR00_PRICING_HUB.md`
+- `policies/RENTCAR00_BOOKING_PAYMENT_INTEGRITY_V1.md`
 
 원칙:
 - 장기 기준은 여기만 남긴다.
