@@ -63,7 +63,7 @@ function createDetailPath(item) {
 
 function toAdminBookingItem(order, fallbackCarNumberById = new Map()) {
   const item = serializeBookingOrder(order)
-  const fallbackCarNumber = fallbackCarNumberById.get(Number(order?.car_id)) || ''
+  const fallbackCarNumber = fallbackCarNumberById.get(String(order?.car_id || '').trim()) || ''
   return {
     id: item.id,
     reservationNumber: item.publicReservationCode,
@@ -83,8 +83,8 @@ function toAdminBookingItem(order, fallbackCarNumberById = new Map()) {
 async function fetchFallbackCarNumbers({ supabaseClient, rows } = {}) {
   const missingCarIds = (Array.isArray(rows) ? rows : [])
     .filter((row) => !(row?.pricing_snapshot?.carNumber) && row?.car_id)
-    .map((row) => Number(row.car_id))
-    .filter(Number.isFinite)
+    .map((row) => String(row.car_id).trim())
+    .filter(Boolean)
 
   const uniqueCarIds = [...new Set(missingCarIds)]
   if (uniqueCarIds.length === 0) {
@@ -100,7 +100,7 @@ async function fetchFallbackCarNumbers({ supabaseClient, rows } = {}) {
     throw error
   }
 
-  return new Map((Array.isArray(data) ? data : []).map((row) => [Number(row.id), String(row.car_number || '')]))
+  return new Map((Array.isArray(data) ? data : []).map((row) => [String(row.id), String(row.car_number || '')]))
 }
 
 async function fetchLatestImsReservationSync({ supabaseClient } = {}) {
