@@ -1,85 +1,116 @@
-import { useMemo, useState } from 'react'
-import { useLocation } from 'react-router-dom'
-import { Footer, Header } from '../components/Layout'
-import ContactInfoStrip from '../components/ContactInfoStrip'
-import SearchBox from '../components/SearchBox'
-import SearchResultsSection from '../components/SearchResultsSection'
-import { landingContactItems } from '../data/landing'
-
-function BookingGuideModal({ open, onClose }) {
-  if (!open) return null
-
-  return (
-    <div className="landing-v2-guide-backdrop" onClick={onClose}>
-      <div className="landing-v2-guide-dialog" role="dialog" aria-modal="true" aria-label="예약하는 방법" onClick={(event) => event.stopPropagation()}>
-        <div className="landing-v2-guide-dialog__head">
-          <div>
-            <span>예약 안내</span>
-            <strong>예약하는 방법</strong>
-          </div>
-          <button type="button" onClick={onClose} aria-label="닫기">×</button>
-        </div>
-        <div className="landing-v2-guide-steps">
-          <article><b>01</b><div><strong>딜리버리 위치 선택</strong><p>차량을 받을 지역을 먼저 선택합니다.</p></div></article>
-          <article><b>02</b><div><strong>대여·반납 일정 선택</strong><p>예약 가능한 시간 기준에 맞춰 일정을 선택합니다.</p></div></article>
-          <article><b>03</b><div><strong>차량 검색 후 결제</strong><p>예약 가능한 차량과 금액을 확인한 뒤 결제를 진행합니다.</p></div></article>
-          <article><b>04</b><div><strong>예약 확정 안내</strong><p>예약 완료 후 문자로 예약 정보를 안내합니다.</p></div></article>
-        </div>
-        <button className="landing-v2-guide-dialog__confirm" type="button" onClick={onClose}>확인했습니다</button>
-      </div>
-    </div>
-  )
-}
-
-function FixedHero({ onOpenGuide }) {
-  return (
-    <section className="landing-v2-fixed-hero" aria-label="빵빵카 렌터카 안내">
-      <picture className="landing-v2-fixed-hero__media">
-        <img src="/assets/hero/landing-v2-premium-sedan.png" alt="빵빵카 렌터카 예약" />
-      </picture>
-      <div className="landing-v2-fixed-hero__shade" />
-      <div className="landing-v2-fixed-hero__content">
-        <span className="landing-v2-fixed-hero__eyebrow">서울·수도권 딜리버리 렌터카</span>
-        <h1>서울·수도권 어디든<br />빠르게 딜리버리 렌터카 예약</h1>
-        <p>원하는 시간, 원하는 장소에서 간편하게 예약하세요.</p>
-        <button className="landing-v2-fixed-hero__guide-button" type="button" onClick={onOpenGuide}>예약하는 방법</button>
-      </div>
-    </section>
-  )
-}
-
-function FloatingSearchButton() {
-  return (
-    <a className="landing-v2-floating-search" href="#landing-v2-reservation">예약 가능 차량 검색</a>
-  )
-}
+import { Link } from 'react-router-dom'
 
 export default function LandingV2Page() {
-  const location = useLocation()
-  const [isGuideOpen, setIsGuideOpen] = useState(false)
-  const hasSearchQuery = useMemo(() => {
-    const params = new URLSearchParams(location.search)
-    return params.has('deliveryDateTime') && params.has('returnDateTime')
-  }, [location.search])
-
   return (
-    <div className="page-shell landing-shell landing-v2-simple-shell">
-      <Header brandName="빵빵카 주식회사" showGuestBookingAction />
-      <main className="landing-page landing-v2-simple-page">
-        <FixedHero onOpenGuide={() => setIsGuideOpen(true)} />
-        <section className="landing-v2-search-section" id="landing-v2-reservation">
-          <div className="container landing-section-stack">
-            <SearchBox compact />
+    <div className="mv2-page">
+      <header className="mv2-top">
+        <div className="mv2-top-inner">
+          <Link className="mv2-logo" to="/" aria-label="빵빵카">
+            <img src="/bbang-wordmark.png" alt="빵빵카" />
+          </Link>
+          <div className="mv2-top-actions">
+            <Link className="mv2-pill" to="/login">로그인</Link>
+            <Link className="mv2-pill" to="/guest-bookings">예약조회</Link>
+          </div>
+        </div>
+      </header>
+
+      <main>
+        <section className="mv2-hero" id="mv2-search">
+          <picture className="mv2-hero-media">
+            <source media="(max-width:760px)" srcSet="/assets/hero/hero-1-mobile.png" />
+            <img src="/assets/hero/hero-1-pc.png" alt="렌터카" />
+          </picture>
+          <div className="mv2-hero-shade" />
+          <div className="mv2-hero-inner">
+            <div className="mv2-hero-copy">
+              <span className="mv2-eyebrow">서울·수도권 딜리버리 렌터카</span>
+              <h1>위치와 시간만 고르면<br />차량 검색 완료</h1>
+              <p>예약 가능한 차량과 금액을 바로 확인하고 결제까지 진행합니다.</p>
+            </div>
           </div>
         </section>
-        {hasSearchQuery && <SearchResultsSection />}
-        <div className="landing-v2-contact-wrap">
-          <ContactInfoStrip items={landingContactItems} />
-        </div>
+
+        <section className="mv2-search-card">
+          <div className="mv2-search-head">
+            <strong>빠른 예약</strong>
+            <span>실시간 검색</span>
+          </div>
+
+          <div className="mv2-field">
+            <div className="mv2-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" aria-hidden="true">
+                <path d="M12 21s-6-5.2-6-10a6 6 0 1 1 12 0c0 4.8-6 10-6 10Z" />
+                <circle cx="12" cy="11" r="2" />
+              </svg>
+              딜리버리 위치
+            </div>
+            <div className="mv2-box"><b>지역을 선택해 주세요</b><small>선택</small></div>
+          </div>
+
+          <div className="mv2-field">
+            <div className="mv2-label">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="16" rx="3" />
+                <path d="M8 3v4M16 3v4M3 10h18" />
+              </svg>
+              예약 일정
+            </div>
+            <div className="mv2-dates">
+              <div className="mv2-datebox"><small>대여</small><b>05.20<br />10:00</b></div>
+              <div className="mv2-datebox"><small>반납</small><b>05.21<br />10:00</b></div>
+            </div>
+          </div>
+
+          <div className="mv2-field">
+            <div className="mv2-label">운전자 연령</div>
+            <div className="mv2-age">
+              <button type="button">만 21세~25세</button>
+              <button type="button" className="on">만 26세 이상</button>
+            </div>
+          </div>
+
+          <button className="mv2-search-btn" type="button">예약 가능 차량 검색</button>
+        </section>
+
+        <section className="mv2-trust">
+          <div><b>카드결제</b><span>온라인 결제 가능</span></div>
+          <div><b>SMS 안내</b><span>예약확정 문자 발송</span></div>
+          <div><b>카카오 상담</b><span>빠른 문의 연결</span></div>
+        </section>
+
+        <section className="mv2-section">
+          <div className="mv2-section-head"><h2>예약 흐름</h2><p>3단계</p></div>
+          <div className="mv2-flow">
+            <article className="mv2-flow-step"><div className="mv2-flow-num">01</div><div><strong>위치 선택</strong><span>딜리버리 지역을 먼저 선택합니다.</span></div></article>
+            <div className="mv2-flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></svg></div>
+            <article className="mv2-flow-step"><div className="mv2-flow-num">02</div><div><strong>일정 선택</strong><span>대여와 반납 시간을 정합니다.</span></div></article>
+            <div className="mv2-flow-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 5v14" /><path d="m19 12-7 7-7-7" /></svg></div>
+            <article className="mv2-flow-step"><div className="mv2-flow-num">03</div><div><strong>차량 선택·결제</strong><span>가능 차량 확인 후 예약합니다.</span></div></article>
+          </div>
+        </section>
+
+        <section className="mv2-section">
+          <div className="mv2-section-head"><h2>추천 차량</h2><p>24시간 기준가</p></div>
+          <div className="mv2-cars-row">
+            <article className="mv2-car"><div className="mv2-car-img"><img src="/assets/mock-cars/mock-car-1.jpg" alt="아반떼" /></div><div className="mv2-car-body"><span className="mv2-tag">만26세</span><h3>아반떼 (CN7)</h3><p>5인승 · LPG · 딜리버리 가능</p><div className="mv2-price"><div><small>24시간 기준가</small><b>56,000원</b></div><button type="button">검색</button></div></div></article>
+            <article className="mv2-car"><div className="mv2-car-img"><img src="/assets/mock-cars/mock-car-2.jpg" alt="셀토스" /></div><div className="mv2-car-body"><span className="mv2-tag">만26세</span><h3>더 뉴 셀토스</h3><p>5인승 · 가솔린 · 딜리버리 가능</p><div className="mv2-price"><div><small>24시간 기준가</small><b>72,000원</b></div><button type="button">검색</button></div></div></article>
+            <article className="mv2-car"><div className="mv2-car-img"><img src="/assets/mock-cars/mock-car-3.jpg" alt="카니발" /></div><div className="mv2-car-body"><span className="mv2-tag">만26세</span><h3>카니발 4세대</h3><p>9인승 · 디젤 · 딜리버리 가능</p><div className="mv2-price"><div><small>24시간 기준가</small><b>104,000원</b></div><button type="button">검색</button></div></div></article>
+          </div>
+        </section>
+
+        <section className="mv2-section">
+          <div className="mv2-section-head"><h2>상담 안내</h2><p>바로 연결</p></div>
+          <div className="mv2-contact-grid">
+            <article className="mv2-contact"><span>전화상담</span><strong>010-2416-7114</strong><p>운영시간 내 빠른 상담</p></article>
+            <article className="mv2-contact"><span>카카오톡</span><strong>00RENTCAR</strong><p>1:1 채팅 문의</p></article>
+            <article className="mv2-contact"><span>방문 주소</span><strong>서울 서초구</strong><p>신반포로23길 78-9</p></article>
+            <article className="mv2-contact"><span>운영시간</span><strong>09:00 - 18:00</strong><p>토요일 09:00 - 15:00</p></article>
+          </div>
+        </section>
       </main>
-      <Footer />
-      <BookingGuideModal open={isGuideOpen} onClose={() => setIsGuideOpen(false)} />
-      <FloatingSearchButton />
+
+      <nav className="mv2-bottom-cta"><a href="#mv2-search">예약 가능 차량 검색</a></nav>
     </div>
   )
 }
