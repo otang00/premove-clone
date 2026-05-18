@@ -1655,3 +1655,183 @@
     grid-template-columns:1fr;
   }
 }
+
+/* Landing v2 refinement: stronger contrast, blue CTAs, carousel cards */
+.landing-v2-shell{
+  --landing-v2-blue:#168fd0;
+  --landing-v2-blue-strong:#0f78b2;
+  --landing-v2-ink:#111827;
+  --landing-v2-muted:#35485d;
+}
+
+.landing-v2-shell .btn-dark,
+.landing-v2-booking-card .search-panel-footer > .btn-dark,
+.landing-v2-booking-card .btn-tab.is-active,
+.landing-v2-booking-card .btn-select.is-active{
+  background:var(--landing-v2-blue);
+  border-color:var(--landing-v2-blue);
+  color:#fff;
+}
+
+.landing-v2-shell .btn-dark:hover,
+.landing-v2-booking-card .search-panel-footer > .btn-dark:hover{
+  background:var(--landing-v2-blue-strong);
+  border-color:var(--landing-v2-blue-strong);
+}
+
+.landing-v2-nav .is-soft{
+  background:#e8f5fc;
+  color:#0f5f8f;
+}
+
+.landing-v2-nav .is-dark{
+  background:var(--landing-v2-blue);
+  color:#fff;
+}
+
+.landing-v2-copy p,
+.landing-v2-section__head p,
+.landing-v2-steps span,
+.landing-v2-car-card p,
+.landing-v2-car-card__bottom em,
+.landing-v2-booking-card .schedule-note,
+.landing-v2-booking-card .delivery-readonly-box{
+  color:#35485d;
+}
+
+.landing-v2-copy p,
+.landing-v2-keypoints span,
+.landing-v2-trust span{
+  color:#eef8ff;
+}
+
+.landing-v2-keypoints{
+  display:grid;
+  gap:8px;
+  max-width:560px;
+  margin-top:24px;
+  padding:16px 18px;
+  border:1px solid rgba(255,255,255,.22);
+  border-radius:18px;
+  background:rgba(12,24,40,.34);
+  backdrop-filter:blur(8px);
+}
+
+.landing-v2-keypoints strong{
+  color:#fff;
+  font-size:18px;
+  line-height:1.5;
+}
+
+.landing-v2-keypoints span{
+  font-size:14px;
+  line-height:1.65;
+}
+
+.landing-v2-actions,
+.landing-v2-btn,
+.landing-v2-btn--primary,
+.landing-v2-btn--ghost{
+  display:none;
+}
+
+.landing-v2-booking-card .search-panel-title,
+.landing-v2-booking-card .schedule-card-label,
+.landing-v2-steps strong,
+.landing-v2-car-card h3,
+.landing-v2-section__head h2,
+.landing-contact-card strong{
+  color:var(--landing-v2-ink);
+}
+
+.landing-v2-booking-card .btn-tab{
+  color:#25465d;
+  background:#e9f4fb;
+}
+
+.landing-v2-section__head p{
+  margin:0;
+  font-size:14px;
+  line-height:1.6;
+  font-weight:600;
+}
+
+.landing-v2-car-grid{
+  display:flex;
+  gap:14px;
+  overflow-x:auto;
+  padding:2px 2px 12px;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+}
+
+.landing-v2-car-grid::-webkit-scrollbar{
+  height:8px;
+}
+
+.landing-v2-car-grid::-webkit-scrollbar-thumb{
+  background:#b7d7e9;
+  border-radius:999px;
+}
+
+.landing-v2-car-card{
+  flex:0 0 min(310px, 82vw);
+  scroll-snap-align:start;
+}
+
+.landing-v2-car-card__bottom{
+  align-items:center;
+}
+
+.landing-v2-car-card__bottom div{
+  display:grid;
+  gap:4px;
+}
+
+.landing-v2-car-card__bottom em{
+  font-style:normal;
+  font-size:12px;
+  font-weight:800;
+}
+
+.landing-v2-car-card__bottom a{
+  background:var(--landing-v2-blue);
+}
+
+.landing-v2-car-card__bottom a:hover{
+  background:var(--landing-v2-blue-strong);
+}
+
+.landing-v2-shell .landing-contact-section{
+  padding-top:34px;
+}
+
+.landing-v2-shell .landing-contact-grid{
+  gap:14px;
+}
+
+.landing-v2-shell .landing-contact-card{
+  min-height:132px;
+  padding:18px;
+  border-color:#d7e5ee;
+  border-radius:20px;
+  background:#fff;
+  box-shadow:0 12px 30px rgba(23,33,43,.06);
+}
+
+.landing-v2-shell .landing-contact-card .field-label{
+  color:#0f78b2;
+  font-size:14px;
+  font-weight:900;
+}
+
+.landing-v2-shell .landing-contact-card p{
+  color:#40566a;
+  font-weight:600;
+}
+
+@media (max-width: 960px){
+  .landing-v2-keypoints{
+    margin-top:20px;
+  }
+}
